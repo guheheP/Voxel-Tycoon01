@@ -1,5 +1,5 @@
 /**
- * SaveSystem — LocalStorageベースのセーブ/ロードシステム (v2)
+ * SaveSystem — LocalStorageベースのセーブ/ロードシステム (v4 リアルタイム制)
  */
 import { GameConfig } from '../data/config.js';
 import { Recipes } from '../data/items.js';
@@ -7,8 +7,8 @@ import { AreaDefs } from '../data/areas.js';
 import { eventBus } from './EventBus.js';
 import { StatsTracker } from '../StatsTracker.js';
 
-const SAVE_KEY = 'voxelshop_save_v3';
-const LEGACY_KEYS = ['voxelshop_save_v2', 'voxelshop_save_v1'];
+const SAVE_KEY = 'voxelshop_save_v4';
+const LEGACY_KEYS = ['voxelshop_save_v3', 'voxelshop_save_v2', 'voxelshop_save_v1'];
 const AUTOSAVE_INTERVAL = 30;
 
 export class SaveSystem {
@@ -33,7 +33,7 @@ export class SaveSystem {
   save() {
     try {
       const data = {
-        version: 3,
+        version: 4,
         timestamp: Date.now(),
         gold: this.inventory.gold,
         maxCapacity: this.inventory.maxCapacity,
@@ -53,6 +53,10 @@ export class SaveSystem {
           id: a.id,
           level: a.level,
           exp: a.exp,
+          status: a.status,
+          timer: a.timer,
+          maxTimer: a.maxTimer,
+          currentArea: a.currentArea,
           weapon: a.equipment.weapon ? {
             blueprintId: a.equipment.weapon.blueprintId,
             quality: a.equipment.weapon.quality,
@@ -60,8 +64,7 @@ export class SaveSystem {
           } : null,
         })),
         day: this.dayCycle.day,
-        ap: this.dayCycle.ap,
-        maxAP: this.dayCycle.maxAP,
+        dayTimer: this.dayCycle.dayTimer,
         totalSales: this.dayCycle.totalSales,
         currentRankIndex: this.dayCycle.currentRankIndex,
         unlockedRecipes: Object.keys(Recipes).filter(k => Recipes[k].unlocked),
@@ -71,7 +74,7 @@ export class SaveSystem {
         quest: this.quest ? this.quest.toSaveData() : null,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-      console.log('[Save] ゲームを保存しました (v3)');
+      console.log('[Save] ゲームを保存しました (v4)');
     } catch (e) {
       console.error('[Save] 保存失敗:', e);
     }
@@ -122,17 +125,18 @@ export class SaveSystem {
         raw = localStorage.getItem(key);
         if (raw) {
           const data = JSON.parse(raw);
-          data.version = 3;
+          data.version = 4;
           data.maxCapacity = data.maxCapacity || GameConfig.initialInventoryCapacity;
           data.maxSlots = data.maxSlots || GameConfig.shopMaxDisplaySlots;
           data.purchasedUpgrades = data.purchasedUpgrades || [];
           data.quest = data.quest || null;
-          data.ap = data.ap != null ? data.ap : GameConfig.dailyAP;
-          data.maxAP = data.maxAP || GameConfig.dailyAP;
-          delete data.dayTimer;
+          // AP→リアルタイム: dayTimerを0にリセット
+          data.dayTimer = 0;
+          delete data.ap;
+          delete data.maxAP;
           localStorage.removeItem(key);
           localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-          console.log(`[Save] ${key} → v3 マイグレーション完了`);
+          console.log(`[Save] ${key} → v4 マイグレーション完了`);
           return data;
         }
       }

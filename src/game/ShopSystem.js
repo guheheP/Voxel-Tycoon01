@@ -1,118 +1,90 @@
 /**
- * ShopSystem — 商品の陳列と販売管理（AP制対応）
- * 陳列枠はアップグレード購入制、陳列時にAP消費
+ * ShopSystem — リアルタイム販売 + 陳列管理
  */
 import { GameConfig } from './data/config.js';
-import { UpgradeDefs } from './data/upgrades.js';
+import { ItemBlueprints } from './data/items.js';
 import { eventBus } from './core/EventBus.js';
+import { StatsTracker } from './StatsTracker.js';
 
 export class ShopSystem {
   constructor(inventorySystem) {
     this.inventory = inventorySystem;
     this.displayedItems = [];
     this.maxSlots = GameConfig.shopMaxDisplaySlots;
-
-    // 購入済みアップグレードID一覧
+    this.sellTimer = 0;
     this.purchasedUpgrades = [];
-
-    // DayCycleSystemの参照（main.jsでセットされる）
-    this.dayCycle = null;
   }
 
-  /**
-   * アップグレードを購入
-   */
-  purchaseUpgrade(upgradeId, currentRank) {
-    const def = UpgradeDefs.find(u => u.id === upgradeId);
-    if (!def) return false;
-    if (this.purchasedUpgrades.includes(upgradeId)) return false;
-    if (currentRank < def.requiredRank) return false;
-
-    if (!this.inventory.spendGold(def.cost)) {
-      eventBus.emit('toast', { message: '💸 ゴールドが足りません', type: 'error' });
-      return false;
+  /** 毎フレーム更新 — 自動販売チェック */
+  update(dt) {
+    if (this.displayedItems.length === 0) return;
+    this.sellTimer += dt;
+    if (this.sellTimer >= GameConfig.shopSellInterval) {
+      this.sellTimer = 0;
+      this._tryAutoSell();
     }
+  }
 
-    this.purchasedUpgrades.push(upgradeId);
-    this._applyUpgradeEffect(def);
-    eventBus.emit('upgrade:purchased', { upgrade: def });
-    eventBus.emit('toast', { message: `🏗️ ${def.name} を購入しました！`, type: 'success' });
+  /** 倉庫からアイテムを陳列 */
+  displayItem(uid) {
+    if (this.displayedItems.length >= this.maxSlots) return false;
+    const item = this.inventory.removeItem(uid);
+    if (!item) return false;
 
+    // 売値計算
+    item.value = this._calcValue(item);
+    this.displayedItems.push(item);
+    eventBus.emit('shop:displayed', { item });
     return true;
   }
 
-  _applyUpgradeEffect(def) {
-    switch (def.effect.type) {
-      case 'display_slots':
-        this.maxSlots += def.effect.value;
-        break;
-      case 'inventory_capacity':
-        this.inventory.expandCapacity(def.effect.value);
-        break;
-      case 'max_ap':
-        // AP上限はDayCycleSystemで適用
-        if (this.dayCycle) {
-          this.dayCycle.refreshMaxAP(this);
-        }
-        break;
-      // 他のエフェクトは対応するシステムが読み取る
+  /** 陳列棚から取り下げ */
+  removeDisplayedItem(uid) {
+    const idx = this.displayedItems.findIndex(i => i.uid === uid);
+    if (idx === -1) return null;
+    const item = this.displayedItems.splice(idx, 1)[0];
+    this.inventory.addItem(item);
+    return item;
+  }
+
+  /** お客さんが指定アイテムを購入 */
+  processSale(item, bonusMultiplier = 1) {
+    const idx = this.displayedItems.findIndex(i => i.uid === item.uid);
+    if (idx === -1) return false;
+
+    this.displayedItems.splice(idx, 1);
+    const price = Math.floor((item.value || 10) * bonusMultiplier);
+    this.inventory.addGold(price);
+
+    eventBus.emit('item:sold', { item, price });
+    StatsTracker.add('itemsSold', 1);
+    return true;
+  }
+
+  /** 自動販売（お客さんシステムなしのフォールバック） */
+  _tryAutoSell() {
+    if (this.displayedItems.length === 0) return;
+    // お客さんがいない場合のみ低確率で自動販売
+    const item = this.displayedItems[Math.floor(Math.random() * this.displayedItems.length)];
+    if (Math.random() < 0.15) {
+      this.processSale(item);
     }
   }
 
-  /** 指定エフェクトタイプの購入済み合計値を取得 */
-  getUpgradeTotal(effectType) {
-    let total = 0;
-    for (const id of this.purchasedUpgrades) {
-      const def = UpgradeDefs.find(u => u.id === id);
-      if (def && def.effect.type === effectType) {
-        total += def.effect.value;
-      }
-    }
-    return total;
+  _calcValue(item) {
+    const bp = ItemBlueprints[item.blueprintId];
+    if (!bp) return 10;
+    return Math.max(1, Math.floor(bp.baseValue * (item.quality / 50)));
   }
 
-  /** 指定IDのアップグレードが購入済みか */
+  /** アップグレード適用 */
+  applyUpgrade(upgradeId, effect) {
+    this.purchasedUpgrades.push(upgradeId);
+    if (effect.maxSlots) this.maxSlots += effect.maxSlots;
+  }
+
+  /** アップグレード購入済み判定 */
   isPurchased(upgradeId) {
     return this.purchasedUpgrades.includes(upgradeId);
   }
-
-  /**
-   * インベントリからお店の棚へアイテムを移動する（AP消費）
-   */
-  displayItem(uid) {
-    if (this.displayedItems.length >= this.maxSlots) return false;
-
-    // AP消費チェック
-    if (this.dayCycle && !this.dayCycle.spendAP(GameConfig.apCost.display)) {
-      return false;
-    }
-
-    const item = this.inventory.removeItem(uid);
-    if (item) {
-      this.displayedItems.push(item);
-      eventBus.emit('shop:displayed', { item });
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * お客さんが棚の商品を購入する（CustomerSystemから呼ばれる）
-   */
-  processSale(itemIndex) {
-    if (itemIndex < 0 || itemIndex >= this.displayedItems.length) return null;
-    
-    const item = this.displayedItems.splice(itemIndex, 1)[0];
-    if (!item) return null;
-
-    // 売値ボーナス (装飾アップグレード)
-    const sellBonus = this.getUpgradeTotal('sell_bonus');
-    const finalValue = Math.round(item.value * (1 + sellBonus));
-
-    this.inventory.addGold(finalValue);
-    eventBus.emit('item:sold', { item: { ...item, value: finalValue } });
-    return { ...item, value: finalValue };
-  }
-
-  // update(dt) は不要（AP制なのでリアルタイム自動販売しない）
 }

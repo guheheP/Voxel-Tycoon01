@@ -47,12 +47,12 @@
             <span class="status-label">維持費</span>
             <span id="rent-value" class="status-value rent-value">30G</span>
           </div>
-          <div class="status-item ap-display">
-            <span id="ap-label" class="ap-label">⚡ 10 / 10</span>
+          <div class="status-item day-display">
+            <span id="ap-label" class="day-timer-label">🌅 朝</span>
             <div class="day-progress-bar">
-              <div id="day-progress-fill" class="day-progress-fill" style="width:100%"></div>
+              <div id="day-progress-fill" class="day-progress-fill" style="width:0%"></div>
             </div>
-            <button id="skip-day-btn" class="btn skip-day-btn" title="残りAPをスキップして翌日へ">🌙 翌日</button>
+            <button id="skip-day-btn" class="btn skip-day-btn" title="すぐに翌日へ進む">🌙 翌日</button>
           </div>
           <div class="gold-display">
             <span class="gold-icon">🪙</span>
@@ -92,7 +92,7 @@
         <div class="panel content-panel">
           <div id="tab-inventory" class="content-section active">
             <h3>倉庫</h3>
-            <div id="inventory-list" class="item-grid"></div>
+            <div id="inventory-list"></div>
           </div>
 
           <div id="tab-crafting" class="content-section">

@@ -1,10 +1,30 @@
 /**
- * CustomerSystem — AP制対応のお客さん管理
- * AP消費時にランダムで来店、2AP消費後にマッチ商品がなければ帰る
+ * CustomerSystem — リアルタイムお客さん管理
  */
 import { GameConfig } from './data/config.js';
-import { CustomerDefs } from './data/customers.js';
 import { eventBus } from './core/EventBus.js';
+import { StatsTracker } from './StatsTracker.js';
+
+const CUSTOMER_NAMES = [
+  { name: '旅の商人', icon: '🧳', dialogue: '珍しいものはないかね？' },
+  { name: '見習い騎士', icon: '⚔️', dialogue: '武器を探しています！' },
+  { name: '森の薬師', icon: '🌿', dialogue: '良い薬草はある？' },
+  { name: 'お嬢様', icon: '👗', dialogue: 'キラキラしたものが欲しいわ' },
+  { name: '鍛冶屋の親方', icon: '🔨', dialogue: '素材を仕入れたい' },
+  { name: '冒険者', icon: '🗡️', dialogue: '冒険に必要なものを！' },
+  { name: '魔法使い', icon: '🧙', dialogue: '魔法の触媒を探している' },
+  { name: '村の子供', icon: '👦', dialogue: 'かっこいいの、ある？' },
+];
+
+const DEMAND_SETS = [
+  ['equipment'],
+  ['consumable'],
+  ['accessory'],
+  ['material'],
+  ['equipment', 'consumable'],
+  ['equipment', 'accessory'],
+  ['consumable', 'material'],
+];
 
 export class CustomerSystem {
   constructor(inventorySystem, shopSystem, randomEventSystem, reputationSystem) {
@@ -12,164 +32,91 @@ export class CustomerSystem {
     this.shop = shopSystem;
     this.events = randomEventSystem;
     this.reputation = reputationSystem;
-    this.activeCustomers = []; // 現在来店中のお客さん
-    this._customersToday = 0;  // 今日来店した客数
 
-    // AP消費時にお客さんの来店チャンス
-    eventBus.on('ap:spent', (d) => this._onAPSpent(d));
+    this.customers = [];
+    this.spawnTimer = 0;
+    this.customersToday = 0;
+    this.currentDay = 1;
 
-    // 日替わりで客リセット
-    eventBus.on('day:newDay', () => this._onNewDay());
-
-    // 陳列時にマッチ判定
-    eventBus.on('shop:displayed', () => this._checkMatches());
+    // 日替わりリセット
+    eventBus.on('day:newDay', () => {
+      this.customersToday = 0;
+      this.spawnTimer = 0;
+      this.customers = [];
+    });
   }
 
-  getActiveCustomers() {
-    return this.activeCustomers;
-  }
-
-  _onNewDay() {
-    // 残っている客を全員帰す
-    for (const customer of this.activeCustomers) {
-      eventBus.emit('customer:left', { name: customer.name, icon: customer.icon });
-    }
-    this.activeCustomers = [];
-    this._customersToday = 0;
-  }
-
-  _onAPSpent(data) {
-    // AP消費ごとに来店チャンスを判定
-    const cost = data.cost || 1;
-    for (let i = 0; i < cost; i++) {
-      this._trySpawnCustomer();
-    }
-
-    // 待機中の客の忍耐を更新 (AP消費1回ごとに1カウント)
-    for (let i = this.activeCustomers.length - 1; i >= 0; i--) {
-      const c = this.activeCustomers[i];
-      c.patienceCounter += cost;
-
-      // 忍耐限界を超えたら帰る
-      if (c.patienceCounter >= c.maxPatience) {
-        this.activeCustomers.splice(i, 1);
-        eventBus.emit('customer:left', { name: c.name, icon: c.icon });
-        eventBus.emit('inventory:changed');
+  /** 毎フレーム更新 */
+  update(dt) {
+    // 来店タイマー
+    this.spawnTimer += dt;
+    if (this.spawnTimer >= GameConfig.customerSpawnInterval) {
+      this.spawnTimer = 0;
+      if (this.customersToday < GameConfig.maxCustomersPerDay) {
+        this._spawnCustomer();
       }
     }
 
-    // 陳列中アイテムとの即時マッチ判定
-    this._checkMatches();
+    // 滞在タイマー
+    for (let i = this.customers.length - 1; i >= 0; i--) {
+      const c = this.customers[i];
+      c.timer -= dt;
+
+      // 商品チェック（3秒ごと）
+      c.checkTimer = (c.checkTimer || 0) + dt;
+      if (c.checkTimer >= 3) {
+        c.checkTimer = 0;
+        this._tryPurchase(c);
+      }
+
+      if (c.timer <= 0) {
+        this.customers.splice(i, 1);
+        eventBus.emit('customer:left', { customer: c, reason: 'timeout' });
+      }
+    }
   }
 
-  _trySpawnCustomer() {
-    // 最大来客数チェック
-    let maxCustomers = GameConfig.maxCustomersPerDay;
-    if (this.reputation) {
-      maxCustomers = Math.floor(maxCustomers * this.reputation.getCustomerRateMultiplier());
-    }
-    if (this.events && this.events.hasEffect('double_customers')) {
-      maxCustomers *= 2;
-    }
-
-    const totalActive = this.activeCustomers.length + this._customersToday;
-    if (totalActive >= maxCustomers) return;
-
-    // アップグレードによる来客率ボーナス
-    let spawnChance = GameConfig.customerSpawnChance;
-    if (this.shop) {
-      spawnChance += this.shop.getUpgradeTotal('customer_rate');
-    }
-
-    if (Math.random() >= spawnChance) return;
-
-    // 評判による客種プール
-    const availablePool = this.reputation
-      ? CustomerDefs.filter(c => this.reputation.getAvailableCustomerPool().includes(c.id))
-      : CustomerDefs;
-
-    if (availablePool.length === 0) return;
-
-    const def = availablePool[Math.floor(Math.random() * availablePool.length)];
-
-    // 忍耐は基本2AP + アップグレード補正
-    let patience = GameConfig.customerPatienceAP;
-    if (this.shop) {
-      patience += this.shop.getUpgradeTotal('patience_ap');
-    }
+  _spawnCustomer() {
+    const template = CUSTOMER_NAMES[Math.floor(Math.random() * CUSTOMER_NAMES.length)];
+    const demands = DEMAND_SETS[Math.floor(Math.random() * DEMAND_SETS.length)];
+    const patience = GameConfig.customerPatienceSeconds;
 
     const customer = {
-      ...def,
-      patienceCounter: 0,               // AP消費カウンタ
-      maxPatience: patience,             // AP消費何回で帰るか
-      timer: patience,                   // UI互換用
+      id: crypto.randomUUID(),
+      ...template,
+      demandTypes: demands,
+      timer: patience,
       maxTimer: patience,
+      checkTimer: 0,
     };
 
-    this.activeCustomers.push(customer);
-    this._customersToday++;
-
-    eventBus.emit('customer:arrived', {
-      name: def.name,
-      icon: def.icon,
-      dialogue: def.dialogue,
-    });
+    this.customers.push(customer);
+    this.customersToday++;
+    eventBus.emit('customer:arrived', { customer });
   }
 
-  /**
-   * 陳列中のアイテムとお客さんのマッチング
-   */
-  _checkMatches() {
-    for (let i = this.activeCustomers.length - 1; i >= 0; i--) {
-      const customer = this.activeCustomers[i];
-      const match = this._findMatch(customer);
-      if (match) {
-        this._processPurchase(customer, match, i);
-      }
+  _tryPurchase(customer) {
+    const matching = this.shop.displayedItems.filter(item =>
+      customer.demandTypes.includes(item.type)
+    );
+    if (matching.length === 0) return;
+
+    // 最も高いアイテムを購入
+    const best = matching.sort((a, b) => (b.value || 0) - (a.value || 0))[0];
+    const bonus = GameConfig.customerBonusMultiplier;
+    const sold = this.shop.processSale(best, bonus);
+
+    if (sold) {
+      // 評判アップ
+      if (this.reputation) this.reputation.addPoints(2);
+
+      // 客は買ったら帰る
+      const idx = this.customers.indexOf(customer);
+      if (idx !== -1) this.customers.splice(idx, 1);
+
+      eventBus.emit('customer:bought', { customer, item: best });
     }
   }
 
-  _findMatch(customer) {
-    for (const item of this.shop.displayedItems) {
-      if (customer.demandTypes.includes(item.type)) {
-        return item;
-      }
-    }
-    return null;
-  }
-
-  _processPurchase(customer, item, customerIndex) {
-    const idx = this.shop.displayedItems.indexOf(item);
-    if (idx === -1) return;
-    this.shop.displayedItems.splice(idx, 1);
-
-    // 価格計算
-    let price = Math.floor(item.value * GameConfig.customerBonusMultiplier * customer.priceMultiplier);
-
-    // 評判ボーナス
-    if (this.reputation) {
-      price = Math.floor(price * (1 + this.reputation.getPriceBonus()));
-    }
-
-    // イベント効果: 売上ボーナス
-    if (this.events && this.events.hasEffect('sell_bonus')) {
-      price = Math.floor(price * this.events.getEffectMultiplier('sell_bonus'));
-    }
-
-    this.inventory.addGold(price);
-
-    // お客さんを退場
-    this.activeCustomers.splice(customerIndex, 1);
-
-    eventBus.emit('customer:bought', {
-      customer,
-      customerName: customer.name,
-      item,
-      price,
-    });
-    eventBus.emit('item:sold', { item: { ...item, value: price } });
-    eventBus.emit('inventory:changed');
-  }
-
-  // update(dt) は不要（AP制）
+  getActiveCustomers() { return this.customers; }
 }

@@ -92,20 +92,20 @@
   color: var(--terracotta);
 }
 
-/* AP Gauge */
-.ap-display {
+/* Day Timer */
+.day-display {
   flex-direction: row !important;
   align-items: center;
   gap: 8px;
   min-width: 180px;
 }
-.ap-label {
+.day-timer-label {
   font-family: var(--font-title);
   font-size: 12px;
   font-weight: 700;
   color: var(--gold);
   white-space: nowrap;
-  min-width: 70px;
+  min-width: 90px;
   text-align: center;
 }
 .day-progress-bar {

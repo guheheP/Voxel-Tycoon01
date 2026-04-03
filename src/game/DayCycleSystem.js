@@ -1,168 +1,125 @@
 /**
- * DayCycleSystem — AP(行動ポイント)制の日数管理
- * プレイヤーの行動でAPを消費し、AP=0で日が終わる
+ * DayCycleSystem — リアルタイム日数サイクル + 翌日スキップ対応
+ * 調合タブ中は時間停止
  */
 import { GameConfig } from './data/config.js';
-import { Recipes, ItemBlueprints } from './data/items.js';
-import { AreaDefs } from './data/areas.js';
 import { eventBus } from './core/EventBus.js';
+import { StatsTracker } from './StatsTracker.js';
 
 export class DayCycleSystem {
   constructor(inventorySystem, questSystem) {
     this.inventory = inventorySystem;
-    this.questSystem = questSystem;
+    this.quest = questSystem;
     this.day = GameConfig.startingDay;
-    this.maxAP = GameConfig.dailyAP;
-    this.ap = this.maxAP;
+    this.dayTimer = 0;
+    this.dayDuration = GameConfig.dayDurationSeconds;
     this.totalSales = 0;
-    this.currentRankIndex = 0;
     this.isGameOver = false;
-    this.isGameCleared = false;
-    this._apSpentThisTurn = 0; // AP消費カウンタ（お客さん用）
+    this.paused = false;       // 調合タブなどで一時停止
 
-    // 販売実績を記録
-    eventBus.on('item:sold', (d) => {
-      this.totalSales += d.item.value;
-      if (this.questSystem) {
-        this.questSystem.updateTotalSales(this.totalSales);
-      }
+    // ランク定義
+    this.ranks = [
+      { name: '駆け出しの店',   salesGoal: 0 },
+      { name: '街角の雑貨屋',   salesGoal: 300 },
+      { name: '人気の錬金術店', salesGoal: 800 },
+      { name: '王都の名店',     salesGoal: 1800 },
+      { name: '大陸に名高い工房', salesGoal: 3500 },
+      { name: '伝説の錬金術師', salesGoal: 6000 },
+      { name: '世界の至宝',     salesGoal: 10000 },
+      { name: '神話の工房',     salesGoal: 20000 },
+    ];
+    this.currentRankIndex = 0;
+
+    // 売上追跡
+    this._unsubSold = eventBus.on('item:sold', (d) => {
+      this.totalSales += d.price || 0;
+      StatsTracker.add('totalRevenue', d.price || 0);
       this._checkRankUp();
     });
+
+    // 一時停止イベント
+    eventBus.on('game:pause', () => { this.paused = true; });
+    eventBus.on('game:resume', () => { this.paused = false; });
   }
 
-  get currentRank() {
-    return GameConfig.ranks[this.currentRankIndex];
-  }
-
-  get currentRent() {
-    return GameConfig.dailyRent + (this.currentRankIndex * GameConfig.rentIncreasePerRank);
-  }
-
-  /** dayProgressは AP消費率 (0=朝, 1=夜) */
+  /** 日数の進行度 (0〜1) */
   get dayProgress() {
-    return 1 - (this.ap / this.maxAP);
+    return Math.min(1, this.dayTimer / this.dayDuration);
   }
 
-  /**
-   * APを消費する（全行動の中心メソッド）
-   * @returns {boolean} 消費成功かどうか
-   */
-  spendAP(cost) {
-    if (this.isGameOver || cost <= 0) return false;
-    if (this.ap < cost) {
-      eventBus.emit('toast', { message: '⚡ 行動ポイントが足りません', type: 'error' });
-      return false;
-    }
-
-    this.ap -= cost;
-    this._apSpentThisTurn += cost;
-    eventBus.emit('ap:changed', { ap: this.ap, maxAP: this.maxAP });
-    eventBus.emit('ap:spent', { cost, remaining: this.ap });
-
-    // AP=0で自動的に日が終わる
-    if (this.ap <= 0) {
-      this._processNewDay();
-    }
-
-    return true;
+  get currentRank() { return this.ranks[this.currentRankIndex]; }
+  get currentRent() {
+    return GameConfig.dailyRent + this.currentRankIndex * GameConfig.rentIncreasePerRank;
   }
 
-  /** 翌日に進む（手動日送り） */
+  /** 毎フレーム呼ばれるリアルタイム更新 */
+  update(dt) {
+    if (this.isGameOver || this.paused) return;
+
+    this.dayTimer += dt;
+    if (this.dayTimer >= this.dayDuration) {
+      this._advanceDay();
+    }
+  }
+
+  /** 翌日ボタン — 即座に翌日へ進む */
   skipDay() {
     if (this.isGameOver) return;
-    this.ap = 0;
-    eventBus.emit('ap:changed', { ap: this.ap, maxAP: this.maxAP });
-    this._processNewDay();
+    this._advanceDay();
   }
 
-  /** 現在のMaxAP（アップグレード込み） */
-  getMaxAP(shopSystem) {
-    let bonus = 0;
-    if (shopSystem) {
-      bonus = shopSystem.getUpgradeTotal('max_ap');
-    }
-    return GameConfig.dailyAP + bonus;
+  /** 調合タブの一時停止 */
+  setPaused(paused) {
+    this.paused = paused;
   }
 
-  /** APアップグレード反映用 */
-  refreshMaxAP(shopSystem) {
-    this.maxAP = this.getMaxAP(shopSystem);
-  }
+  /** --- 内部: 日送り処理 --- */
+  _advanceDay() {
+    this.dayTimer = 0;
 
-  _processNewDay() {
-    this.day++;
+    // 維持費の徴収
     const rent = this.currentRent;
-
-    // 維持費の支払い
-    const canPay = this.inventory.spendGold(rent);
-
-    if (!canPay) {
+    if (this.inventory.gold < rent) {
       this.isGameOver = true;
       eventBus.emit('game:over', {
         day: this.day,
-        reason: `維持費 ${rent}G を支払えませんでした。`,
         totalSales: this.totalSales,
         rank: this.currentRank.name,
+        rent,
       });
       return;
     }
+    this.inventory.spendGold(rent);
 
-    // APリセット
-    this.ap = this.maxAP;
-    this._apSpentThisTurn = 0;
+    this.day++;
+    StatsTracker.add('totalDays', 1);
+
+    // クエスト更新
+    if (this.quest) this.quest.onNewDay(this.day);
 
     eventBus.emit('day:newDay', { day: this.day, rent });
-    eventBus.emit('ap:changed', { ap: this.ap, maxAP: this.maxAP });
-    eventBus.emit('day:tick');
   }
 
-  // update(dt) は不要になった（AP制なのでフレーム更新しない）
-
   _checkRankUp() {
-    const nextRankIndex = this.currentRankIndex + 1;
-    if (nextRankIndex >= GameConfig.ranks.length) return;
+    while (
+      this.currentRankIndex < this.ranks.length - 1 &&
+      this.totalSales >= this.ranks[this.currentRankIndex + 1].salesGoal
+    ) {
+      this.currentRankIndex++;
+      const rank = this.currentRank;
+      eventBus.emit('rank:up', { rank: rank.name, index: this.currentRankIndex });
 
-    const nextRank = GameConfig.ranks[nextRankIndex];
-
-    // 条件1: 売上達成
-    if (this.totalSales < nextRank.requiredSales) return;
-
-    // 条件2: クエスト達成 (questSystemがある場合)
-    if (this.questSystem && !this.questSystem.isRankQuestSatisfied(nextRank.rank)) return;
-
-    // ランクアップ!
-    this.currentRankIndex = nextRankIndex;
-
-    eventBus.emit('rank:up', {
-      rank: nextRank.rank,
-      rankName: nextRank.name,
-    });
-
-    // 新レシピ解放
-    for (const recipeKey of nextRank.newRecipes) {
-      if (Recipes[recipeKey]) {
-        Recipes[recipeKey].unlocked = true;
-        const bp = ItemBlueprints[Recipes[recipeKey].targetId];
-        eventBus.emit('recipe:unlocked', { id: recipeKey, name: bp ? bp.name : recipeKey });
+      if (this.currentRankIndex >= GameConfig.goalShopRank) {
+        eventBus.emit('game:clear', {
+          day: this.day,
+          totalSales: this.totalSales,
+          rank: rank.name,
+        });
       }
     }
+  }
 
-    // 新エリア解放
-    for (const areaKey of nextRank.newAreas) {
-      if (AreaDefs[areaKey]) {
-        AreaDefs[areaKey].unlocked = true;
-        eventBus.emit('area:unlocked', { id: areaKey, name: AreaDefs[areaKey].name });
-      }
-    }
-
-    // ゲームクリアチェック
-    if (nextRank.rank >= GameConfig.goalShopRank && !this.isGameCleared) {
-      this.isGameCleared = true;
-      eventBus.emit('game:cleared', {
-        day: this.day,
-        totalSales: this.totalSales,
-        rank: nextRank.name,
-      });
-    }
+  dispose() {
+    if (this._unsubSold) this._unsubSold();
   }
 }

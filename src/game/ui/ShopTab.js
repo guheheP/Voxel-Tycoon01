@@ -1,5 +1,5 @@
 /**
- * ShopTab — お店タブ（カテゴリ別・品質色対応版）
+ * ShopTab — お店タブ（リアルタイム客タイマー対応版）
  */
 import { createItemCardHTML, createShopItemCardHTML, createDisplayedItemCardHTML } from './UIHelpers.js';
 import { eventBus } from '../core/EventBus.js';
@@ -11,7 +11,7 @@ export class ShopTab {
     this.shop = shopSystem;
     this.customers = customerSystem;
     this.el = document.querySelector('#tab-shop');
-    this.shopFilter = 'craftable'; // 'all' | 'craftable' | 'material'
+    this.shopFilter = 'craftable';
   }
 
   render() {
@@ -24,13 +24,12 @@ export class ShopTab {
       html += `<h4>🔔 来店中のお客さん</h4>`;
       html += `<div class="customer-list">`;
       activeCustomers.forEach(c => {
-        const remaining = Math.max(0, c.maxPatience - c.patienceCounter);
-        const pct = Math.max(0, (remaining / c.maxPatience) * 100);
+        const pct = Math.max(0, (c.timer / c.maxTimer) * 100);
         html += `
           <div class="customer-card">
             <div class="customer-header">
               <span class="customer-name">${c.icon} ${c.name}</span>
-              <span class="customer-timer">⚡残り${remaining}AP</span>
+              <span class="customer-timer" data-customer-id="${c.id}">⏳ 品定め中...</span>
             </div>
             <div class="customer-dialogue">「${c.dialogue}」</div>
             <div class="customer-demand">欲しいもの: ${c.demandTypes.map(t => {
@@ -38,14 +37,14 @@ export class ShopTab {
               return labels[t] || t;
             }).join('・')}</div>
             <div class="progress-bar-container">
-              <div class="progress-bar-fill customer-patience-bar" style="width:${pct}%"></div>
+              <div class="progress-bar-fill customer-patience-bar" data-customer-bar="${c.id}" style="width:${pct}%"></div>
             </div>
           </div>
         `;
       });
       html += `</div></div>`;
     } else {
-      html += `<div class="customer-empty">お客さんはまだ来ていません… 行動すると来店することがあります。</div>`;
+      html += `<div class="customer-empty">お客さんはまだ来ていません… 時間が経つと来店します。</div>`;
     }
 
     // 陳列中アイテム
@@ -63,10 +62,8 @@ export class ShopTab {
     const craftable = items.filter(i => i.type !== 'material');
     const materials = items.filter(i => i.type === 'material');
 
-    const displayAPCost = GameConfig.apCost.display;
-    html += `<h4>📦 倉庫から陳列する <span class="ap-cost-badge">⚡${displayAPCost} AP/個</span></h4>`;
+    html += `<h4>📦 倉庫から陳列する</h4>`;
     if (items.length > 0) {
-      // フィルタータブ
       html += `<div class="shop-inv-filters">`;
       html += `<button class="btn btn-sm shop-filter-btn ${this.shopFilter === 'craftable' ? 'active' : ''}" data-shop-filter="craftable">⚔️ クラフト品 (${craftable.length})</button>`;
       html += `<button class="btn btn-sm shop-filter-btn ${this.shopFilter === 'material' ? 'active' : ''}" data-shop-filter="material">🪨 素材 (${materials.length})</button>`;
@@ -78,7 +75,6 @@ export class ShopTab {
       else if (this.shopFilter === 'material') displayItems = materials;
       else displayItems = items;
 
-      // 品質でソート (高い順)
       displayItems = [...displayItems].sort((a, b) => b.quality - a.quality);
 
       if (displayItems.length > 0) {
@@ -112,5 +108,15 @@ export class ShopTab {
     });
   }
 
-  // updateCustomerTimersはAP制では不要（イベント駆動でrender()が呼ばれる）
+  /** 客タイマーのリアルタイム更新（毎フレーム） */
+  updateCustomerTimers() {
+    const customers = this.customers ? this.customers.getActiveCustomers() : [];
+    customers.forEach(c => {
+      const timerEl = this.el.querySelector(`[data-customer-id="${c.id}"]`);
+      if (timerEl && c.timer < 5) timerEl.textContent = `⏳ もうすぐ帰る...`;
+
+      const barEl = this.el.querySelector(`[data-customer-bar="${c.id}"]`);
+      if (barEl) barEl.style.width = `${Math.max(0, (c.timer / c.maxTimer) * 100)}%`;
+    });
+  }
 }

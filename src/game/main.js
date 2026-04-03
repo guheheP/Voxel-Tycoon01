@@ -112,10 +112,7 @@ function startGame(saveData) {
   reputationSystem = new ReputationSystem();
   customerSystem = new CustomerSystem(inventorySystem, shopSystem, randomEventSystem, reputationSystem);
 
-  // システム間の参照セット（AP制で必要）
-  shopSystem.dayCycle = dayCycleSystem;
-  adventurerSystem.dayCycle = dayCycleSystem;
-  dayCycleSystem.refreshMaxAP(shopSystem);
+  // 参照は不要（各システムは独立して動作）
 
   // セーブデータのロード
   if (saveData) {
@@ -169,9 +166,9 @@ function _applySaveData(data) {
     if (AreaDefs[key]) AreaDefs[key].unlocked = true;
   }
 
-  // 日数・ランク
+  // 日数・ランク・日タイマー
   dayCycleSystem.day = data.day || 1;
-  dayCycleSystem.ap = data.ap != null ? data.ap : dayCycleSystem.maxAP;
+  dayCycleSystem.dayTimer = data.dayTimer || 0;
   dayCycleSystem.totalSales = data.totalSales || 0;
   dayCycleSystem.currentRankIndex = data.currentRankIndex || 0;
 
@@ -265,10 +262,13 @@ function animate() {
   // Update game logic (paused during puzzle)
   if (!gamePaused) {
     if (sceneManager) sceneManager.update(dt);
-    // AP制: リアルタイム更新不要（dayCycle/shop/adventurer/customerはイベント駆動）
+    if (dayCycleSystem) dayCycleSystem.update(dt);
+    if (shopSystem) shopSystem.update(dt);
+    if (adventurerSystem) adventurerSystem.update(dt);
+    if (customerSystem) customerSystem.update(dt);
     if (saveSystem) saveSystem.update(dt);
 
-    // 日夜ライティング同期（AP消費率で昼夜変化）
+    // 日夜ライティング同期
     if (sceneManager && dayCycleSystem) {
       sceneManager.setDayProgress(dayCycleSystem.dayProgress);
     }

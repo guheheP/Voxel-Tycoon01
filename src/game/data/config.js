@@ -4,16 +4,9 @@
  */
 
 export const GameConfig = {
-  // --- 行動ポイント(AP)制 ---
-  dailyAP: 10,                // 1日の初期AP
+  // --- 日数サイクル ---
+  dayDurationSeconds: 60,       // 1日の長さ（秒）
   startingDay: 1,
-
-  // --- APコスト ---
-  apCost: {
-    craft: 2,                 // 調合の基本コスト（レシピ側で上書き可能）
-    display: 1,               // 陳列
-    dispatch: 1,              // 冒険者派遣（全員まとめて）
-  },
 
   // --- 経済 ---
   initialGold: 250,
@@ -23,6 +16,7 @@ export const GameConfig = {
 
   // --- ショップ ---
   shopMaxDisplaySlots: 4,
+  shopSellInterval: 8,          // 陳列品の自動販売チェック間隔（秒）
   customerBonusMultiplier: 1.5,
 
   // --- インベントリ ---
@@ -40,9 +34,9 @@ export const GameConfig = {
   maxTraitSlots: 3,
 
   // --- お客さん ---
-  customerSpawnChance: 0.6,     // AP消費時の来店確率（60%）
+  customerSpawnInterval: 12,    // お客さんの来店間隔（秒）
   maxCustomersPerDay: 6,        // 1日の最大来客数
-  customerPatienceAP: 3,        // お客さんが待てるAP消費回数
+  customerPatienceSeconds: 20,  // お客さんの滞在時間（秒）
 
   // --- ゲームクリア ---
   goalShopRank: 8,

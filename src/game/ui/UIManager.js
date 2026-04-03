@@ -1,5 +1,6 @@
 /**
  * UIManager — タブ切替・ステータスバー・日数表示を管理するオーケストレーター
+ * 調合タブ中は時間停止
  */
 import { eventBus } from '../core/EventBus.js';
 import { SoundManager } from '../core/SoundManager.js';
@@ -41,18 +42,13 @@ export class UIManager {
       'tab-upgrade':   new UpgradeTab(inventorySystem, shopSystem, dayCycleSystem, questSystem),
     };
 
-    // CraftingTabにdayCycle参照を渡す（AP消費用）
-    this.tabs['tab-crafting'].dayCycle = dayCycleSystem;
-
     // イベント購読
     this._unsubscribers = [
       eventBus.on('item:sold',         () => this.updateAll()),
       eventBus.on('adventurer:return',  () => this.updateAll()),
       eventBus.on('inventory:changed',  () => this.updateAll()),
       eventBus.on('gold:changed',       () => this._updateStatusBar()),
-      eventBus.on('day:newDay',         () => this._updateStatusBar()),
-      eventBus.on('ap:changed',         () => this._updateAPBar()),
-      eventBus.on('ap:spent',           () => this.updateAll()),
+      eventBus.on('day:newDay',         () => this.updateAll()),
       eventBus.on('rank:up',            () => this.updateAll()),
       eventBus.on('recipe:unlocked',    () => { if (this.activeTab === 'tab-crafting') this.updateAll(); }),
       eventBus.on('customer:arrived',   () => { if (this.activeTab === 'tab-shop') this.updateAll(); }),
@@ -68,9 +64,21 @@ export class UIManager {
     this._init();
   }
 
-  update(_dt) {
-    // AP制: リアルタイムタイマーは不要
-    // APバーと日夜ライティングはイベントで更新
+  /** 毎フレーム — 日進行バー＋タイマー更新 */
+  update(dt) {
+    this._updateDayProgressBar();
+
+    // ディスパッチタブのタイマー更新
+    if (this.activeTab === 'tab-dispatch') {
+      const dispatchTab = this.tabs['tab-dispatch'];
+      if (dispatchTab && dispatchTab.updateTimers) dispatchTab.updateTimers();
+    }
+
+    // ショップタブの客タイマー更新
+    if (this.activeTab === 'tab-shop') {
+      const shopTab = this.tabs['tab-shop'];
+      if (shopTab && shopTab.updateCustomerTimers) shopTab.updateCustomerTimers();
+    }
   }
 
   updateAll() {
@@ -98,7 +106,6 @@ export class UIManager {
     }
 
     this.updateAll();
-    this._updateAPBar();
 
     // 設定ボタン追加
     this._addSettingsButton();
@@ -113,6 +120,14 @@ export class UIManager {
   }
 
   _switchTab(targetId) {
+    // 調合タブの一時停止制御
+    if (this.activeTab === 'tab-crafting' && targetId !== 'tab-crafting') {
+      this.dayCycle.setPaused(false);
+    }
+    if (targetId === 'tab-crafting') {
+      this.dayCycle.setPaused(true);
+    }
+
     this.activeTab = targetId;
     this.elTabs.forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-target') === targetId);
@@ -152,30 +167,34 @@ export class UIManager {
     }
   }
 
-  _updateAPBar() {
-    if (!this.dayCycle) return;
-    const ap = this.dayCycle.ap;
-    const maxAP = this.dayCycle.maxAP;
-    const pct = (ap / maxAP) * 100;
+  /** 日進行バー更新（リアルタイム） */
+  _updateDayProgressBar() {
+    if (!this.dayCycle || !this.elDayProgress) return;
+    const pct = this.dayCycle.dayProgress * 100;
+    this.elDayProgress.style.width = `${pct}%`;
 
-    // APバー
-    if (this.elDayProgress) {
-      this.elDayProgress.style.width = `${pct}%`;
-
-      // AP残量で色変化
-      if (pct <= 20) {
-        this.elDayProgress.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
-      } else if (pct <= 50) {
-        this.elDayProgress.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)';
-      } else {
-        this.elDayProgress.style.background = 'linear-gradient(90deg, #27ae60, #2ecc71)';
-      }
+    // 時間帯で色変化（朝→昼→夕→夜）
+    if (pct < 25) {
+      this.elDayProgress.style.background = 'linear-gradient(90deg, #27ae60, #2ecc71)';
+    } else if (pct < 60) {
+      this.elDayProgress.style.background = 'linear-gradient(90deg, #2ecc71, #f1c40f)';
+    } else if (pct < 80) {
+      this.elDayProgress.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)';
+    } else {
+      this.elDayProgress.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
     }
 
-    // APテキスト
-    const apLabel = document.getElementById('ap-label');
-    if (apLabel) {
-      apLabel.textContent = `⚡ ${ap} / ${maxAP}`;
+    // 一時停止表示と時間帯テキスト
+    const pauseLabel = document.getElementById('ap-label');
+    if (pauseLabel) {
+      if (this.dayCycle.paused) {
+        pauseLabel.textContent = '⏸ 調合中…';
+      } else {
+        if (pct < 25) pauseLabel.textContent = '🌅 朝';
+        else if (pct < 60) pauseLabel.textContent = '☀️ 昼';
+        else if (pct < 80) pauseLabel.textContent = '🌇 夕方';
+        else pauseLabel.textContent = '🌙 夜';
+      }
     }
   }
 

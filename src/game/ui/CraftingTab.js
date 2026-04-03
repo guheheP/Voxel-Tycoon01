@@ -12,7 +12,6 @@ import { CraftingPuzzle } from './CraftingPuzzle.js';
 export class CraftingTab {
   constructor(inventorySystem) {
     this.inventory = inventorySystem;
-    this.dayCycle = null; // main.jsからUIManager経由でセット
     this.elRecipeList = document.getElementById('recipe-list');
     this.elDetails = document.getElementById('crafting-details');
     this.selectedRecipeId = null;
@@ -62,9 +61,7 @@ export class CraftingTab {
       requiredCounts[m] = (requiredCounts[m] || 0) + 1;
     });
 
-    const apCost = recipe.apCost || 1;
-
-    let html = `<h4>製作: ${targetBp.name} <span class="ap-cost-badge">⚡${apCost} AP</span></h4><div class="crafting-details-body">`;
+    let html = `<h4>製作: ${targetBp.name}</h4><div class="crafting-details-body">`;
     let canCraft = true;
     const materialInstances = [];
 
@@ -157,14 +154,6 @@ export class CraftingTab {
   }
 
   _executeCrafting(recipeId, materials, qualityBonus = 0) {
-    const recipe = Recipes[recipeId];
-    const apCost = recipe ? (recipe.apCost || 1) : 1;
-
-    // AP消費
-    if (this.dayCycle && !this.dayCycle.spendAP(apCost)) {
-      return;
-    }
-
     const allTraitsSet = new Set();
     materials.forEach(i => i.traits.forEach(t => allTraitsSet.add(t)));
     const selectedTraits = Array.from(allTraitsSet).slice(0, GameConfig.maxTraitSlots);
