@@ -1,0 +1,85 @@
+/* ========================================================
+   Voxel Shop Tycoon — Cozy Natural / Earth-tone Theme
+   ======================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Outfit:wght@400;600;700&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===== Design Tokens ===== */
+:root {
+  /* Fonts */
+  --font-ui: 'M PLUS Rounded 1c', 'Outfit', sans-serif;
+  --font-title: 'M PLUS Rounded 1c', sans-serif;
+
+  /* Core palette — warm earth tones */
+  --bg-deep: #2c2416;
+  --bg-panel: rgba(48, 38, 26, 0.90);
+  --bg-panel-light: rgba(62, 50, 35, 0.80);
+  --bg-card: rgba(255, 240, 210, 0.05);
+  --bg-card-hover: rgba(255, 240, 210, 0.10);
+
+  /* Warm accent colors */
+  --gold: #e8b84b;
+  --gold-dark: #c49430;
+  --gold-glow: rgba(232, 184, 75, 0.25);
+  --green: #7daa68;
+  --green-dark: #5e8a4a;
+  --green-light: #a3c78f;
+  --green-glow: rgba(125, 170, 104, 0.2);
+  --cream: #f5e6c8;
+  --cream-dark: #d4c4a0;
+  --brown: #a0845c;
+  --brown-light: #c4a87a;
+  --brown-dark: #6b5a3e;
+  --terracotta: #c47a5a;
+  --terracotta-glow: rgba(196, 122, 90, 0.25);
+  --sky-blue: #7ab0c4;
+  --red-soft: #c46a5a;
+
+  /* Text */
+  --text: #f0e6d6;
+  --text-bright: #faf4e8;
+  --text-dim: #b8a88e;
+  --text-muted: #8a7a62;
+  --text-dark: #3e3224;
+
+  /* Borders */
+  --border: rgba(160, 132, 92, 0.25);
+  --border-active: rgba(160, 132, 92, 0.50);
+  --border-gold: rgba(232, 184, 75, 0.35);
+
+  /* Sizing */
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-sm: 8px;
+
+  /* Shadows */
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 240, 210, 0.05);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-glow-gold: 0 0 16px rgba(232, 184, 75, 0.15);
+  --shadow-glow-green: 0 0 16px rgba(125, 170, 104, 0.12);
+}
+
+/* ===== Base ===== */
+body {
+  font-family: var(--font-ui);
+  background: var(--bg-deep);
+  color: var(--text);
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(160, 132, 92, 0.35);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(160, 132, 92, 0.55);
+}

@@ -1,0 +1,86 @@
+/**
+ * Renderer — Three.js のシーン・カメラ・ライティング・地面の初期化を集約
+ */
+import * as THREE from 'three';
+
+export class Renderer {
+  constructor(canvasId = 'game-canvas') {
+    // --- Canvas & WebGLRenderer ---
+    this.canvas = document.getElementById(canvasId);
+    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.2;
+    this.renderer.setClearColor(0x87ceeb);
+
+    // --- Scene ---
+    this.scene = new THREE.Scene();
+    this.scene.fog = new THREE.FogExp2(0x87ceeb, 0.003);
+
+    // --- Camera ---
+    this.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+    this.camera.position.set(0, 20, 30);
+
+    // --- Lighting ---
+    this._setupLighting();
+
+    // --- Ground & Grid ---
+    this._setupGround();
+
+    // --- Resize ---
+    this._onResize = this._onResize.bind(this);
+    window.addEventListener('resize', this._onResize);
+    this._onResize();
+  }
+
+  _setupLighting() {
+    this.ambientLight = new THREE.AmbientLight(0xc8daf0, 0.8);
+    this.scene.add(this.ambientLight);
+
+    this.hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x6b8f5e, 0.6);
+    this.scene.add(this.hemiLight);
+
+    this.sunLight = new THREE.DirectionalLight(0xfff8e8, 1.6);
+    this.sunLight.position.set(20, 30, 15);
+    this.sunLight.castShadow = true;
+    this.sunLight.shadow.mapSize.set(2048, 2048);
+    this.sunLight.shadow.camera.left = -30;
+    this.sunLight.shadow.camera.right = 30;
+    this.sunLight.shadow.camera.top = 30;
+    this.sunLight.shadow.camera.bottom = -30;
+    this.sunLight.shadow.bias = -0.001;
+    this.scene.add(this.sunLight);
+  }
+
+  _setupGround() {
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(200, 200),
+      new THREE.MeshLambertMaterial({ color: 0x5a9e6f }),
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.receiveShadow = true;
+    this.scene.add(ground);
+
+    const grid = new THREE.GridHelper(40, 40, 0x7db892, 0x6aad80);
+    grid.position.y = 0.01;
+    grid.material.transparent = true;
+    grid.material.opacity = 0.3;
+    this.scene.add(grid);
+  }
+
+  _onResize() {
+    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  }
+
+  render() {
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  dispose() {
+    window.removeEventListener('resize', this._onResize);
+  }
+}

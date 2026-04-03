@@ -1,0 +1,142 @@
+/**
+ * SaveSystem — LocalStorageベースのセーブ/ロードシステム (v2)
+ */
+import { GameConfig } from '../data/config.js';
+import { Recipes } from '../data/items.js';
+import { AreaDefs } from '../data/areas.js';
+import { eventBus } from './EventBus.js';
+import { StatsTracker } from '../StatsTracker.js';
+
+const SAVE_KEY = 'voxelshop_save_v3';
+const LEGACY_KEYS = ['voxelshop_save_v2', 'voxelshop_save_v1'];
+const AUTOSAVE_INTERVAL = 30;
+
+export class SaveSystem {
+  constructor(inventorySystem, adventurerSystem, dayCycleSystem, shopSystem, reputationSystem, questSystem) {
+    this.inventory = inventorySystem;
+    this.adventurers = adventurerSystem;
+    this.dayCycle = dayCycleSystem;
+    this.shop = shopSystem;
+    this.reputation = reputationSystem;
+    this.quest = questSystem;
+    this.timer = 0;
+  }
+
+  update(dt) {
+    this.timer += dt;
+    if (this.timer >= AUTOSAVE_INTERVAL) {
+      this.timer = 0;
+      this.save();
+    }
+  }
+
+  save() {
+    try {
+      const data = {
+        version: 3,
+        timestamp: Date.now(),
+        gold: this.inventory.gold,
+        maxCapacity: this.inventory.maxCapacity,
+        items: this.inventory.items.map(i => ({
+          blueprintId: i.blueprintId,
+          quality: i.quality,
+          traits: i.traits,
+        })),
+        displayedItems: this.shop.displayedItems.map(i => ({
+          blueprintId: i.blueprintId,
+          quality: i.quality,
+          traits: i.traits,
+        })),
+        maxSlots: this.shop.maxSlots,
+        purchasedUpgrades: this.shop.purchasedUpgrades,
+        adventurers: this.adventurers.adventurers.map(a => ({
+          id: a.id,
+          level: a.level,
+          exp: a.exp,
+          weapon: a.equipment.weapon ? {
+            blueprintId: a.equipment.weapon.blueprintId,
+            quality: a.equipment.weapon.quality,
+            traits: a.equipment.weapon.traits,
+          } : null,
+        })),
+        day: this.dayCycle.day,
+        ap: this.dayCycle.ap,
+        maxAP: this.dayCycle.maxAP,
+        totalSales: this.dayCycle.totalSales,
+        currentRankIndex: this.dayCycle.currentRankIndex,
+        unlockedRecipes: Object.keys(Recipes).filter(k => Recipes[k].unlocked),
+        unlockedAreas: Object.keys(AreaDefs).filter(k => AreaDefs[k].unlocked),
+        reputation: this.reputation ? this.reputation.toSaveData() : null,
+        stats: StatsTracker.toSaveData(),
+        quest: this.quest ? this.quest.toSaveData() : null,
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+      console.log('[Save] ゲームを保存しました (v3)');
+    } catch (e) {
+      console.error('[Save] 保存失敗:', e);
+    }
+  }
+
+  static hasSave() {
+    if (localStorage.getItem(SAVE_KEY)) return true;
+    for (const key of LEGACY_KEYS) {
+      if (localStorage.getItem(key)) return true;
+    }
+    return false;
+  }
+
+  static getSaveInfo() {
+    try {
+      let raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) {
+        for (const key of LEGACY_KEYS) {
+          raw = localStorage.getItem(key);
+          if (raw) break;
+        }
+      }
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      return {
+        day: data.day,
+        gold: data.gold,
+        totalSales: data.totalSales,
+        rankIndex: data.currentRankIndex,
+        timestamp: data.timestamp,
+      };
+    } catch { return null; }
+  }
+
+  static deleteSave() {
+    localStorage.removeItem(SAVE_KEY);
+    for (const key of LEGACY_KEYS) {
+      localStorage.removeItem(key);
+    }
+  }
+
+  static loadSaveData() {
+    try {
+      let raw = localStorage.getItem(SAVE_KEY);
+      if (raw) return JSON.parse(raw);
+      // Legacy migration
+      for (const key of LEGACY_KEYS) {
+        raw = localStorage.getItem(key);
+        if (raw) {
+          const data = JSON.parse(raw);
+          data.version = 3;
+          data.maxCapacity = data.maxCapacity || GameConfig.initialInventoryCapacity;
+          data.maxSlots = data.maxSlots || GameConfig.shopMaxDisplaySlots;
+          data.purchasedUpgrades = data.purchasedUpgrades || [];
+          data.quest = data.quest || null;
+          data.ap = data.ap != null ? data.ap : GameConfig.dailyAP;
+          data.maxAP = data.maxAP || GameConfig.dailyAP;
+          delete data.dayTimer;
+          localStorage.removeItem(key);
+          localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+          console.log(`[Save] ${key} → v3 マイグレーション完了`);
+          return data;
+        }
+      }
+      return null;
+    } catch { return null; }
+  }
+}

@@ -1,0 +1,467 @@
+/**
+ * SoundManager — BGMプレイリスト + プロシージャルSE
+ * 
+ * 外部mp3ファイルのプレイリスト再生を管理。
+ * ファイル不在時はプロシージャルBGMにフォールバック。
+ */
+import { eventBus } from './EventBus.js';
+
+// --- プレイリスト定義 ---
+const TITLE_TRACK = '/bgm/title_01.mp3';
+const ENDING_TRACK = '/bgm/Endeing_01.mp3';
+const GAME_TRACKS = Array.from({ length: 15 }, (_, i) =>
+  `/bgm/bgm_${String(i + 1).padStart(2, '0')}.mp3`
+);
+
+class SoundManagerClass {
+  constructor() {
+    this.ctx = null;
+    this.masterGain = null;
+    this.bgmGain = null;
+    this.seGain = null;
+    this.muted = false;
+    this.initialized = false;
+
+    // 音量設定（0.0 ~ 1.0）
+    this.masterVolume = 0.3;  // デフォルト30%
+    this.bgmVolume = 0.5;
+    this.seVolume = 0.5;
+
+    // --- BGMプレイリスト ---
+    this.audioEl = null;        // <audio> element
+    this.bgmSource = null;      // MediaElementSource
+    this.shuffledPlaylist = [];  // シャッフル済みゲームBGM
+    this.currentTrackIndex = 0;
+    this.isTitleBGM = false;
+    this.isFading = false;
+
+    // --- プロシージャルBGM (フォールバック) ---
+    this.proceduralActive = false;
+    this._bgmTimeout = null;
+
+    // Load saved settings
+    const saved = localStorage.getItem('voxelshop_sound');
+    if (saved) {
+      try {
+        const s = JSON.parse(saved);
+        this.muted = s.muted || false;
+        if (s.masterVolume !== undefined) this.masterVolume = s.masterVolume;
+        if (s.bgmVolume !== undefined) this.bgmVolume = s.bgmVolume;
+        if (s.seVolume !== undefined) this.seVolume = s.seVolume;
+      } catch { /* */ }
+    }
+  }
+
+  /** AudioContextとAudio要素の初期化（ユーザーインタラクション後に呼ぶ） */
+  init() {
+    if (this.initialized) return;
+    this.initialized = true;
+
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.value = this.muted ? 0 : this.masterVolume;
+    this.masterGain.connect(this.ctx.destination);
+
+    this.bgmGain = this.ctx.createGain();
+    this.bgmGain.gain.value = this.bgmVolume;
+    this.bgmGain.connect(this.masterGain);
+
+    this.seGain = this.ctx.createGain();
+    this.seGain.gain.value = this.seVolume;
+    this.seGain.connect(this.masterGain);
+
+    // <audio> element for BGM streaming
+    this.audioEl = new Audio();
+    this.audioEl.crossOrigin = 'anonymous';
+    this.audioEl.loop = false;
+    this.audioEl.volume = 1.0; // volume is controlled via bgmGain
+
+    // Connect audio element to Web Audio API for unified volume control
+    try {
+      this.bgmSource = this.ctx.createMediaElementSource(this.audioEl);
+      this.bgmSource.connect(this.bgmGain);
+    } catch (e) {
+      // Some browsers may not support MediaElementSource
+      console.warn('[SoundManager] MediaElementSource not supported, using direct audio');
+    }
+
+    // 曲終了時に次の曲へ
+    this.audioEl.addEventListener('ended', () => {
+      if (this.isTitleBGM) {
+        // タイトル曲はループ
+        this.audioEl.currentTime = 0;
+        this.audioEl.play().catch(() => {});
+      } else {
+        this.playNextTrack();
+      }
+    });
+
+    // シャッフルプレイリスト作成
+    this._shufflePlaylist();
+
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    eventBus.on('item:crafted', () => this.playCraftSuccess());
+    eventBus.on('item:sold', () => this.playSellCoin());
+    eventBus.on('customer:arrived', () => this.playDoorBell());
+    eventBus.on('rank:up', () => this.playFanfare());
+    eventBus.on('adventurer:levelUp', () => this.playLevelUp());
+    eventBus.on('event:triggered', () => this.playEventChime());
+    eventBus.on('day:tick', () => this.playDayTick());
+    eventBus.on('game:over', () => this.playGameOver());
+
+    // 日替わりでBGMフェード → 次の曲
+    eventBus.on('day:newDay', () => this._onNewDay());
+
+    // エンディング
+    eventBus.on('game:clear', () => this.playEndingBGM());
+  }
+
+  // ===== 音量制御 =====
+
+  _saveSettings() {
+    localStorage.setItem('voxelshop_sound', JSON.stringify({
+      muted: this.muted,
+      masterVolume: this.masterVolume,
+      bgmVolume: this.bgmVolume,
+      seVolume: this.seVolume,
+    }));
+  }
+
+  toggleMute() {
+    this.muted = !this.muted;
+    if (this.masterGain) {
+      this.masterGain.gain.setTargetAtTime(this.muted ? 0 : this.masterVolume, this.ctx.currentTime, 0.1);
+    }
+    if (!this.bgmSource && this.audioEl) {
+      this.audioEl.volume = this.muted ? 0 : this.masterVolume;
+    }
+    this._saveSettings();
+    return this.muted;
+  }
+
+  /** マスター音量を設定（0.0〜1.0） */
+  setMasterVolume(v) {
+    this.masterVolume = Math.max(0, Math.min(1, v));
+    if (this.masterGain && !this.muted) {
+      this.masterGain.gain.setTargetAtTime(this.masterVolume, this.ctx.currentTime, 0.05);
+    }
+    this._saveSettings();
+  }
+
+  /** BGM音量を設定（0.0〜1.0） */
+  setBgmVolume(v) {
+    this.bgmVolume = Math.max(0, Math.min(1, v));
+    if (this.bgmGain) {
+      this.bgmGain.gain.setTargetAtTime(this.bgmVolume, this.ctx.currentTime, 0.05);
+    }
+    this._saveSettings();
+  }
+
+  /** SE音量を設定（0.0〜1.0） */
+  setSeVolume(v) {
+    this.seVolume = Math.max(0, Math.min(1, v));
+    if (this.seGain) {
+      this.seGain.gain.setTargetAtTime(this.seVolume, this.ctx.currentTime, 0.05);
+    }
+    this._saveSettings();
+  }
+
+  // ===== アセット読み込み待ち =====
+
+  /** 現在ロード中のBGMトラックの読み込み完了を待つ */
+  waitForCurrentTrack() {
+    return new Promise(resolve => {
+      if (!this.audioEl) return resolve();
+      // 既にデータが十分読み込まれている場合
+      if (this.audioEl.readyState >= 3) return resolve();
+      const onReady = () => {
+        this.audioEl.removeEventListener('canplaythrough', onReady);
+        this.audioEl.removeEventListener('error', onReady);
+        resolve();
+      };
+      this.audioEl.addEventListener('canplaythrough', onReady, { once: true });
+      this.audioEl.addEventListener('error', onReady, { once: true });
+    });
+  }
+
+  // ===== BGMプレイリスト =====
+
+  /** タイトルBGM開始 */
+  startTitleBGM() {
+    this.isTitleBGM = true;
+    this._playTrack(TITLE_TRACK);
+  }
+
+  /** ゲームBGM開始（シャッフルプレイリスト） */
+  startGameBGM() {
+    this.isTitleBGM = false;
+    // タイトル曲がまだ再生中ならそのまま流す → 次のday:newDayで切り替わる
+    // ただし、タイトル曲のloopは解除
+    if (this.audioEl && !this.audioEl.paused && this.audioEl.src.includes('title_01')) {
+      // タイトル曲が終了したら最初のゲームBGMへ
+      this.audioEl.loop = false;
+      const onTitleEnd = () => {
+        this.audioEl.removeEventListener('ended', onTitleEnd);
+        this._playTrack(this.shuffledPlaylist[this.currentTrackIndex]);
+      };
+      this.audioEl.addEventListener('ended', onTitleEnd, { once: true });
+      return;
+    }
+    this._playTrack(this.shuffledPlaylist[this.currentTrackIndex]);
+  }
+
+  /** エンディングBGM */
+  playEndingBGM() {
+    this.isTitleBGM = false;
+    this._fadeOutThen(() => {
+      this._playTrack(ENDING_TRACK);
+    });
+  }
+
+  /** 次のトラック再生 */
+  playNextTrack() {
+    if (this.isTitleBGM) return;
+    this.currentTrackIndex = (this.currentTrackIndex + 1) % this.shuffledPlaylist.length;
+    // 一巡したらリシャッフル
+    if (this.currentTrackIndex === 0) {
+      this._shufflePlaylist();
+    }
+    this._playTrack(this.shuffledPlaylist[this.currentTrackIndex]);
+  }
+
+  /** BGM停止 */
+  stopBGM() {
+    if (this.audioEl) {
+      this.audioEl.pause();
+      this.audioEl.currentTime = 0;
+    }
+    this._stopProcedural();
+  }
+
+  /** day:newDayイベント → フェードアウトして次の曲 */
+  _onNewDay() {
+    if (this.isTitleBGM) return;
+    this._fadeOutThen(() => {
+      this.playNextTrack();
+    });
+  }
+
+  /** フェードアウトしてからコールバック実行 */
+  _fadeOutThen(callback, durationMs = 2000) {
+    if (!this.bgmGain || this.isFading) {
+      callback();
+      return;
+    }
+    this.isFading = true;
+    const now = this.ctx.currentTime;
+    this.bgmGain.gain.setValueAtTime(this.bgmGain.gain.value, now);
+    this.bgmGain.gain.linearRampToValueAtTime(0, now + durationMs / 1000);
+
+    setTimeout(() => {
+      if (this.audioEl) {
+        this.audioEl.pause();
+      }
+      // 音量復元
+      this.bgmGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+      this.isFading = false;
+      callback();
+    }, durationMs);
+  }
+
+  /** トラック再生（内部） */
+  _playTrack(src) {
+    if (!this.audioEl) return;
+
+    // プロシージャルBGMが動いてたら止める
+    this._stopProcedural();
+
+    this.audioEl.src = src;
+    this.audioEl.load();
+    const playPromise = this.audioEl.play();
+    if (playPromise) {
+      playPromise.catch(err => {
+        // 再生失敗 → プロシージャルBGMにフォールバック
+        console.warn('[SoundManager] Track play failed, fallback to procedural:', err.message);
+        this._startProcedural();
+      });
+    }
+  }
+
+  /** シャッフルプレイリスト生成 */
+  _shufflePlaylist() {
+    this.shuffledPlaylist = [...GAME_TRACKS];
+    for (let i = this.shuffledPlaylist.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [this.shuffledPlaylist[i], this.shuffledPlaylist[j]] = [this.shuffledPlaylist[j], this.shuffledPlaylist[i]];
+    }
+    this.currentTrackIndex = 0;
+  }
+
+  // ===== プロシージャルBGM（フォールバック） =====
+
+  _startProcedural() {
+    if (this.proceduralActive) return;
+    this.proceduralActive = true;
+    this._playProceduralLoop();
+  }
+
+  _stopProcedural() {
+    this.proceduralActive = false;
+    if (this._bgmTimeout) {
+      clearTimeout(this._bgmTimeout);
+      this._bgmTimeout = null;
+    }
+  }
+
+  _playProceduralLoop() {
+    if (!this.proceduralActive || !this.ctx) return;
+    const pentatonic = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+    const now = this.ctx.currentTime;
+    const noteCount = 6 + Math.floor(Math.random() * 4);
+    const phraseDuration = noteCount * 1.2;
+
+    for (let i = 0; i < noteCount; i++) {
+      const freq = pentatonic[Math.floor(Math.random() * pentatonic.length)];
+      const startTime = now + i * 1.2 + Math.random() * 0.2;
+      const duration = 0.8 + Math.random() * 0.6;
+      this._playBGMNote(freq, startTime, duration);
+    }
+    const chordRoot = pentatonic[Math.floor(Math.random() * 4)];
+    this._playPad(chordRoot, now, phraseDuration + 1);
+    this._bgmTimeout = setTimeout(() => this._playProceduralLoop(), (phraseDuration + 1.5) * 1000);
+  }
+
+  _playBGMNote(freq, startTime, duration) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(0.15, startTime + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    osc.connect(gain);
+    gain.connect(this.bgmGain);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.1);
+  }
+
+  _playPad(rootFreq, startTime, duration) {
+    const freqs = [rootFreq * 0.5, rootFreq * 0.5 * 1.25, rootFreq * 0.5 * 1.5];
+    freqs.forEach(f => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+      osc.type = 'triangle';
+      osc.frequency.value = f;
+      filter.type = 'lowpass';
+      filter.frequency.value = 400;
+      filter.Q.value = 0.5;
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.04, startTime + 1.0);
+      gain.gain.linearRampToValueAtTime(0.04, startTime + duration - 1.0);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.bgmGain);
+      osc.start(startTime);
+      osc.stop(startTime + duration + 0.1);
+    });
+  }
+
+  // ===== SE: 効果音 =====
+
+  playCraftSuccess() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, i) => {
+      this._playSENote(freq, now + i * 0.08, 0.3, 'sine', 0.15);
+    });
+  }
+
+  playPuzzleMatch(comboLevel = 1) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const baseFreq = 440 + comboLevel * 80;
+    this._playSENote(baseFreq, now, 0.15, 'square', 0.08);
+    this._playSENote(baseFreq * 1.25, now + 0.06, 0.12, 'square', 0.06);
+  }
+
+  playSellCoin() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(1200, now, 0.08, 'square', 0.06);
+    this._playSENote(1800, now + 0.04, 0.06, 'square', 0.04);
+    this._playSENote(2400, now + 0.07, 0.1, 'sine', 0.05);
+  }
+
+  playDoorBell() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(880, now, 0.4, 'sine', 0.12);
+    this._playSENote(1108.73, now + 0.15, 0.35, 'sine', 0.10);
+  }
+
+  playFanfare() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const notes = [523.25, 523.25, 659.25, 783.99, 659.25, 783.99, 1046.50];
+    const times = [0, 0.12, 0.24, 0.36, 0.48, 0.60, 0.72];
+    const durs  = [0.1, 0.1, 0.1, 0.15, 0.1, 0.15, 0.6];
+    notes.forEach((freq, i) => {
+      this._playSENote(freq, now + times[i], durs[i], 'square', 0.10);
+    });
+  }
+
+  playLevelUp() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    for (let i = 0; i < 6; i++) {
+      this._playSENote(400 + i * 120, now + i * 0.06, 0.15, 'sine', 0.10);
+    }
+  }
+
+  playEventChime() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(660, now, 0.25, 'sine', 0.10);
+    this._playSENote(880, now + 0.12, 0.3, 'sine', 0.08);
+    this._playSENote(1100, now + 0.24, 0.25, 'sine', 0.06);
+  }
+
+  playDayTick() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(440, now, 0.15, 'triangle', 0.05);
+  }
+
+  playGameOver() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(110, now, 1.5, 'sawtooth', 0.15);
+    this._playSENote(82.41, now + 0.1, 1.2, 'sine', 0.12);
+  }
+
+  // ===== 共通ユーティリティ =====
+
+  _playSENote(freq, startTime, duration, type = 'sine', volume = 0.1) {
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, startTime);
+    gain.gain.linearRampToValueAtTime(volume, startTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    osc.connect(gain);
+    gain.connect(this.seGain);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.1);
+  }
+}
+
+// シングルトン
+export const SoundManager = new SoundManagerClass();

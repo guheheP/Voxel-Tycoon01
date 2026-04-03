@@ -1,0 +1,145 @@
+/* ===== Status Bar ===== */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, rgba(48,38,26,0.92) 0%, rgba(58,46,32,0.92) 100%);
+}
+.game-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.game-title h2 {
+  font-family: var(--font-title);
+  font-size: 20px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--cream) 50%, var(--gold) 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: titleShine 4s ease-in-out infinite;
+  margin-bottom: 0;
+}
+@keyframes titleShine {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 200% center; }
+}
+.game-title-icon {
+  font-size: 24px;
+  filter: drop-shadow(0 0 4px rgba(232,184,75,0.35));
+}
+.gold-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(232,184,75,0.10) 0%, rgba(232,184,75,0.04) 100%);
+  border: 1px solid rgba(232,184,75,0.20);
+  border-radius: 20px;
+  padding: 6px 16px 6px 12px;
+  box-shadow: var(--shadow-glow-gold);
+}
+.gold-icon {
+  font-size: 20px;
+  filter: drop-shadow(0 0 4px rgba(232,184,75,0.5));
+  animation: coinBounce 2.5s ease-in-out infinite;
+}
+@keyframes coinBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.gold-amount {
+  font-family: var(--font-title);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--gold);
+  text-shadow: 0 0 8px rgba(232,184,75,0.2);
+  min-width: 50px;
+  text-align: right;
+}
+
+/* ===== Status Bar Info ===== */
+.status-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.status-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.status-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.status-value {
+  font-family: var(--font-title);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.rank-value {
+  color: var(--gold);
+  font-size: 12px;
+}
+.rent-value {
+  color: var(--terracotta);
+}
+
+/* AP Gauge */
+.ap-display {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+}
+.ap-label {
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+  min-width: 70px;
+  text-align: center;
+}
+.day-progress-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(160, 132, 92, 0.2);
+  min-width: 60px;
+}
+.day-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #27ae60, #2ecc71);
+  border-radius: 4px;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+.skip-day-btn {
+  font-size: 11px !important;
+  padding: 3px 10px !important;
+  background: linear-gradient(135deg, rgba(52,73,94,0.7), rgba(44,62,80,0.7)) !important;
+  border: 1px solid rgba(160, 132, 92, 0.3) !important;
+  color: var(--cream) !important;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.skip-day-btn:hover {
+  background: linear-gradient(135deg, rgba(52,73,94,0.9), rgba(44,62,80,0.9)) !important;
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 8px rgba(232,184,75,0.2);
+}
+
+/* ===== Reputation Display ===== */
+.reputation-value {
+  color: var(--gold) !important;
+  font-weight: 700;
+}

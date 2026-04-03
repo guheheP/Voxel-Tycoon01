@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="ひだまり森の錬金工房 — アトリエ経営シミュレーション" />
+  <title>ひだまり森の錬金工房</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Outfit:wght@400;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+
+<body>
+  <!-- Initial Loader to prevent FOUC before game boots -->
+  <div id="initial-loader"
+    style="position: fixed; inset: 0; background: #050a05; z-index: 999999; display: flex; align-items: center; justify-content: center;">
+    <p
+      style="color: rgba(200, 180, 140, 0.6); font-family: 'Outfit', sans-serif; font-size: 14px; letter-spacing: 4px; text-transform: uppercase; animation: splashPulse 2s ease-in-out infinite;">
+      Loading...</p>
+  </div>
+  <canvas id="game-canvas"></canvas>
+  <div id="ui-root">
+    <div class="ui-container">
+      <!-- Status Bar -->
+      <div class="panel status-bar">
+        <div class="game-title">
+          <h2> </h2>
+        </div>
+        <div class="status-info">
+          <div class="status-item">
+            <span class="status-label">ランク</span>
+            <span id="rank-value" class="status-value rank-value">駆け出しの店</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">日数</span>
+            <span id="day-value" class="status-value">1日目</span>
+          </div>
+          <div class="status-item reputation-display">
+            <span class="status-label">評判</span>
+            <span id="reputation-value" class="status-value reputation-value">☆ 無名の店</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">維持費</span>
+            <span id="rent-value" class="status-value rent-value">30G</span>
+          </div>
+          <div class="status-item ap-display">
+            <span id="ap-label" class="ap-label">⚡ 10 / 10</span>
+            <div class="day-progress-bar">
+              <div id="day-progress-fill" class="day-progress-fill" style="width:100%"></div>
+            </div>
+            <button id="skip-day-btn" class="btn skip-day-btn" title="残りAPをスキップして翌日へ">🌙 翌日</button>
+          </div>
+          <div class="gold-display">
+            <span class="gold-icon">🪙</span>
+            <span id="gold-value" class="gold-amount">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Event Banner -->
+      <div id="event-banner" class="event-banner" style="display:none"></div>
+
+      <!-- Main Area -->
+      <div class="main-area">
+        <!-- Sidebar -->
+        <div class="panel sidebar">
+          <button class="btn tab-btn active" data-target="tab-inventory">
+            <span class="tab-icon">📦</span> 倉庫
+          </button>
+          <button class="btn tab-btn" data-target="tab-crafting">
+            <span class="tab-icon">⚗️</span> 調合
+          </button>
+          <button class="btn tab-btn" data-target="tab-shop">
+            <span class="tab-icon">🏪</span> お店
+          </button>
+          <button class="btn tab-btn" data-target="tab-dispatch">
+            <span class="tab-icon">🗺️</span> 派遣
+          </button>
+          <button class="btn tab-btn" data-target="tab-upgrade">
+            <span class="tab-icon">🏗️</span> 設備
+          </button>
+          <button class="btn tab-btn" data-target="tab-stats">
+            <span class="tab-icon">📊</span> 統計
+          </button>
+        </div>
+
+        <!-- Content Panel -->
+        <div class="panel content-panel">
+          <div id="tab-inventory" class="content-section active">
+            <h3>倉庫</h3>
+            <div id="inventory-list" class="item-grid"></div>
+          </div>
+
+          <div id="tab-crafting" class="content-section">
+            <h3>アイテム調合</h3>
+            <div class="crafting-layout">
+              <div id="recipe-list" class="crafting-recipe-list"></div>
+              <div id="crafting-details" class="crafting-details-area">
+                <p>レシピを選択してください。</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-shop" class="content-section">
+            <h3>お店</h3>
+            <p>準備中...</p>
+          </div>
+
+          <div id="tab-dispatch" class="content-section">
+            <h3>冒険者の派遣</h3>
+            <p>準備中...</p>
+          </div>
+
+          <div id="tab-stats" class="content-section">
+            <h3>統計</h3>
+            <p>読み込み中...</p>
+          </div>
+
+          <div id="tab-upgrade" class="content-section">
+            <h3>🏗️ 設備・クエスト</h3>
+            <div id="section-upgrade"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/game/main.js"></script>
+</body>
+
+</html>
