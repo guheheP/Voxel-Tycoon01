@@ -143,3 +143,87 @@
   color: var(--gold) !important;
   font-weight: 700;
 }
+
+/* ===== Gold Flash Animation ===== */
+.gold-flash-up {
+  animation: goldFlashUp 0.6s ease;
+}
+.gold-flash-down {
+  animation: goldFlashDown 0.6s ease;
+}
+
+@keyframes goldFlashUp {
+  0% { box-shadow: 0 0 0 rgba(125, 170, 104, 0); }
+  30% { box-shadow: 0 0 18px rgba(125, 170, 104, 0.5), inset 0 0 12px rgba(125, 170, 104, 0.15); }
+  100% { box-shadow: var(--shadow-glow-gold); }
+}
+@keyframes goldFlashDown {
+  0% { box-shadow: 0 0 0 rgba(196, 106, 90, 0); }
+  30% { box-shadow: 0 0 18px rgba(196, 106, 90, 0.5), inset 0 0 12px rgba(196, 106, 90, 0.15); }
+  100% { box-shadow: var(--shadow-glow-gold); }
+}
+
+.gold-flash-up .gold-amount {
+  color: var(--green-light) !important;
+  transition: color 0.6s ease;
+}
+.gold-flash-down .gold-amount {
+  color: var(--red-soft) !important;
+  transition: color 0.6s ease;
+}
+
+/* ===== Rank Progress Bar ===== */
+.rank-progress-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  width: 100%;
+}
+.rank-progress-bar {
+  flex: 1;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(160, 132, 92, 0.15);
+  min-width: 50px;
+}
+.rank-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+  border-radius: 3px;
+  transition: width 0.5s ease;
+  box-shadow: 0 0 6px rgba(232, 184, 75, 0.3);
+}
+.rank-progress-text {
+  font-size: 9px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 70px;
+  text-align: right;
+  font-family: var(--font-title);
+}
+
+/* ===== Tab Customer Badge ===== */
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  border-radius: 10px;
+  padding: 0 5px;
+  margin-left: auto;
+  box-shadow: 0 0 8px rgba(231, 76, 60, 0.4);
+  animation: badgePulse 2s ease-in-out infinite;
+}
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+

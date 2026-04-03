@@ -10,7 +10,7 @@ export const AreaDefs = {
     description: 'のどかな草原。基本的な素材が手に入る。',
     icon: '🌿',
     unlocked: true,
-    baseTime: 12,
+    baseTime: 25,
     dropTable: [
       { blueprintId: 'wood',          weight: 20 },
       { blueprintId: 'stone',         weight: 18 },
@@ -36,7 +36,7 @@ export const AreaDefs = {
     description: '暗い洞窟の奥深く。鉱石や水晶が眠る。',
     icon: '⛏️',
     unlocked: false,
-    baseTime: 18,
+    baseTime: 35,
     dropTable: [
       { blueprintId: 'iron_ore',    weight: 22 },
       { blueprintId: 'stone',       weight: 15 },
@@ -61,7 +61,7 @@ export const AreaDefs = {
     description: '不思議な力が満ちた深い森。稀少な薬草が育つ。',
     icon: '🌲',
     unlocked: false,
-    baseTime: 22,
+    baseTime: 45,
     dropTable: [
       { blueprintId: 'herb',           weight: 12 },
       { blueprintId: 'poison_herb',    weight: 12 },
@@ -87,7 +87,7 @@ export const AreaDefs = {
     description: '溶岩が流れる危険な火山。貴重な火石が採れる。',
     icon: '🌋',
     unlocked: false,
-    baseTime: 28,
+    baseTime: 55,
     dropTable: [
       { blueprintId: 'fire_stone',    weight: 20 },
       { blueprintId: 'lava_core',     weight: 15 },
@@ -112,7 +112,7 @@ export const AreaDefs = {
     description: '海底に眠る古代遺跡。稀少な真珠やミスリルが見つかる。',
     icon: '🌊',
     unlocked: false,
-    baseTime: 32,
+    baseTime: 65,
     dropTable: [
       { blueprintId: 'deep_pearl',      weight: 18 },
       { blueprintId: 'coral_fragment',   weight: 16 },
@@ -137,7 +137,7 @@ export const AreaDefs = {
     description: '古代竜の住処。最強の素材が眠るが極めて危険。',
     icon: '🐉',
     unlocked: false,
-    baseTime: 35,
+    baseTime: 70,
     dropTable: [
       { blueprintId: 'dragon_scale',    weight: 22 },
       { blueprintId: 'feather',         weight: 14 },
@@ -162,7 +162,7 @@ export const AreaDefs = {
     description: '雲を突き抜ける塔。天空の素材と神鉄が手に入る。',
     icon: '☁️',
     unlocked: false,
-    baseTime: 40,
+    baseTime: 80,
     dropTable: [
       { blueprintId: 'sky_fragment',    weight: 18 },
       { blueprintId: 'wind_crystal',    weight: 15 },
@@ -187,7 +187,7 @@ export const AreaDefs = {
     description: '時空の狭間。始原の素材が眠る最果ての地。',
     icon: '⏳',
     unlocked: false,
-    baseTime: 45,
+    baseTime: 90,
     dropTable: [
       { blueprintId: 'time_sand',       weight: 18 },
       { blueprintId: 'primordial_gem',  weight: 10 },

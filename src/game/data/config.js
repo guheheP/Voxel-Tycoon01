@@ -5,7 +5,7 @@
 
 export const GameConfig = {
   // --- 日数サイクル ---
-  dayDurationSeconds: 60,       // 1日の長さ（秒）
+  dayDurationSeconds: 90,       // 1日の長さ（秒）
   startingDay: 1,
 
   // --- 経済 ---

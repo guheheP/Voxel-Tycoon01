@@ -8,7 +8,7 @@ import { GameConfig } from './data/config.js';
 // Re-export for backward compatibility
 export { ItemBlueprints, Recipes };
 
-let _instanceIdCounter = 0;
+
 
 /**
  * 個別のアイテムインスタンスを生成する
@@ -22,7 +22,7 @@ export function createItemInstance(blueprintId, quality, traits = []) {
   if (!bp) throw new Error(`Unknown blueprint: ${blueprintId}`);
 
   return {
-    uid: `item_${_instanceIdCounter++}`,
+    uid: crypto.randomUUID(),
     blueprintId,
     name: bp.name,
     type: bp.type,

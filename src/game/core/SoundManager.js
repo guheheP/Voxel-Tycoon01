@@ -8,7 +8,7 @@ import { eventBus } from './EventBus.js';
 
 // --- プレイリスト定義 ---
 const TITLE_TRACK = '/bgm/title_01.mp3';
-const ENDING_TRACK = '/bgm/Endeing_01.mp3';
+const ENDING_TRACK = '/bgm/Ending_01.mp3';
 const GAME_TRACKS = Array.from({ length: 15 }, (_, i) =>
   `/bgm/bgm_${String(i + 1).padStart(2, '0')}.mp3`
 );
@@ -104,7 +104,13 @@ class SoundManagerClass {
   }
 
   _bindEvents() {
-    eventBus.on('item:crafted', () => this.playCraftSuccess());
+    eventBus.on('item:crafted', (d) => {
+      if (d?.item?.quality >= 81) {
+        this.playLegendaryCraft();
+      } else {
+        this.playCraftSuccess();
+      }
+    });
     eventBus.on('item:sold', () => this.playSellCoin());
     eventBus.on('customer:arrived', () => this.playDoorBell());
     eventBus.on('rank:up', () => this.playFanfare());
@@ -112,6 +118,10 @@ class SoundManagerClass {
     eventBus.on('event:triggered', () => this.playEventChime());
     eventBus.on('day:tick', () => this.playDayTick());
     eventBus.on('game:over', () => this.playGameOver());
+    eventBus.on('tab:switched', () => this.playTabSwitch());
+    eventBus.on('item:displayed', () => this.playItemDisplay());
+    eventBus.on('item:removed', () => this.playItemRemove());
+    eventBus.on('adventurer:return', () => this.playItemAcquire());
 
     // 日替わりでBGMフェード → 次の曲
     eventBus.on('day:newDay', () => this._onNewDay());
@@ -279,13 +289,19 @@ class SoundManagerClass {
     // プロシージャルBGMが動いてたら止める
     this._stopProcedural();
 
+    // 既に再生中なら一旦停止してからソースを変える
+    this.audioEl.pause();
     this.audioEl.src = src;
     this.audioEl.load();
+
+    // play()はユーザーインタラクション後でないと失敗する場合がある
     const playPromise = this.audioEl.play();
     if (playPromise) {
       playPromise.catch(err => {
-        // 再生失敗 → プロシージャルBGMにフォールバック
-        console.warn('[SoundManager] Track play failed, fallback to procedural:', err.message);
+        // AbortError: 新しいload()で中断された → 無視（正常動作）
+        if (err.name === 'AbortError') return;
+        // NotAllowedError: ユーザー操作がない → プロシージャルにフォールバック
+        console.warn('[SoundManager] Track play failed:', err.message);
         this._startProcedural();
       });
     }
@@ -444,6 +460,69 @@ class SoundManagerClass {
     const now = this.ctx.currentTime;
     this._playSENote(110, now, 1.5, 'sawtooth', 0.15);
     this._playSENote(82.41, now + 0.1, 1.2, 'sine', 0.12);
+  }
+
+  /** レジェンダリー調合 — 華やかなアルペジオ+和音 */
+  playLegendaryCraft() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // 上昇アルペジオ
+    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
+    notes.forEach((freq, i) => {
+      this._playSENote(freq, now + i * 0.06, 0.4, 'sine', 0.12);
+    });
+    // キラキラ和音
+    this._playSENote(1046.50, now + 0.4, 0.8, 'sine', 0.08);
+    this._playSENote(1318.51, now + 0.4, 0.8, 'sine', 0.06);
+    this._playSENote(1567.98, now + 0.4, 0.8, 'sine', 0.05);
+  }
+
+  /** タブ切替 — 軽いクリック音 */
+  playTabSwitch() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(600, now, 0.05, 'sine', 0.04);
+    this._playSENote(800, now + 0.03, 0.04, 'sine', 0.03);
+  }
+
+  /** 陳列 — ストンと置く音 */
+  playItemDisplay() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(300, now, 0.1, 'triangle', 0.06);
+    this._playSENote(450, now + 0.05, 0.08, 'sine', 0.04);
+  }
+
+  /** 取り下げ — スッと引く音 */
+  playItemRemove() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(500, now, 0.06, 'sine', 0.04);
+    this._playSENote(350, now + 0.04, 0.08, 'sine', 0.03);
+  }
+
+  /** アイテム入手 — キランッ */
+  playItemAcquire() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(880, now, 0.12, 'sine', 0.08);
+    this._playSENote(1320, now + 0.06, 0.15, 'sine', 0.06);
+    this._playSENote(1760, now + 0.12, 0.1, 'sine', 0.04);
+  }
+
+  /** エラー — ブブッ */
+  playError() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(150, now, 0.08, 'square', 0.08);
+    this._playSENote(120, now + 0.1, 0.1, 'square', 0.06);
+  }
+
+  /** ボタンホバー — 極軽いコツッ */
+  playHover() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(700, now, 0.02, 'sine', 0.02);
   }
 
   // ===== 共通ユーティリティ =====

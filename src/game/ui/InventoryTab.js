@@ -35,7 +35,7 @@ export class InventoryTab {
 
     // Filter tabs
     const filters = [
-      { key: 'all', label: '📦 すべて' },
+      { key: 'all', label: `📦 すべて (${items.length}/${this.inventory.maxCapacity})` },
       { key: 'material', label: '🪨 素材' },
       { key: 'equipment', label: '⚔️ 装備' },
       { key: 'consumable', label: '🧪 消耗品' },
@@ -59,7 +59,12 @@ export class InventoryTab {
     html += `</div></div>`;
 
     if (sorted.length === 0) {
-      html += `<p class="inv-empty">${this.filter === 'all' ? '所持品がありません。' : 'このカテゴリのアイテムはありません。'}</p>`;
+      const isAll = this.filter === 'all';
+      html += `<div class="empty-state">
+        <div class="empty-state-icon">${isAll ? '📦' : '🔍'}</div>
+        <div class="empty-state-text">${isAll ? 'まだ何も持っていません' : 'このカテゴリのアイテムはありません'}</div>
+        <div class="empty-state-hint">${isAll ? '冒険者を派遣して素材を集めましょう！' : '他のカテゴリを見てみましょう'}</div>
+      </div>`;
     } else {
       html += `<div class="item-grid">`;
       html += sorted.map(i => createItemCardHTML(i)).join('');

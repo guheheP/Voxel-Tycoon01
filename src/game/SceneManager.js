@@ -1,5 +1,6 @@
 import { VoxelEntity } from '../engine/VoxelEntity.js';
 import { eventBus } from './core/EventBus.js';
+import { ParticleSystem } from './ParticleSystem.js';
 import * as THREE from 'three';
 
 export class SceneManager {
@@ -33,6 +34,9 @@ export class SceneManager {
     this.camera.position.set(20, 25, 25);
     this.camera.lookAt(0, 0, 0);
 
+    // パーティクルシステム初期化
+    this.particles = new ParticleSystem(this.scene);
+
     // 背景・お店のロード
     await this.spawnEnvironment();
 
@@ -40,7 +44,26 @@ export class SceneManager {
     eventBus.on('adventurer:return', (d) => this._onAdventurerReturn(d));
 
     // ショップ外装進化: ランクアップ
-    eventBus.on('rank:up', (d) => this._evolveShopExterior(d.rank));
+    eventBus.on('rank:up', (d) => {
+      this._evolveShopExterior(d.rank);
+      // 紙吹雪パーティクル
+      this.particles.spawnConfetti(50);
+    });
+
+    // 売上時コインパーティクル
+    eventBus.on('item:sold', () => {
+      this.particles.spawnCoinBurst(new THREE.Vector3(-2, 2, 5), 10 + Math.floor(Math.random() * 8));
+    });
+
+    // 調合時スターパーティクル
+    eventBus.on('item:crafted', (d) => {
+      const tier = d.item && d.item.quality >= 81 ? 'q-legendary'
+                 : d.item && d.item.quality >= 61 ? 'q-excellent'
+                 : d.item && d.item.quality >= 41 ? 'q-fine'
+                 : 'q-common';
+      const count = tier === 'q-legendary' ? 20 : tier === 'q-excellent' ? 15 : 10;
+      this.particles.spawnCraftStars(new THREE.Vector3(6, 1, 0), count, tier);
+    });
 
     // 背景NPC (お客さんが歩き回る)
     await this._spawnWanderers();
@@ -71,6 +94,21 @@ export class SceneManager {
 
     // 日夜ライティング更新
     this._updateDayNightCycle();
+
+    // パーティクル更新
+    if (this.particles) {
+      this.particles.update(dt);
+
+      // 環境パーティクル自動生成（約3秒ごと）
+      this._ambientTimer = (this._ambientTimer || 0) + dt;
+      if (this._ambientTimer >= 3) {
+        this._ambientTimer = 0;
+        const count = 1 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < count; i++) {
+          this.particles.spawnAmbientParticle(this.dayProgress);
+        }
+      }
+    }
   }
 
   /** dayProgressを外部から設定 (0.0~1.0) */
@@ -238,13 +276,16 @@ export class SceneManager {
   }
 
   async _onAdventurerReturn(data) {
-    // 帰還エフェクト: 一時的にKnightを出現させる
+    // 帰還エフェクト: NPCの同時数を制限
+    if (this._returnNpcCount >= 2) return;
+    this._returnNpcCount = (this._returnNpcCount || 0) + 1;
+
     try {
       const npc = await this.loadEntity('/presets/RPG_Characters/Knight.json', {
         position: [18, 0, 0],
         scale: 0.5,
       });
-      if (!npc) return;
+      if (!npc) { this._returnNpcCount--; return; }
       npc.playAnimation('walk');
 
       // 歩いてお店に向かう
@@ -261,23 +302,25 @@ export class SceneManager {
               const idx = this.entities.indexOf(npc);
               if (idx !== -1) this.entities.splice(idx, 1);
               npc.removeFrom(this.scene);
+              this._returnNpcCount--;
             }, 3000);
           }
         }
       }, 33);
     } catch (e) {
+      this._returnNpcCount--;
       // NPC演出はベストエフォート
     }
   }
 
   /** ショップ外装進化 — ランクに応じた装飾追加 */
   async _evolveShopExterior(rankData) {
-    const rank = rankData?.rank || rankData;
-    if (!rank) return;
+    const rankIndex = rankData?.index;
+    if (rankIndex === undefined) return;
 
     // ランク別の装飾定義
     const decorationsByRank = {
-      2: [
+      1: [
         // バナー（看板）を店の両脇に
         { path: 'Banner.json', pos: [-4, 0, 3], scale: 0.6, rot: 0 },
         { path: 'Banner.json', pos: [4, 0, 3], scale: 0.6, rot: 0 },
@@ -285,14 +328,14 @@ export class SceneManager {
         { path: 'Fence.json', pos: [-5, 0, 7], scale: 0.5, rot: 0 },
         { path: 'Fence.json', pos: [5, 0, 7], scale: 0.5, rot: 0 },
       ],
-      3: [
+      2: [
         // 街灯を設置
         { path: 'Street Light.json', pos: [-7, 0, 5], scale: 0.7, rot: 0 },
         { path: 'Street Light.json', pos: [7, 0, 5], scale: 0.7, rot: 0 },
         // 井戸を設置
         { path: 'Well.json', pos: [-8, 0, -3], scale: 0.5, rot: Math.PI / 4 },
       ],
-      4: [
+      3: [
         // 木を追加して庭を整える
         { path: 'Tree.json', pos: [-5, 0, -8], scale: 0.7, rot: 0 },
         { path: 'Tree.json', pos: [5, 0, -8], scale: 0.6, rot: 0 },
@@ -301,7 +344,7 @@ export class SceneManager {
         // 街灯追加
         { path: 'Street Light.json', pos: [0, 0, 8], scale: 0.7, rot: 0 },
       ],
-      5: [
+      4: [
         // テント（VIP向け特設コーナー）
         { path: 'Tent.json', pos: [10, 0, 4], scale: 0.5, rot: -Math.PI / 4 },
         // 追加のバナーと装飾
@@ -312,7 +355,7 @@ export class SceneManager {
       ],
     };
 
-    const decorations = decorationsByRank[rank];
+    const decorations = decorationsByRank[rankIndex];
     if (!decorations) return;
 
     for (const dec of decorations) {

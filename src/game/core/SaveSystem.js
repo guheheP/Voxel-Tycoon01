@@ -53,10 +53,7 @@ export class SaveSystem {
           id: a.id,
           level: a.level,
           exp: a.exp,
-          status: a.status,
-          timer: a.timer,
-          maxTimer: a.maxTimer,
-          currentArea: a.currentArea,
+          assignedArea: a.assignedArea,
           weapon: a.equipment.weapon ? {
             blueprintId: a.equipment.weapon.blueprintId,
             quality: a.equipment.weapon.quality,
@@ -75,6 +72,7 @@ export class SaveSystem {
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
       console.log('[Save] ゲームを保存しました (v4)');
+      eventBus.emit('save:completed');
     } catch (e) {
       console.error('[Save] 保存失敗:', e);
     }

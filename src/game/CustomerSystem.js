@@ -1,5 +1,6 @@
 /**
  * CustomerSystem — リアルタイムお客さん管理
+ * 評判(ReputationSystem)に応じて来店頻度・売値が変動
  */
 import { GameConfig } from './data/config.js';
 import { eventBus } from './core/EventBus.js';
@@ -48,9 +49,12 @@ export class CustomerSystem {
 
   /** 毎フレーム更新 */
   update(dt) {
-    // 来店タイマー
+    // 来店タイマー — 評判で間隔を短縮
+    const rateMultiplier = this.reputation ? this.reputation.getCustomerRateMultiplier() : 1.0;
+    const spawnInterval = GameConfig.customerSpawnInterval / rateMultiplier;
+
     this.spawnTimer += dt;
-    if (this.spawnTimer >= GameConfig.customerSpawnInterval) {
+    if (this.spawnTimer >= spawnInterval) {
       this.spawnTimer = 0;
       if (this.customersToday < GameConfig.maxCustomersPerDay) {
         this._spawnCustomer();
@@ -72,6 +76,7 @@ export class CustomerSystem {
       if (c.timer <= 0) {
         this.customers.splice(i, 1);
         eventBus.emit('customer:left', { customer: c, reason: 'timeout' });
+        StatsTracker.add('totalCustomersLost', 0); // tracked by StatsTracker's own listener
       }
     }
   }
@@ -103,13 +108,13 @@ export class CustomerSystem {
 
     // 最も高いアイテムを購入
     const best = matching.sort((a, b) => (b.value || 0) - (a.value || 0))[0];
-    const bonus = GameConfig.customerBonusMultiplier;
+
+    // 評判ボーナスを売値に加算
+    const priceBonus = this.reputation ? this.reputation.getPriceBonus() : 0;
+    const bonus = GameConfig.customerBonusMultiplier * (1 + priceBonus);
     const sold = this.shop.processSale(best, bonus);
 
     if (sold) {
-      // 評判アップ
-      if (this.reputation) this.reputation.addPoints(2);
-
       // 客は買ったら帰る
       const idx = this.customers.indexOf(customer);
       if (idx !== -1) this.customers.splice(idx, 1);
@@ -120,3 +125,4 @@ export class CustomerSystem {
 
   getActiveCustomers() { return this.customers; }
 }
+

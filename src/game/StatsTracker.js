@@ -30,7 +30,7 @@ class StatsTrackerClass {
 
   _bindEvents() {
     eventBus.on('item:sold', (data) => {
-      const price = data.item?.value || 0;
+      const price = data.price || data.item?.value || 0;
       this.totalGoldEarned += price;
       this.totalItemsSold++;
       this._currentDaySales += price;
@@ -65,6 +65,15 @@ class StatsTrackerClass {
     this.totalPuzzlesPlayed++;
     if (score > this.bestPuzzleScore) {
       this.bestPuzzleScore = score;
+    }
+  }
+
+  /** 任意の統計を追加 */
+  add(key, amount = 1) {
+    if (this[key] !== undefined) {
+      this[key] += amount;
+    } else {
+      this[key] = amount;
     }
   }
 

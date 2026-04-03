@@ -11,7 +11,7 @@ export class RandomEventSystem {
     this.inventory = inventorySystem;
     this.activeEffects = [];  // { effect, multiplier, remainingDays }
 
-    eventBus.on('day:tick', () => this._onNewDay());
+    eventBus.on('day:newDay', () => this._onNewDay());
   }
 
   getActiveEffects() {

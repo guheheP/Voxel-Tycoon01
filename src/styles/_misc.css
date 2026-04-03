@@ -193,18 +193,106 @@
 .sound-toggle-btn:hover { opacity: 1; }
 
 /* ===== Responsive tweaks ===== */
-/* ===== Responsive tweaks ===== */
 @media (max-width: 900px) {
   .sidebar { width: 60px; }
   .tab-btn { font-size: 0; padding: 12px; justify-content: center; }
   .tab-btn .tab-icon { font-size: 20px; }
+  .tab-badge { margin-left: 0; position: absolute; top: 2px; right: 2px; min-width: 14px; height: 14px; font-size: 8px; }
   .item-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
-  .status-info { gap: 8px; }
-  .status-item { display: none; }
+  .status-info { gap: 6px; flex-wrap: wrap; }
+  /* コンパクトステータスに切り替え（完全非表示ではなく） */
+  .status-item { flex-direction: row; gap: 4px; }
+  .status-label { font-size: 9px; }
+  .status-value { font-size: 11px; }
+  .rank-progress-container { display: none; }
+  .reputation-display { display: none; }
+  .day-display { min-width: 120px; }
   .gold-display { display: flex; }
-  .day-progress-item { display: block !important; }
   .puzzle-body { flex-direction: column; }
   .puzzle-sidebar { flex-direction: row; flex-wrap: wrap; min-width: auto; }
   .stats-two-col { grid-template-columns: 1fr; }
   .stats-achievements { grid-template-columns: 1fr; }
 }
+
+@media (max-width: 600px) {
+  .ui-container { padding: 6px; gap: 6px; }
+  .main-area { gap: 6px; }
+  .sidebar { width: 48px; padding: 6px; }
+  .tab-btn { padding: 10px; }
+  .content-panel { padding: 10px; }
+  .status-bar { padding: 6px 10px; flex-wrap: wrap; gap: 6px; }
+  .game-title h2 { font-size: 14px; }
+  .gold-amount { font-size: 16px; }
+  .item-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+}
+
+/* ===== Tab slide animation ===== */
+.content-section.active {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: tabSlideIn 0.3s ease;
+}
+@keyframes tabSlideIn {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ===== Save Indicator ===== */
+.save-indicator {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  z-index: 11000;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: rgba(48, 38, 26, 0.9);
+  border: 1px solid rgba(160, 132, 92, 0.2);
+  border-radius: 8px;
+  padding: 6px 14px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: saveSlideIn 0.3s ease;
+  pointer-events: none;
+}
+.save-indicator-hide {
+  animation: saveFadeOut 0.5s ease forwards;
+}
+@keyframes saveSlideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes saveFadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ===== Empty State ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.4;
+}
+.empty-state-text {
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.6;
+}
+.empty-state-hint {
+  font-size: 11px;
+  margin-top: 8px;
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+

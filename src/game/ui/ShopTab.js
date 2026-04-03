@@ -44,7 +44,7 @@ export class ShopTab {
       });
       html += `</div></div>`;
     } else {
-      html += `<div class="customer-empty">お客さんはまだ来ていません… 時間が経つと来店します。</div>`;
+      html += `<div class="empty-state"><div class="empty-state-icon">🏪</div><div class="empty-state-text">お客さんはまだ来ていません</div><div class="empty-state-hint">時間が経つと来店します</div></div>`;
     }
 
     // 陳列中アイテム
@@ -54,7 +54,12 @@ export class ShopTab {
       html += this.shop.displayedItems.map(i => createDisplayedItemCardHTML(i)).join('');
       html += `</div>`;
     } else {
-      html += `<p class="shop-empty-message">陳列棚は空です。倉庫からアイテムを陳列しましょう！</p>`;
+      html += `<div class="empty-state"><div class="empty-state-icon">🗄️</div><div class="empty-state-text">陳列棚は空です</div><div class="empty-state-hint">下の倉庫一覧からアイテムを陳列しましょう</div></div>`;
+    }
+
+    // 陳列品の取り下げ説明
+    if (this.shop.displayedItems.length > 0) {
+      html += `<p class="shop-hint text-dim">※ 陳列中のアイテムをクリックすると取り下げます</p>`;
     }
 
     // 倉庫から陳列
@@ -90,12 +95,13 @@ export class ShopTab {
 
     this.el.innerHTML = html;
 
-    // イベントバインド
-    this.el.querySelectorAll('.btn-display-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const uid = e.currentTarget.getAttribute('data-uid');
+    // イベントバインド — カード全体クリックで陳列
+    this.el.querySelectorAll('.shop-displayable-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const uid = card.getAttribute('data-uid');
         this.shop.displayItem(uid);
         eventBus.emit('inventory:changed');
+        eventBus.emit('item:displayed');
         this.render();
       });
     });
@@ -103,6 +109,19 @@ export class ShopTab {
     this.el.querySelectorAll('.shop-filter-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         this.shopFilter = e.currentTarget.dataset.shopFilter;
+        this.render();
+      });
+    });
+
+    // 陳列品の取り下げバインド
+    this.el.querySelectorAll('.displayed-glow').forEach(card => {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', () => {
+        const uid = card.dataset.uid;
+        if (!uid) return;
+        this.shop.removeDisplayedItem(uid);
+        eventBus.emit('inventory:changed');
+        eventBus.emit('item:removed');
         this.render();
       });
     });

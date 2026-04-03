@@ -3,6 +3,7 @@
  */
 import { GameConfig } from './data/config.js';
 import { ItemBlueprints } from './data/items.js';
+import { UpgradeDefs } from './data/upgrades.js';
 import { eventBus } from './core/EventBus.js';
 import { StatsTracker } from './StatsTracker.js';
 
@@ -61,10 +62,9 @@ export class ShopSystem {
     return true;
   }
 
-  /** 自動販売（お客さんシステムなしのフォールバック） */
+  /** 自動販売（お客さんがいない場合のフォールバック） */
   _tryAutoSell() {
     if (this.displayedItems.length === 0) return;
-    // お客さんがいない場合のみ低確率で自動販売
     const item = this.displayedItems[Math.floor(Math.random() * this.displayedItems.length)];
     if (Math.random() < 0.15) {
       this.processSale(item);
@@ -77,7 +77,36 @@ export class ShopSystem {
     return Math.max(1, Math.floor(bp.baseValue * (item.quality / 50)));
   }
 
-  /** アップグレード適用 */
+  /** アップグレード購入処理 */
+  purchaseUpgrade(upgradeId, currentRank) {
+    if (this.isPurchased(upgradeId)) return false;
+    const upgradeDef = UpgradeDefs.find(u => u.id === upgradeId);
+    if (!upgradeDef) return false;
+    if (currentRank < upgradeDef.requiredRank) return false;
+    if (!this.inventory.spendGold(upgradeDef.cost)) return false;
+
+    this.purchasedUpgrades.push(upgradeId);
+
+    // 効果の適用
+    const effect = upgradeDef.effect;
+    switch (effect.type) {
+      case 'display_slots':
+        this.maxSlots += effect.value;
+        eventBus.emit('toast', { message: `🏪 販売棚が ${effect.value} 枠増えました！（${this.maxSlots}枠）`, type: 'success' });
+        break;
+      case 'inventory_capacity':
+        this.inventory.expandCapacity(effect.value);
+        break;
+      default:
+        // その他の効果は各システムで参照可能にする
+        break;
+    }
+
+    eventBus.emit('upgrade:purchased', { upgradeId, effect });
+    return true;
+  }
+
+  /** アップグレード適用（セーブデータ復元用） */
   applyUpgrade(upgradeId, effect) {
     this.purchasedUpgrades.push(upgradeId);
     if (effect.maxSlots) this.maxSlots += effect.maxSlots;
@@ -88,3 +117,4 @@ export class ShopSystem {
     return this.purchasedUpgrades.includes(upgradeId);
   }
 }
+

@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { Renderer } from './core/Renderer.js';
 import { SaveSystem } from './core/SaveSystem.js';
+import { eventBus } from './core/EventBus.js';
 import { SceneManager } from './SceneManager.js';
 import { InventorySystem } from './InventorySystem.js';
 import { ShopSystem } from './ShopSystem.js';
@@ -202,8 +203,9 @@ function _applySaveData(data) {
             id: def.id, name: def.name, icon: def.icon,
             status: 'idle', timer: 0, maxTimer: 0,
             exploreTimeMultiplier: def.exploreTimeMultiplier,
+            assignedArea: 'plains',
             currentArea: null, level: 1, exp: 0,
-            equipment: { weapon: null, armor: null },
+            equipment: { weapon: null },
           };
           adventurerSystem.adventurers.push(adv);
         }
@@ -212,6 +214,7 @@ function _applySaveData(data) {
       if (adv) {
         adv.level = savedAdv.level || 1;
         adv.exp = savedAdv.exp || 0;
+        adv.assignedArea = savedAdv.assignedArea || 'plains';
         if (savedAdv.weapon) {
           adv.equipment.weapon = createItemInstance(savedAdv.weapon.blueprintId, savedAdv.weapon.quality, savedAdv.weapon.traits);
         }
@@ -230,7 +233,7 @@ function _applySaveData(data) {
   }
 }
 
-import { eventBus } from './core/EventBus.js';
+
 
 boot();
 

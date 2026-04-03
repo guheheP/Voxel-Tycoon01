@@ -50,16 +50,7 @@
 .content-section {
   display: none;
 }
-.content-section.active {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  animation: fadeSlideIn 0.3s ease;
-}
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+
 
 /* ===== Section Titles ===== */
 h2, h3 {

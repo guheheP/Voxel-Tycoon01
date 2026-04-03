@@ -1,8 +1,11 @@
 /**
  * DayCycleSystem — リアルタイム日数サイクル + 翌日スキップ対応
- * 調合タブ中は時間停止
+ * ランクアップ時にレシピ・エリア・冒険者を解放する
  */
 import { GameConfig } from './data/config.js';
+import { Recipes } from './data/items.js';
+import { AreaDefs } from './data/areas.js';
+import { UnlockableAdventurers } from './data/adventurers.js';
 import { eventBus } from './core/EventBus.js';
 import { StatsTracker } from './StatsTracker.js';
 
@@ -15,31 +18,26 @@ export class DayCycleSystem {
     this.dayDuration = GameConfig.dayDurationSeconds;
     this.totalSales = 0;
     this.isGameOver = false;
-    this.paused = false;       // 調合タブなどで一時停止
+    this.paused = false;
 
-    // ランク定義
-    this.ranks = [
-      { name: '駆け出しの店',   salesGoal: 0 },
-      { name: '街角の雑貨屋',   salesGoal: 300 },
-      { name: '人気の錬金術店', salesGoal: 800 },
-      { name: '王都の名店',     salesGoal: 1800 },
-      { name: '大陸に名高い工房', salesGoal: 3500 },
-      { name: '伝説の錬金術師', salesGoal: 6000 },
-      { name: '世界の至宝',     salesGoal: 10000 },
-      { name: '神話の工房',     salesGoal: 20000 },
-    ];
+    // GameConfig.ranks を正規のランク定義として使用
     this.currentRankIndex = 0;
 
     // 売上追跡
-    this._unsubSold = eventBus.on('item:sold', (d) => {
+    this._unsubs = [];
+    this._unsubs.push(eventBus.on('item:sold', (d) => {
       this.totalSales += d.price || 0;
       StatsTracker.add('totalRevenue', d.price || 0);
+      // クエストの累計売上を更新
+      if (this.quest && typeof this.quest.updateTotalSales === 'function') {
+        this.quest.updateTotalSales(this.totalSales);
+      }
       this._checkRankUp();
-    });
+    }));
 
     // 一時停止イベント
-    eventBus.on('game:pause', () => { this.paused = true; });
-    eventBus.on('game:resume', () => { this.paused = false; });
+    this._unsubs.push(eventBus.on('game:pause', () => { this.paused = true; }));
+    this._unsubs.push(eventBus.on('game:resume', () => { this.paused = false; }));
   }
 
   /** 日数の進行度 (0〜1) */
@@ -47,7 +45,7 @@ export class DayCycleSystem {
     return Math.min(1, this.dayTimer / this.dayDuration);
   }
 
-  get currentRank() { return this.ranks[this.currentRankIndex]; }
+  get currentRank() { return GameConfig.ranks[this.currentRankIndex]; }
   get currentRent() {
     return GameConfig.dailyRent + this.currentRankIndex * GameConfig.rentIncreasePerRank;
   }
@@ -86,6 +84,7 @@ export class DayCycleSystem {
         totalSales: this.totalSales,
         rank: this.currentRank.name,
         rent,
+        reason: `維持費 ${rent}G を支払えませんでした…`,
       });
       return;
     }
@@ -94,32 +93,63 @@ export class DayCycleSystem {
     this.day++;
     StatsTracker.add('totalDays', 1);
 
-    // クエスト更新
-    if (this.quest) this.quest.onNewDay(this.day);
+    // クエスト日替わり更新
+    if (this.quest && typeof this.quest.onNewDay === 'function') {
+      this.quest.onNewDay(this.day);
+    }
 
     eventBus.emit('day:newDay', { day: this.day, rent });
   }
 
+  /** ランクアップ判定 + レシピ・エリア・冒険者の解放 */
   _checkRankUp() {
+    const ranks = GameConfig.ranks;
     while (
-      this.currentRankIndex < this.ranks.length - 1 &&
-      this.totalSales >= this.ranks[this.currentRankIndex + 1].salesGoal
+      this.currentRankIndex < ranks.length - 1 &&
+      this.totalSales >= ranks[this.currentRankIndex + 1].requiredSales
     ) {
       this.currentRankIndex++;
-      const rank = this.currentRank;
-      eventBus.emit('rank:up', { rank: rank.name, index: this.currentRankIndex });
+      const rankDef = ranks[this.currentRankIndex];
 
-      if (this.currentRankIndex >= GameConfig.goalShopRank) {
+      // レシピ解放
+      if (rankDef.newRecipes) {
+        for (const key of rankDef.newRecipes) {
+          if (Recipes[key]) {
+            Recipes[key].unlocked = true;
+            eventBus.emit('recipe:unlocked', { name: Recipes[key].targetId, key });
+          }
+        }
+      }
+
+      // エリア解放
+      if (rankDef.newAreas) {
+        for (const key of rankDef.newAreas) {
+          if (AreaDefs[key]) {
+            AreaDefs[key].unlocked = true;
+            eventBus.emit('area:unlocked', { name: AreaDefs[key].name, key });
+          }
+        }
+      }
+
+      // 冒険者加入
+      const newAdventurers = UnlockableAdventurers.filter(a => a.unlockRank === rankDef.rank);
+      for (const def of newAdventurers) {
+        eventBus.emit('adventurer:unlock', { adventurer: def });
+      }
+
+      eventBus.emit('rank:up', { rank: rankDef.name, index: this.currentRankIndex });
+
+      if (this.currentRankIndex >= GameConfig.goalShopRank - 1) {
         eventBus.emit('game:clear', {
           day: this.day,
           totalSales: this.totalSales,
-          rank: rank.name,
+          rank: rankDef.name,
         });
       }
     }
   }
 
   dispose() {
-    if (this._unsubSold) this._unsubSold();
+    this._unsubs.forEach(u => u());
   }
 }

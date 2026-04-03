@@ -99,7 +99,7 @@ export function createShopItemCardHTML(item) {
     .join('');
 
   return `
-    <div class="item-card ${tier.css} ${typeInfo.css}">
+    <div class="item-card ${tier.css} ${typeInfo.css} shop-displayable-card" data-uid="${item.uid}">
       ${renderImageArea(item, typeInfo)}
       <div class="item-card-body">
         <div class="item-card-type-strip">
@@ -117,7 +117,7 @@ export function createShopItemCardHTML(item) {
           <div class="item-quality-fill" style="width:${item.quality}%"></div>
         </div>
         <div class="item-traits">${traitsHtml}</div>
-        <button class="btn btn-display-item" data-uid="${item.uid}">🏪 お店に出す</button>
+        <div class="shop-display-hint">🏪 クリックで陳列</div>
       </div>
     </div>
   `;
@@ -135,7 +135,7 @@ export function createDisplayedItemCardHTML(item) {
     .join('');
 
   return `
-    <div class="item-card ${tier.css} ${typeInfo.css} displayed-glow">
+    <div class="item-card ${tier.css} ${typeInfo.css} displayed-glow" data-uid="${item.uid}">
       ${renderImageArea(item, typeInfo)}
       <div class="item-card-body">
         <div class="item-card-type-strip">

@@ -1,10 +1,11 @@
 /**
- * AdventurerSystem — リアルタイム探索タイマー版
+ * AdventurerSystem — 自動探索版
+ * 冒険者は割り当てエリアへ自動で繰り返し探索に行く
  */
 import { GameConfig } from './data/config.js';
 import { AreaDefs } from './data/areas.js';
 import { ItemBlueprints } from './data/items.js';
-import { AdventurerDefs, LevelExpTable } from './data/adventurers.js';
+import { AdventurerDefs, LevelExpTable, LevelBonuses } from './data/adventurers.js';
 import { eventBus } from './core/EventBus.js';
 import { StatsTracker } from './StatsTracker.js';
 
@@ -22,34 +23,67 @@ export class AdventurerSystem {
         status: 'idle',
         timer: 0,
         maxTimer: 0,
+        assignedArea: 'plains',
         currentArea: null,
         equipment: { weapon: null },
-        exploreTimeMultiplier: 1.0,
       });
+    });
+
+    // 冒険者解放イベント
+    eventBus.on('adventurer:unlock', (data) => {
+      const def = data.adventurer;
+      if (!def) return;
+      // 既に加入済みの場合はスキップ
+      if (this.adventurers.find(a => a.id === def.id)) return;
+      const adv = {
+        id: def.id, name: def.name, icon: def.icon,
+        status: 'idle', timer: 0, maxTimer: 0,
+        exploreTimeMultiplier: def.exploreTimeMultiplier,
+        assignedArea: 'plains',
+        currentArea: null, level: 1, exp: 0,
+        equipment: { weapon: null },
+      };
+      this.adventurers.push(adv);
+      eventBus.emit('adventurer:joined', { adventurer: adv });
     });
   }
 
-  /** 毎フレーム更新 — 探索タイマー */
+  /** 毎フレーム更新 — 自動探索 */
   update(dt) {
     this.adventurers.forEach(adv => {
-      if (adv.status !== 'exploring') return;
-      adv.timer -= dt;
-      if (adv.timer <= 0) {
-        this._completeExploration(adv);
+      if (adv.status === 'exploring') {
+        adv.timer -= dt;
+        if (adv.timer <= 0) {
+          this._completeExploration(adv);
+        }
+      } else if (adv.status === 'idle') {
+        // 自動で再出発
+        this._autoDispatch(adv);
       }
     });
   }
 
-  /** 冒険者を派遣 */
-  dispatch(advId, areaId) {
+  /** 探索エリアを変更 */
+  assignArea(advId, areaId) {
     const adv = this.adventurers.find(a => a.id === advId);
-    if (!adv || adv.status !== 'idle') return false;
-
+    if (!adv) return false;
     const area = AreaDefs[areaId];
     if (!area || !area.unlocked) return false;
+    adv.assignedArea = areaId;
+    return true;
+  }
 
-    const levelReduction = 1 - ((adv.level - 1) * 0.05);
-    const time = Math.max(5, Math.ceil(area.baseTime * adv.exploreTimeMultiplier * levelReduction));
+  /** 自動派遣 */
+  _autoDispatch(adv) {
+    const areaId = adv.assignedArea;
+    const area = AreaDefs[areaId];
+    if (!area || !area.unlocked) {
+      // フォールバック: 草原に戻す
+      adv.assignedArea = 'plains';
+      return;
+    }
+
+    const time = this._calcExploreTime(adv, area);
 
     adv.status = 'exploring';
     adv.currentArea = areaId;
@@ -57,18 +91,23 @@ export class AdventurerSystem {
     adv.maxTimer = time;
 
     StatsTracker.add('expeditionsSent', 1);
-    eventBus.emit('adventurer:dispatched', { adventurer: adv, area });
-    return true;
+  }
+
+  /** 探索時間の計算 */
+  _calcExploreTime(adv, area) {
+    const levelReduction = 1 - ((adv.level - 1) * LevelBonuses.timeReduction);
+    return Math.max(8, Math.ceil(area.baseTime * (adv.exploreTimeMultiplier || 1.0) * levelReduction));
   }
 
   /** 探索完了 */
   _completeExploration(adv) {
     const area = AreaDefs[adv.currentArea];
+    const completedAreaId = adv.currentArea; // areaIdを保持（後でイベントに含めるため）
     if (!area) { adv.status = 'idle'; return; }
 
     // ドロップ
-    let minDrops = area.dropCountMin || GameConfig.exploreDropCountMin || 1;
-    let maxDrops = area.dropCountMax || GameConfig.exploreDropCountMax || 2;
+    const minDrops = area.dropCountMin || GameConfig.exploreDropCountMin || 1;
+    const maxDrops = area.dropCountMax || GameConfig.exploreDropCountMax || 2;
     const dropCount = minDrops + Math.floor(Math.random() * (maxDrops - minDrops + 1));
 
     const items = [];
@@ -90,8 +129,8 @@ export class AdventurerSystem {
       const bp = ItemBlueprints[selectedItemId];
       if (!bp) continue;
 
-      let minQ = area.qualityMin || GameConfig.exploreQualityMin || 10;
-      let maxQ = area.qualityMax || GameConfig.exploreQualityMax || 50;
+      const minQ = area.qualityMin || GameConfig.exploreQualityMin || 10;
+      const maxQ = area.qualityMax || GameConfig.exploreQualityMax || 50;
       let quality = minQ + Math.floor(Math.random() * (maxQ - minQ));
 
       // 武器ボーナス
@@ -99,20 +138,21 @@ export class AdventurerSystem {
         quality += Math.floor(adv.equipment.weapon.quality * GameConfig.equipmentQualityBonus);
       }
       // レベルボーナス
-      quality += (adv.level - 1) * 2;
+      quality += (adv.level - 1) * LevelBonuses.qualityBonus;
       quality = Math.min(100, Math.max(1, quality));
 
-      // 特性
+      // 特性 — エリアのtraitPoolから付与
       const traits = [];
-      if (bp.possibleTraits && bp.possibleTraits.length > 0) {
-        bp.possibleTraits.forEach(t => {
-          if (Math.random() < GameConfig.traitChance) traits.push(t);
-        });
+      const traitPool = area.traitPool || [];
+      for (const t of traitPool) {
+        if (Math.random() < GameConfig.traitChance) {
+          traits.push(t);
+        }
       }
 
       const item = {
         uid: crypto.randomUUID(),
-        blueprintId: itemId,
+        blueprintId: selectedItemId,
         name: bp.name,
         type: bp.type,
         quality,
@@ -128,11 +168,12 @@ export class AdventurerSystem {
     adv.exp += expGain;
     this._checkLevelUp(adv);
 
+    // idleに戻す → 次フレームで自動再出発
     adv.status = 'idle';
     adv.currentArea = null;
     adv.timer = 0;
 
-    eventBus.emit('adventurer:return', { adventurer: adv, items });
+    eventBus.emit('adventurer:return', { adventurer: adv, items, areaId: completedAreaId });
     StatsTracker.add('materialsGathered', items.length);
   }
 
@@ -146,7 +187,7 @@ export class AdventurerSystem {
   /** 装備 */
   equipWeapon(advId, itemUid) {
     const adv = this.adventurers.find(a => a.id === advId);
-    if (!adv || adv.status !== 'idle') return false;
+    if (!adv) return false;
     const item = this.inventory.removeItem(itemUid);
     if (!item) return false;
 
