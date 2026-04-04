@@ -36,6 +36,20 @@ class EventBus {
   }
 
   /**
+   * 一度だけ発火するイベントリスナーを登録
+   * @param {string} event
+   * @param {Function} callback
+   * @returns {Function} 登録解除用の関数
+   */
+  once(event, callback) {
+    const wrapper = (data) => {
+      this.off(event, wrapper);
+      callback(data);
+    };
+    return this.on(event, wrapper);
+  }
+
+  /**
    * イベントリスナーを解除
    * @param {string} event
    * @param {Function} callback

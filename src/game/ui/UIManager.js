@@ -14,6 +14,14 @@ import { UpgradeTab } from './UpgradeTab.js';
 
 import { SettingsPanel } from './SettingsPanel.js';
 
+// 時間帯ブレークポイント (dayProgress 0〜1)
+const TIME_DAWN_END   = 0.25;  // 〜25%: 朝
+const TIME_NOON_END   = 0.60;  // 〜60%: 昼
+const TIME_SUNSET_END = 0.80;  // 〜80%: 夕方
+// 〜100%: 夜
+
+const AMBIENT_PARTICLE_COUNT = 15;  // 環境パーティクル数
+
 export class UIManager {
   constructor(inventorySystem, shopSystem, adventurerSystem, customerSystem, dayCycleSystem, randomEventSystem, reputationSystem, questSystem) {
     this.inventory = inventorySystem;
@@ -141,7 +149,7 @@ export class UIManager {
     container.className = 'ambient-particles';
     document.body.insertBefore(container, document.body.firstChild);
 
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < AMBIENT_PARTICLE_COUNT; i++) {
       const p = document.createElement('div');
       p.className = 'ambient-particle';
       p.style.left = `${Math.random() * 100}%`;
@@ -337,11 +345,12 @@ export class UIManager {
     this.elDayProgress.style.width = `${pct}%`;
 
     // 時間帯で色変化（朝→昼→夕→夜）
-    if (pct < 25) {
+    const p100 = pct / 100;
+    if (p100 < TIME_DAWN_END) {
       this.elDayProgress.style.background = 'linear-gradient(90deg, #27ae60, #2ecc71)';
-    } else if (pct < 60) {
+    } else if (p100 < TIME_NOON_END) {
       this.elDayProgress.style.background = 'linear-gradient(90deg, #2ecc71, #f1c40f)';
-    } else if (pct < 80) {
+    } else if (p100 < TIME_SUNSET_END) {
       this.elDayProgress.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)';
     } else {
       this.elDayProgress.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
@@ -353,9 +362,9 @@ export class UIManager {
       if (this.dayCycle.paused) {
         pauseLabel.textContent = '⏸ 調合中…';
       } else {
-        if (pct < 25) pauseLabel.textContent = '🌅 朝';
-        else if (pct < 60) pauseLabel.textContent = '☀️ 昼';
-        else if (pct < 80) pauseLabel.textContent = '🌇 夕方';
+        if (p100 < TIME_DAWN_END) pauseLabel.textContent = '🌅 朝';
+        else if (p100 < TIME_NOON_END) pauseLabel.textContent = '☀️ 昼';
+        else if (p100 < TIME_SUNSET_END) pauseLabel.textContent = '🌇 夕方';
         else pauseLabel.textContent = '🌙 夜';
       }
     }
@@ -412,7 +421,7 @@ export class UIManager {
   // =============================================
 
   _showRankUpOverlay(data) {
-    const rankName = data?.rank?.name || 'ランクアップ！';
+    const rankName = data?.rank || 'ランクアップ！';
 
     const overlay = document.createElement('div');
     overlay.className = 'rankup-overlay';
@@ -477,29 +486,29 @@ export class UIManager {
 
   _updateTimeOfDayUI() {
     if (!this.dayCycle) return;
-    const p = this.dayCycle.dayTimer / this.dayCycle.dayLength; // 0-1
+    const p = this.dayCycle.dayTimer / this.dayCycle.dayDuration; // 0-1
 
     const root = document.documentElement;
     let tintR, tintG, tintB, tintA, borderTint;
 
-    if (p < 0.15) {
+    if (p < TIME_DAWN_END) {
       // 夜明け → 暖かい朝色
-      const t = p / 0.15;
+      const t = p / TIME_DAWN_END;
       tintR = 255; tintG = 220; tintB = 180; tintA = 0.03 * t;
       borderTint = `rgba(255, 200, 140, ${0.08 * t})`;
-    } else if (p < 0.5) {
+    } else if (p < TIME_NOON_END) {
       // 朝 → 昼: 徐々にニュートラルに
-      const t = (p - 0.15) / 0.35;
+      const t = (p - TIME_DAWN_END) / (TIME_NOON_END - TIME_DAWN_END);
       tintR = 255; tintG = 248; tintB = 230; tintA = 0.03 * (1 - t);
       borderTint = `rgba(160, 132, 92, 0.08)`;
-    } else if (p < 0.75) {
+    } else if (p < TIME_SUNSET_END) {
       // 昼 → 夕方
-      const t = (p - 0.5) / 0.25;
+      const t = (p - TIME_NOON_END) / (TIME_SUNSET_END - TIME_NOON_END);
       tintR = 255; tintG = 150; tintB = 80; tintA = 0.04 * t;
       borderTint = `rgba(196, 122, 90, ${0.12 * t})`;
     } else {
       // 夕方 → 夜
-      const t = (p - 0.75) / 0.25;
+      const t = (p - TIME_SUNSET_END) / (1 - TIME_SUNSET_END);
       tintR = 30; tintG = 40; tintB = 80; tintA = 0.04 * (0.5 + t * 0.5);
       borderTint = `rgba(50, 60, 120, ${0.08 * t})`;
     }
