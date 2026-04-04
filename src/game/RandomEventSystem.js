@@ -11,7 +11,7 @@ export class RandomEventSystem {
     this.inventory = inventorySystem;
     this.activeEffects = [];  // { effect, multiplier, remainingDays }
 
-    eventBus.on('day:newDay', () => this._onNewDay());
+    this._newDayUnsub = eventBus.on('day:newDay', () => this._onNewDay());
   }
 
   getActiveEffects() {
@@ -90,6 +90,10 @@ export class RandomEventSystem {
         break;
       }
     }
+  }
+
+  dispose() {
+    this._newDayUnsub?.();
   }
 
   _rollEvent() {
