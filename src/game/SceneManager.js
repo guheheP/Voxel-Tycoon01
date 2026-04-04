@@ -11,6 +11,7 @@ export class SceneManager {
     this.entities = entitiesArray;
     this.renderer = renderer;  // Renderer instance for lighting access
     this.wanderers = [];     // 背景で歩き回るNPC
+    this.returningNpcs = []; // 帰還アニメーション中のNPC
     this.dayProgress = 0;
 
     // 日夜サイクルの色定義
@@ -71,6 +72,41 @@ export class SceneManager {
   }
 
   update(dt) {
+    // 帰還中NPC の処理
+    for (let i = this.returningNpcs.length - 1; i >= 0; i--) {
+      const npcState = this.returningNpcs[i];
+      const npc = npcState.entity;
+      
+      if (!npc || !npc.root) {
+        this.returningNpcs.splice(i, 1);
+        this._returnNpcCount = Math.max(0, (this._returnNpcCount || 0) - 1);
+        continue;
+      }
+      
+      if (npcState.state === 'walking') {
+        // 歩行中 (約 4.5 units / sec = 往時の 0.15 / 33ms に相当)
+        npc.root.position.x -= 4.5 * dt;
+        npc.root.rotation.y = Math.PI / 2;
+        if (npc.root.position.x <= 4) {
+          npcState.state = 'idle';
+          npcState.timer = 3.0; // 3秒待機
+          npc.playAnimation('idle');
+        }
+      } else if (npcState.state === 'idle') {
+        // 待機後、クリーンアップ
+        npcState.timer -= dt;
+        if (npcState.timer <= 0) {
+          npc.root.visible = false;
+          const idx = this.entities.indexOf(npc);
+          if (idx !== -1) this.entities.splice(idx, 1);
+          npc.removeFrom(this.scene);
+          npc.dispose();
+          this.returningNpcs.splice(i, 1);
+          this._returnNpcCount = Math.max(0, (this._returnNpcCount || 0) - 1);
+        }
+      }
+    }
+
     // 背景NPC の動き
     for (const w of this.wanderers) {
       w.timer -= dt;
@@ -287,32 +323,14 @@ export class SceneManager {
         scale: 0.5,
       });
       if (!npc) { this._returnNpcCount--; return; }
+      
       npc.playAnimation('walk');
-
-      // 歩いてお店に向かう
-      const walkInterval = setInterval(() => {
-        if (npc.root) {
-          npc.root.position.x -= 0.15;
-          npc.root.rotation.y = Math.PI / 2;
-          if (npc.root.position.x <= 4) {
-            clearInterval(walkInterval);
-            npc.playAnimation('idle');
-            // 3秒後に消える
-            setTimeout(() => {
-              npc.root.visible = false;
-              const idx = this.entities.indexOf(npc);
-              if (idx !== -1) this.entities.splice(idx, 1);
-              npc.removeFrom(this.scene);
-              npc.dispose();
-              this._returnNpcCount--;
-            }, 3000);
-          }
-        } else {
-          // root が無ければ即クリーンアップ
-          clearInterval(walkInterval);
-          this._returnNpcCount--;
-        }
-      }, 33);
+      
+      this.returningNpcs.push({
+        entity: npc,
+        state: 'walking',
+        timer: 0,
+      });
     } catch (e) {
       this._returnNpcCount--;
       // NPC演出はベストエフォート
