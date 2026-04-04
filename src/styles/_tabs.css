@@ -12,20 +12,180 @@
   vertical-align: middle;
 }
 
-/* ===== Crafting Tab ===== */
-.crafting-layout {
-  display: flex;
-  gap: 16px;
-}
-.crafting-recipe-list {
-  width: 180px;
+/* ===== Crafting Tab — 2-Column Layout ===== */
+.craft-layout {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 500px;
-  overflow-y: auto;
-  padding-right: 4px;
+  flex: 1;
+  min-height: 0;
 }
+.craft-columns {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+.craft-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.craft-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.craft-panel-header h4 {
+  margin: 0;
+  font-size: 14px;
+}
+.craft-panel-left {
+  width: 42%;
+  flex-shrink: 0;
+}
+.craft-panel-right {
+  flex: 1;
+  min-width: 0;
+}
+.craft-recipe-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* Crafting tab fill */
+#tab-crafting.active { gap: 0; }
+#tab-crafting .craft-layout { flex: 1; min-height: 0; }
+
+/* ── Recipe Card Grid ── */
+.craft-recipe-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 2px;
+  align-content: start;
+}
+
+/* ── Recipe Card ── */
+.craft-rcard {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(145deg, rgba(45, 38, 28, 0.9) 0%, rgba(35, 30, 22, 0.85) 100%);
+  border: 1px solid rgba(160, 132, 92, 0.18);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+.craft-rcard:hover {
+  border-color: rgba(232, 184, 75, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.craft-rcard-selected {
+  border-color: var(--green) !important;
+  box-shadow: 0 0 12px rgba(125, 170, 104, 0.2);
+}
+.craft-rcard-selected::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--green);
+  z-index: 1;
+}
+
+/* Disabled (can't craft) */
+.craft-rcard-disabled {
+  opacity: 0.4;
+  filter: grayscale(0.5);
+}
+.craft-rcard-disabled:hover {
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+.craft-rcard-lock {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--red-soft);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2px 0;
+  letter-spacing: 0.5px;
+}
+
+/* Card image */
+.craft-rcard-img {
+  width: 100%;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(60, 52, 38, 0.4) 0%, rgba(40, 35, 25, 0.6) 100%);
+  border-bottom: 1px solid rgba(160, 132, 92, 0.1);
+  overflow: hidden;
+  padding: 4px;
+}
+.craft-rcard-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.craft-rcard-img-placeholder span {
+  font-size: 24px;
+  opacity: 0.5;
+}
+
+/* Card body */
+.craft-rcard-body {
+  padding: 4px 6px 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.craft-rcard-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.craft-rcard-meta {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* Workspace scroll */
+.craft-workspace {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* Craftable-only toggle */
+.craft-craftable-toggle {
+  margin-left: auto;
+}
+.craft-craftable-toggle.active {
+  background: rgba(125, 170, 104, 0.18) !important;
+  border-color: var(--green) !important;
+  color: var(--green-light) !important;
+}
+
+/* Old selectors kept for workspace compatibility */
 .crafting-details-area {
   flex: 1;
 }
@@ -384,106 +544,567 @@
   box-shadow: 0 0 14px var(--gold-glow);
 }
 
-/* ===== Dispatch Tab ===== */
-.dispatch-description {
-  margin-bottom: 12px;
-  font-size: 13px;
-}
-.dispatch-list {
+/* ===== Dispatch Tab — 2-Column Layout ===== */
+.disp-layout {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  flex: 1;
+  min-height: 0;
 }
-.dispatch-card {
+.disp-description {
+  margin-bottom: 8px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.disp-columns {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+.disp-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.disp-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.disp-panel-header h4 { margin: 0; font-size: 14px; }
+.disp-panel-left {
+  width: 36%;
+  flex-shrink: 0;
+}
+.disp-panel-right {
+  flex: 1;
+  min-width: 0;
+}
+.disp-area-count, .disp-adv-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* Dispatch tab fill */
+#tab-dispatch.active { gap: 0; }
+#tab-dispatch .disp-layout { flex: 1; min-height: 0; }
+
+/* ── Area Card Grid ── */
+.disp-area-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 2px;
+}
+.disp-area-card {
+  background: linear-gradient(145deg, rgba(45, 38, 28, 0.9) 0%, rgba(35, 30, 22, 0.85) 100%);
+  border: 1px solid rgba(160, 132, 92, 0.15);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  transition: border-color 0.2s;
+}
+.disp-area-card:hover {
+  border-color: rgba(160, 132, 92, 0.35);
+}
+.disp-area-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.disp-area-icon { font-size: 16px; }
+.disp-area-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+.disp-area-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green-light);
+  background: rgba(125, 170, 104, 0.15);
+  padding: 1px 6px;
+  border-radius: 8px;
+  border: 1px solid rgba(125, 170, 104, 0.25);
+}
+.disp-area-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.disp-area-stats {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 3px;
+}
+.disp-area-stat {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.disp-area-diff {
+  color: var(--red-soft);
+  letter-spacing: -1px;
+}
+.disp-area-drops {
+  font-size: 10px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Adventurer Card List ── */
+.disp-adv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 2px;
+}
+.disp-adv-card {
   background: linear-gradient(135deg, rgba(255,240,210,0.04) 0%, rgba(125,170,104,0.03) 100%);
-  border-color: rgba(160, 132, 92, 0.15);
-  transition: all 0.2s ease;
+  border: 1px solid rgba(160, 132, 92, 0.15);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  transition: border-color 0.2s;
 }
-.dispatch-card:hover {
+.disp-adv-card:hover {
   border-color: rgba(160, 132, 92, 0.30);
-  box-shadow: var(--shadow-glow-green);
 }
-.dispatch-card-header {
+.disp-adv-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 6px;
 }
-.dispatch-card-header h4 {
-  margin-bottom: 0;
+.disp-adv-identity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.dispatch-card-header .timer-display {
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 14px;
-  padding: 3px 10px;
-  border-radius: 10px;
-}
-.timer-display {
-  color: var(--green-light);
-  background: rgba(125, 170, 104, 0.10);
-  border: 1px solid rgba(125, 170, 104, 0.18);
-}
-.dispatch-equipment {
-  margin-top: 8px;
+.disp-adv-icon { font-size: 18px; }
+.disp-adv-name {
   font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.disp-adv-level {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  background: rgba(232, 184, 75, 0.1);
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+.disp-adv-status {
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-dim);
-  padding: 6px 10px;
-  background: rgba(0,0,0,0.12);
-  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.15);
 }
-.dispatch-card .btn {
-  margin-top: 10px;
-  width: 100%;
+.disp-status-exploring {
+  color: var(--green-light);
+  background: rgba(125, 170, 104, 0.12);
+  border: 1px solid rgba(125, 170, 104, 0.2);
 }
-.dispatch-exploring-status {
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-muted);
-  padding: 6px;
-  background: rgba(39, 174, 96, 0.08);
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(39, 174, 96, 0.15);
-  margin-top: 6px;
-}
-.assigned-area-info {
+
+/* EXP bar */
+.disp-adv-exp {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 8px 0;
-  font-size: 13px;
+  margin-bottom: 4px;
 }
-.assigned-label {
+.disp-exp-bar {
+  flex: 1;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.disp-exp-fill {
+  height: 100%;
+  background: var(--sky-blue);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+.disp-exp-text {
+  font-size: 10px;
   color: var(--text-muted);
+  flex-shrink: 0;
+  min-width: 70px;
+  text-align: right;
 }
-.assigned-area-name {
-  font-weight: 600;
-  color: var(--gold);
+
+/* Progress bar */
+.disp-adv-progress {
+  margin-bottom: 6px;
 }
-.explore-time-hint {
+
+/* Info row */
+.disp-adv-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.disp-adv-area {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+}
+.disp-info-label { color: var(--text-muted); }
+.disp-info-value { font-weight: 600; color: var(--gold); }
+.disp-time-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+.disp-equip-btn {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(160, 132, 92, 0.2);
+  background: rgba(0, 0, 0, 0.15);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.disp-equip-btn:hover {
+  border-color: rgba(232, 184, 75, 0.3);
+  color: var(--text);
+}
+
+/* Area select row (compact icon buttons) */
+.disp-area-select {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.disp-area-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  border: 1px solid rgba(160, 132, 92, 0.15);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+.disp-area-btn:hover {
+  border-color: rgba(232, 184, 75, 0.3);
+  background: rgba(232, 184, 75, 0.08);
+  transform: scale(1.1);
+}
+.disp-area-btn-active {
+  border-color: var(--green) !important;
+  background: rgba(125, 170, 104, 0.15);
+  box-shadow: 0 0 6px rgba(125, 170, 104, 0.2);
+}
+
+/* ── Equipment Slot ── */
+.disp-equip-slot {
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.disp-equip-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px dashed rgba(160, 132, 92, 0.25);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.1);
+  transition: all 0.15s;
+}
+.disp-equip-slot:hover .disp-equip-empty {
+  border-color: rgba(232, 184, 75, 0.35);
+  background: rgba(232, 184, 75, 0.05);
+}
+.disp-equip-empty-icon {
+  font-size: 16px;
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+.disp-equip-empty-text {
   font-size: 11px;
   color: var(--text-muted);
-  opacity: 0.8;
 }
-
-/* ===== Dispatch description ===== */
-.dispatch-description {
-  margin-bottom: 12px;
+.disp-equip-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 1px solid rgba(160, 132, 92, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.12);
+  transition: all 0.15s;
 }
-
-/* ===== Shop empty message ===== */
-.shop-empty-message {
+.disp-equip-slot:hover .disp-equip-item {
+  border-color: rgba(232, 184, 75, 0.3);
+  background: rgba(232, 184, 75, 0.05);
+}
+.disp-equip-item.q-legendary { border-left: 3px solid var(--gold); }
+.disp-equip-item.q-excellent { border-left: 3px solid var(--sky-blue); }
+.disp-equip-item.q-fine { border-left: 3px solid var(--green); }
+.disp-equip-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.disp-equip-emoji {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 28px;
   text-align: center;
-  color: var(--text-muted);
-  font-style: italic;
-  padding: 16px;
 }
-
-/* ===== Dispatch list ===== */
-.dispatch-list {
+.disp-equip-info {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
 }
+.disp-equip-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.disp-equip-quality {
+  font-size: 10px;
+  font-weight: 600;
+}
+.disp-equip-change {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.disp-equip-slot:hover .disp-equip-change { opacity: 1; }
+
+/* ── Equipment Panel Overlay ── */
+.disp-equip-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  border-radius: var(--radius);
+  animation: fadeIn 0.15s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.disp-equip-panel {
+  background: linear-gradient(145deg, rgba(45, 38, 28, 0.98) 0%, rgba(30, 25, 18, 0.98) 100%);
+  border: 1px solid rgba(160, 132, 92, 0.3);
+  border-radius: var(--radius);
+  width: 85%;
+  max-width: 360px;
+  max-height: 80%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+.disp-equip-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(160, 132, 92, 0.15);
+  flex-shrink: 0;
+}
+.disp-equip-panel-header h4 { margin: 0; font-size: 14px; }
+.disp-equip-panel-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.disp-equip-panel-close:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.08);
+}
+.disp-equip-panel-list {
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.disp-equip-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(160, 132, 92, 0.15);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+  text-align: left;
+  color: var(--text);
+  font-size: 12px;
+}
+.disp-equip-option:hover {
+  border-color: rgba(232, 184, 75, 0.3);
+  background: rgba(232, 184, 75, 0.06);
+  transform: translateX(2px);
+}
+.disp-equip-option.q-legendary { border-left: 3px solid var(--gold); }
+.disp-equip-option.q-excellent { border-left: 3px solid var(--sky-blue); }
+.disp-equip-option.q-fine { border-left: 3px solid var(--green); }
+.disp-equip-unequip {
+  justify-content: center;
+  color: var(--red-soft);
+  border-color: rgba(200, 80, 80, 0.2);
+  font-weight: 600;
+}
+.disp-equip-unequip:hover {
+  background: rgba(200, 80, 80, 0.08);
+  border-color: rgba(200, 80, 80, 0.35);
+}
+.disp-equip-opt-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.disp-equip-opt-emoji {
+  font-size: 22px;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+.disp-equip-opt-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.disp-equip-opt-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.disp-equip-opt-quality {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* ── Success Rate Badge ── */
+.disp-success-rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.disp-rate-high {
+  color: var(--green-light);
+  background: rgba(125, 170, 104, 0.12);
+  border: 1px solid rgba(125, 170, 104, 0.25);
+}
+.disp-rate-mid {
+  color: var(--gold);
+  background: rgba(232, 184, 75, 0.1);
+  border: 1px solid rgba(232, 184, 75, 0.2);
+}
+.disp-rate-low {
+  color: var(--red-soft);
+  background: rgba(200, 80, 80, 0.1);
+  border: 1px solid rgba(200, 80, 80, 0.2);
+}
+
+/* ── Trait Row (equipped weapon traits) ── */
+.disp-trait-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 0 2px;
+  margin-bottom: 4px;
+}
+
+/* ── Trait Rarity Badges ── */
+.trait-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: default;
+  transition: transform 0.12s;
+}
+.trait-badge:hover { transform: scale(1.08); }
+
+.trait-rarity-common {
+  color: #aaa;
+  background: rgba(180, 180, 180, 0.08);
+  border: 1px solid rgba(180, 180, 180, 0.2);
+}
+.trait-rarity-uncommon {
+  color: #7daa68;
+  background: rgba(125, 170, 104, 0.1);
+  border: 1px solid rgba(125, 170, 104, 0.25);
+}
+.trait-rarity-rare {
+  color: #7ab0c4;
+  background: rgba(122, 176, 196, 0.1);
+  border: 1px solid rgba(122, 176, 196, 0.25);
+}
+.trait-rarity-epic {
+  color: #c488e0;
+  background: rgba(196, 136, 224, 0.1);
+  border: 1px solid rgba(196, 136, 224, 0.25);
+}
+.trait-rarity-legendary {
+  color: var(--gold);
+  background: linear-gradient(135deg, rgba(232, 184, 75, 0.12), rgba(255, 220, 100, 0.08));
+  border: 1px solid rgba(232, 184, 75, 0.35);
+  text-shadow: 0 0 6px rgba(232, 184, 75, 0.3);
+}
+
 
 /* ===== Stats Dashboard ===== */
 .stats-grid {

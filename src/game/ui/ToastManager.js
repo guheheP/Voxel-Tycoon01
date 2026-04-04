@@ -34,11 +34,16 @@ export class ToastManager {
   _showAdventurerReturn(d) {
     const items = d.items || [];
     const advName = d.adventurer?.name || '冒険者';
+    const isSuccess = d.success !== false; // 後方互換
 
     // テキスト部分
     const textEl = document.createElement('div');
     textEl.className = 'toast-text';
-    textEl.textContent = `${advName} が帰還！ ${items.length}個の素材を入手`;
+    if (isSuccess) {
+      textEl.textContent = `✅ ${advName} が帰還！ ${items.length}個の素材を入手`;
+    } else {
+      textEl.textContent = `❌ ${advName} の探索失敗… 素材を入手できなかった`;
+    }
 
     // アイコン行
     const iconsEl = document.createElement('div');
@@ -75,7 +80,7 @@ export class ToastManager {
       iconsEl.appendChild(more);
     }
 
-    this.showHtml([textEl, iconsEl], 'green');
+    this.showHtml([textEl, iconsEl], isSuccess ? 'green' : 'red');
   }
 
   /**

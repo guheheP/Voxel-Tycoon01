@@ -42,7 +42,12 @@ export class InventorySystem {
 
   addItem(itemInstance) {
     if (this.isFull) {
-      eventBus.emit('toast', { message: '⚠️ 倉庫がいっぱいです！', type: 'warning' });
+      // トーストスパム防止（5秒間隔）
+      const now = Date.now();
+      if (!this._lastFullToast || now - this._lastFullToast > 5000) {
+        eventBus.emit('toast', { message: '⚠️ 倉庫がいっぱいです！素材を整理しましょう', type: 'warning' });
+        this._lastFullToast = now;
+      }
       return false;
     }
     this.items.push(itemInstance);

@@ -27,7 +27,6 @@ export const GameConfig = {
   exploreDropCountMax: 2,
   exploreQualityMin: 10,
   exploreQualityMax: 40,
-  equipmentQualityBonus: 0.5,
   traitChance: 0.35,
 
   // --- クラフト ---
@@ -111,11 +110,11 @@ export const GameConfig = {
 
   // --- 初期インベントリ ---
   initialItems: [
-    { blueprintId: 'stone',  quality: 45, traits: [] },
-    { blueprintId: 'wood',   quality: 50, traits: [] },
-    { blueprintId: 'wood',   quality: 35, traits: [] },
-    { blueprintId: 'herb',   quality: 40, traits: [] },
-    { blueprintId: 'clay',   quality: 30, traits: [] },
+    { blueprintId: 'stone',  quality: 15, traits: [] },
+    { blueprintId: 'wood',   quality: 20, traits: [] },
+    { blueprintId: 'wood',   quality: 12, traits: [] },
+    { blueprintId: 'herb',   quality: 18, traits: [] },
+    { blueprintId: 'clay',   quality: 10, traits: [] },
     { blueprintId: 'sand',   quality: 25, traits: [] },
   ],
 };

@@ -59,7 +59,8 @@ export const LevelExpTable = [
 
 // レベルごとのボーナス
 export const LevelBonuses = {
-  qualityBonus: 2,       // レベルごとに品質+2
-  timeReduction: 0.08,   // レベルごとに探索時間-8%
-  dropBonus: 0.06,       // レベルごとに追加ドロップ確率+6%
+  qualityBonus: 1,       // レベルごとに品質+1（装備品質がメイン）
+  timeReduction: 0.03,   // レベルごとに探索時間-3%（特性がメイン）
+  dropBonus: 0.01,       // レベルごとに追加ドロップ確率+1%
+  successBonus: 5,       // レベルごとに成功率+5%
 };

@@ -2,7 +2,7 @@
  * ItemSystem — アイテム生成とクラフト（調合）ロジック
  * データ定義は data/items.js に分離済み。
  */
-import { ItemBlueprints, Recipes } from './data/items.js';
+import { ItemBlueprints, Recipes, TraitDefs } from './data/items.js';
 import { GameConfig } from './data/config.js';
 
 // Re-export for backward compatibility
@@ -73,8 +73,17 @@ export function craftItem(recipeId, materialInstances, selectedTraits = [], qual
     }
   }
 
-  // パズルボーナス適用
-  const finalQuality = Math.min(100, Math.max(0, avgQuality + qualityBonus));
+  // パズルボーナス + 素材特性の調合品質ボーナスを適用
+  let craftTraitBonus = 0;
+  for (const mat of materialInstances) {
+    for (const t of (mat.traits || [])) {
+      const def = TraitDefs[t];
+      if (def && def.effects && def.effects.craftQualityBonus) {
+        craftTraitBonus += def.effects.craftQualityBonus;
+      }
+    }
+  }
+  const finalQuality = Math.min(100, Math.max(0, avgQuality + qualityBonus + craftTraitBonus));
 
   // 4. アイテムインスタンスの作成と返却
   return createItemInstance(recipe.targetId, finalQuality, finalTraits);

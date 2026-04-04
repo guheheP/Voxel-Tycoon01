@@ -1,6 +1,6 @@
 /**
- * CraftingTab — 調合タブ（カードベース素材選択UI）
- * 素材スロットにカードを表示し、クリックで候補一覧から選択
+ * CraftingTab — 調合タブ（2カラム分割レイアウト版）
+ * 左: レシピカードグリッド / 右: 調合ワークスペース
  */
 import { ItemBlueprints, Recipes, TraitDefs } from '../data/items.js';
 import { craftItem } from '../ItemSystem.js';
@@ -8,69 +8,140 @@ import { eventBus } from '../core/EventBus.js';
 import { GameConfig } from '../data/config.js';
 import { getQualityTier, getTypeInfo, createItemCardHTML } from './UIHelpers.js';
 import { CraftingPuzzle } from './CraftingPuzzle.js';
+import { assetPath } from '../core/assetPath.js';
 
 function traitColorClass(traitName) {
   const def = TraitDefs[traitName];
   return def ? `trait-${def.color}` : '';
 }
 
+const TypeIcons = { equipment: '⚔️', consumable: '🧪', accessory: '💎' };
+
 export class CraftingTab {
   constructor(inventorySystem) {
     this.inventory = inventorySystem;
-    this.elRecipeList = document.getElementById('recipe-list');
-    this.elDetails = document.getElementById('crafting-details');
+    this.el = document.querySelector('#tab-crafting');
     this.selectedRecipeId = null;
-    this.selectedMaterials = {}; // { slotKey: uid }
-    this.expandedSlot = null;    // 現在開いている候補一覧のslotKey
+    this.selectedMaterials = {};
+    this.expandedSlot = null;
+    this.recipeFilter = 'all';
+    this.craftableOnly = false;
   }
 
   render() {
-    this._renderRecipeList();
-    this._renderDetails();
-  }
-
-  // =============================================
-  //  レシピ一覧
-  // =============================================
-
-  _renderRecipeList() {
     const unlockedRecipes = Object.entries(Recipes).filter(([, r]) => r.unlocked);
 
-    this.elRecipeList.innerHTML = unlockedRecipes.map(([key, r]) => {
-      const isSelected = this.selectedRecipeId === key;
+    // ── 左パネル: レシピ一覧 ──
+    // フィルターカウント
+    const counts = { all: 0, equipment: 0, consumable: 0, accessory: 0 };
+    unlockedRecipes.forEach(([, r]) => {
       const bp = ItemBlueprints[r.targetId];
-      return `<button class="btn ${isSelected ? 'primary' : ''}" data-recipe-id="${key}">${bp.name}</button>`;
+      if (bp) {
+        counts.all++;
+        if (counts[bp.type] !== undefined) counts[bp.type]++;
+      }
+    });
+
+    let filteredRecipes = unlockedRecipes;
+    if (this.recipeFilter !== 'all') {
+      filteredRecipes = filteredRecipes.filter(([, r]) => {
+        const bp = ItemBlueprints[r.targetId];
+        return bp && bp.type === this.recipeFilter;
+      });
+    }
+    if (this.craftableOnly) {
+      filteredRecipes = filteredRecipes.filter(([, r]) => this._canCraft(r));
+    }
+
+    const recipeCards = filteredRecipes.map(([key, r]) => {
+      const bp = ItemBlueprints[r.targetId];
+      if (!bp) return '';
+      const isSelected = this.selectedRecipeId === key;
+      const canCraft = this._canCraft(r);
+      const typeInfo = getTypeInfo(bp.type);
+      const imgUrl = bp.image ? assetPath(bp.image) : null;
+      const imgHtml = imgUrl
+        ? `<div class="craft-rcard-img"><img src="${imgUrl}" alt="${bp.name}" /></div>`
+        : `<div class="craft-rcard-img craft-rcard-img-placeholder"><span>${typeInfo.emoji}</span></div>`;
+
+      return `
+        <div class="craft-rcard ${isSelected ? 'craft-rcard-selected' : ''} ${!canCraft ? 'craft-rcard-disabled' : ''}" data-recipe-id="${key}">
+          ${imgHtml}
+          <div class="craft-rcard-body">
+            <span class="craft-rcard-name">${bp.name}</span>
+            <span class="craft-rcard-meta">${typeInfo.icon} ${bp.baseValue}G</span>
+          </div>
+          ${!canCraft ? '<div class="craft-rcard-lock">素材不足</div>' : ''}
+        </div>
+      `;
     }).join('');
 
-    this.elRecipeList.querySelectorAll('button').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        this.selectedRecipeId = e.currentTarget.getAttribute('data-recipe-id');
-        this.selectedMaterials = {};
-        this.expandedSlot = null;
-        this.render();
-      });
-    });
+    const leftPanel = `
+      <div class="craft-panel craft-panel-left">
+        <div class="craft-panel-header">
+          <h4>📖 レシピ一覧</h4>
+          <span class="craft-recipe-count">${counts.all}種</span>
+        </div>
+        <div class="shop-inv-filters">
+          <button class="shop-filter-btn ${this.recipeFilter === 'all' ? 'active' : ''}" data-craft-filter="all">すべて <span class="shop-filter-count">${counts.all}</span></button>
+          <button class="shop-filter-btn ${this.recipeFilter === 'equipment' ? 'active' : ''}" data-craft-filter="equipment">⚔️ 武具 <span class="shop-filter-count">${counts.equipment}</span></button>
+          <button class="shop-filter-btn ${this.recipeFilter === 'consumable' ? 'active' : ''}" data-craft-filter="consumable">🧪 消耗品 <span class="shop-filter-count">${counts.consumable}</span></button>
+          <button class="shop-filter-btn ${this.recipeFilter === 'accessory' ? 'active' : ''}" data-craft-filter="accessory">💎 アクセ <span class="shop-filter-count">${counts.accessory}</span></button>
+          <button class="shop-filter-btn craft-craftable-toggle ${this.craftableOnly ? 'active' : ''}" id="craft-toggle-craftable">✅ 作成可能のみ</button>
+        </div>
+        <div class="craft-recipe-grid">${recipeCards}</div>
+      </div>
+    `;
+
+    // ── 右パネル: 調合ワークスペース ──
+    const rightPanel = `
+      <div class="craft-panel craft-panel-right">
+        <div class="craft-panel-header">
+          <h4>⚒️ 調合ワークスペース</h4>
+        </div>
+        <div class="craft-workspace" id="craft-workspace">${this._renderWorkspace()}</div>
+      </div>
+    `;
+
+    this.el.innerHTML = `
+      <div class="craft-layout">
+        <div class="craft-columns">${leftPanel}${rightPanel}</div>
+      </div>
+    `;
+
+    this._bindEvents();
   }
 
   // =============================================
-  //  調合詳細（素材スロット + プレビュー）
+  //  素材チェック
   // =============================================
 
-  _renderDetails() {
+  _canCraft(recipe) {
+    const needed = {};
+    recipe.materials.forEach(m => { needed[m] = (needed[m] || 0) + 1; });
+    for (const [matId, count] of Object.entries(needed)) {
+      if (this.inventory.getItemsByBlueprint(matId).length < count) return false;
+    }
+    return true;
+  }
+
+  // =============================================
+  //  右パネル: ワークスペース
+  // =============================================
+
+  _renderWorkspace() {
     if (!this.selectedRecipeId) {
-      this.elDetails.innerHTML = `
+      return `
         <div class="crafting-empty-state">
           <div class="crafting-empty-icon">⚗️</div>
           <p>左のレシピ一覧から<br>作りたいアイテムを選択してください</p>
         </div>`;
-      return;
     }
 
     const recipe = Recipes[this.selectedRecipeId];
     if (!recipe || !recipe.unlocked) {
-      this.elDetails.innerHTML = '<p>レシピを選択してください</p>';
       this.selectedRecipeId = null;
-      return;
+      return '<p>レシピを選択してください</p>';
     }
 
     const targetBp = ItemBlueprints[recipe.targetId];
@@ -101,18 +172,12 @@ export class CraftingTab {
       const matName = ItemBlueprints[slot.matId].name;
       const hasAny = available.length > 0;
 
-      // デフォルト選択（最高品質）
       let selectedUid = this.selectedMaterials[slot.slotKey];
       const selectedItem = available.find(i => i.uid === selectedUid);
       if (!selectedItem && hasAny) {
-        // 自動選択しない — ユーザーに選ばせる
-        // ただし1つしかない場合は自動選択
-        if (available.length === 1) {
-          selectedUid = available[0].uid;
-          this.selectedMaterials[slot.slotKey] = selectedUid;
-        } else {
-          selectedUid = null;
-        }
+        // 最高品質のアイテムを自動選択
+        selectedUid = available[0].uid;
+        this.selectedMaterials[slot.slotKey] = selectedUid;
       }
 
       if (selectedUid) {
@@ -126,7 +191,6 @@ export class CraftingTab {
       if (!isFilled) allSlotsFilled = false;
 
       if (!hasAny) {
-        // 素材不足
         html += `
           <div class="craft-slot craft-slot-empty">
             <div class="craft-slot-label">${matName}</div>
@@ -162,7 +226,6 @@ export class CraftingTab {
           </div>
         `;
       } else {
-        // 未選択 — プレースホルダーカード
         html += `
           <div class="craft-slot craft-slot-unfilled" data-slot="${slot.slotKey}">
             <div class="craft-slot-label">${matName}</div>
@@ -250,33 +313,89 @@ export class CraftingTab {
       `;
     }
 
-    this.elDetails.innerHTML = html;
-    this._bindDetailsEvents(materialInstances, targetBp);
+    return html;
   }
 
   // =============================================
   //  イベントバインド
   // =============================================
 
-  _bindDetailsEvents(materialInstances, targetBp) {
+  _bindEvents() {
+    // レシピカード選択
+    this.el.querySelectorAll('.craft-rcard').forEach(card => {
+      card.addEventListener('click', () => {
+        const recipeId = card.dataset.recipeId;
+        if (this.selectedRecipeId === recipeId) return;
+        this.selectedRecipeId = recipeId;
+        this.selectedMaterials = {};
+        this.expandedSlot = null;
+        this.render();
+      });
+    });
+
+    // フィルター
+    this.el.querySelectorAll('[data-craft-filter]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        this.recipeFilter = e.currentTarget.dataset.craftFilter;
+        this.render();
+      });
+    });
+
+    // 作成可能のみトグル
+    const toggleBtn = document.getElementById('craft-toggle-craftable');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        this.craftableOnly = !this.craftableOnly;
+        this.render();
+      });
+    }
+
+    this._bindWorkspaceEvents();
+  }
+
+  _bindWorkspaceEvents() {
+    const ws = document.getElementById('craft-workspace');
+    if (!ws) return;
+
+    const recipe = this.selectedRecipeId ? Recipes[this.selectedRecipeId] : null;
+    if (!recipe) return;
+    const targetBp = ItemBlueprints[recipe.targetId];
+
+    // Collect material instances for craft execution
+    const requiredSlots = recipe.materials.map((m, idx) => ({ matId: m, slotKey: `${m}_${idx}` }));
+    const materialInstances = [];
+    const usedUids = new Set();
+    for (const slot of requiredSlots) {
+      const uid = this.selectedMaterials[slot.slotKey];
+      if (uid) {
+        const item = this.inventory.getItemsByBlueprint(slot.matId).find(i => i.uid === uid);
+        if (item) {
+          materialInstances.push(item);
+          usedUids.add(uid);
+        }
+      }
+    }
+
     // スロットクリック → 候補一覧展開/折り畳み
-    this.elDetails.querySelectorAll('.craft-slot-filled, .craft-slot-unfilled').forEach(slot => {
+    ws.querySelectorAll('.craft-slot-filled, .craft-slot-unfilled').forEach(slot => {
       slot.addEventListener('click', () => {
         const slotKey = slot.dataset.slot;
         this.expandedSlot = this.expandedSlot === slotKey ? null : slotKey;
-        this._renderDetails();
+        ws.innerHTML = this._renderWorkspace();
+        this._bindWorkspaceEvents();
       });
     });
 
     // 候補カードクリック → 素材選択
-    this.elDetails.querySelectorAll('.craft-candidate-card').forEach(card => {
+    ws.querySelectorAll('.craft-candidate-card').forEach(card => {
       card.addEventListener('click', (e) => {
         e.stopPropagation();
         const slotKey = card.dataset.slot;
         const uid = card.dataset.uid;
         this.selectedMaterials[slotKey] = uid;
-        this.expandedSlot = null; // 選択後に閉じる
-        this._renderDetails();
+        this.expandedSlot = null;
+        ws.innerHTML = this._renderWorkspace();
+        this._bindWorkspaceEvents();
       });
     });
 
@@ -304,48 +423,45 @@ export class CraftingTab {
     materials.forEach(i => i.traits.forEach(t => allTraitsSet.add(t)));
     const selectedTraits = Array.from(allTraitsSet).slice(0, GameConfig.maxTraitSlots);
 
-    // ローディング演出
-    this.elDetails.innerHTML = `
-      <div class="crafting-loading">
-        <div class="crafting-loading-icon">⚗️</div>
-        <div class="crafting-loading-text">調合中...</div>
-        <div class="crafting-loading-dots"><span></span><span></span><span></span></div>
-      </div>
-    `;
+    const ws = document.getElementById('craft-workspace');
+    if (ws) {
+      ws.innerHTML = `
+        <div class="crafting-loading">
+          <div class="crafting-loading-icon">⚗️</div>
+          <div class="crafting-loading-text">調合中...</div>
+          <div class="crafting-loading-dots"><span></span><span></span><span></span></div>
+        </div>
+      `;
+    }
     await new Promise(r => setTimeout(r, 600));
 
     try {
       const newItem = craftItem(recipeId, materials, selectedTraits, qualityBonus);
       materials.forEach(m => this.inventory.removeItem(m.uid));
-      this.inventory.addItem(newItem);
+      // 調合品は必ず獲得（素材を消費しているため）
+      this.inventory.forceAddItem(newItem);
 
       eventBus.emit('inventory:changed');
       eventBus.emit('item:crafted', { item: newItem });
 
-      // 選択状態リセット
       this.selectedMaterials = {};
       this.expandedSlot = null;
       this.render();
 
-      // クラフト成功エフェクト
       const flash = document.createElement('div');
       flash.className = 'craft-flash';
       document.body.appendChild(flash);
       requestAnimationFrame(() => flash.classList.add('fade-out'));
       setTimeout(() => flash.remove(), 550);
 
-      // 完成品リザルトモーダル
       this._showCraftResult(newItem);
-
     } catch (e) {
       console.error('[CraftingTab]', e);
     }
   }
 
-  /** 完成品リザルトモーダル */
   _showCraftResult(item) {
     const tier = getQualityTier(item.quality);
-    const typeInfo = getTypeInfo(item.type);
     const bp = ItemBlueprints[item.blueprintId];
     const value = item.value || Math.floor(bp.baseValue * (1 + item.quality / 100));
 
@@ -379,12 +495,9 @@ export class CraftingTab {
 
   async _executePuzzleCrafting(recipeId, materials, recipeName) {
     eventBus.emit('game:pause');
-
     const puzzle = new CraftingPuzzle();
     const result = await puzzle.start(recipeName);
-
     eventBus.emit('game:resume');
-
     this._executeCrafting(recipeId, materials, result.bonus);
   }
 }

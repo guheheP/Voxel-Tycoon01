@@ -1,9 +1,13 @@
 /**
- * ShopTab — お店タブ（リアルタイム客タイマー対応版）
+ * ShopTab — お店タブ（2カラム分割レイアウト版）
+ * 左: 陳列棚 + お客さん / 右: 倉庫ブラウザ
  */
 import { createShopItemCardHTML, createDisplayedItemCardHTML } from './UIHelpers.js';
 import { eventBus } from '../core/EventBus.js';
-import { GameConfig } from '../data/config.js';
+
+const TypeIcons = {
+  material: '🪨', equipment: '⚔️', consumable: '🧪', accessory: '💎',
+};
 
 export class ShopTab {
   constructor(inventorySystem, shopSystem, customerSystem) {
@@ -15,89 +19,103 @@ export class ShopTab {
   }
 
   render() {
-    let html = `<h3>🏪 お店の管理</h3>`;
+    const customers = this.customers ? this.customers.getActiveCustomers() : [];
+    const displayed = this.shop.displayedItems;
+    const maxSlots = this.shop.maxSlots;
 
-    // お客さん表示
-    const activeCustomers = this.customers ? this.customers.getActiveCustomers() : [];
-    if (activeCustomers.length > 0) {
-      html += `<div class="customer-section">`;
-      html += `<h4>🔔 来店中のお客さん</h4>`;
-      html += `<div class="customer-list">`;
-      activeCustomers.forEach(c => {
+    // ── お客さんバー ──
+    let customerBar = '';
+    if (customers.length > 0) {
+      const custItems = customers.map(c => {
         const pct = Math.max(0, (c.timer / c.maxTimer) * 100);
-        html += `
-          <div class="customer-card">
-            <div class="customer-header">
-              <span class="customer-name">${c.icon} ${c.name}</span>
-              <span class="customer-timer" data-customer-id="${c.id}">⏳ 品定め中...</span>
-            </div>
-            <div class="customer-dialogue">「${c.dialogue}」</div>
-            <div class="customer-demand">欲しいもの: ${c.demandTypes.map(t => {
-              const labels = { equipment: '⚔️ 武具', consumable: '🧪 消耗品', accessory: '💎 アクセサリ', material: '🪨 素材' };
-              return labels[t] || t;
-            }).join('・')}</div>
-            <div class="progress-bar-container">
-              <div class="progress-bar-fill customer-patience-bar" data-customer-bar="${c.id}" style="width:${pct}%"></div>
-            </div>
+        const demands = c.demandTypes.map(t => TypeIcons[t] || t).join('');
+        return `
+          <div class="shop-cust-chip" data-customer-id="${c.id}">
+            <span class="shop-cust-icon">${c.icon}</span>
+            <span class="shop-cust-name">${c.name}</span>
+            <span class="shop-cust-wants">${demands}</span>
+            <div class="shop-cust-bar"><div class="shop-cust-bar-fill" data-customer-bar="${c.id}" style="width:${pct}%"></div></div>
           </div>
         `;
-      });
-      html += `</div></div>`;
-    } else {
-      html += `<div class="empty-state"><div class="empty-state-icon">🏪</div><div class="empty-state-text">お客さんはまだ来ていません</div><div class="empty-state-hint">時間が経つと来店します</div></div>`;
+      }).join('');
+      customerBar = `<div class="shop-customer-bar"><span class="shop-cust-label">🔔 来店中</span>${custItems}</div>`;
     }
 
-    // 陳列中アイテム
-    html += `<h4>📋 陳列中 (${this.shop.displayedItems.length} / ${this.shop.maxSlots})</h4>`;
-    if (this.shop.displayedItems.length > 0) {
-      html += `<div class="item-grid shop-displayed-grid">`;
-      html += this.shop.displayedItems.map(i => createDisplayedItemCardHTML(i)).join('');
-      html += `</div>`;
-    } else {
-      html += `<div class="empty-state"><div class="empty-state-icon">🗄️</div><div class="empty-state-text">陳列棚は空です</div><div class="empty-state-hint">下の倉庫一覧からアイテムを陳列しましょう</div></div>`;
+    // ── 左パネル: 陳列棚 ──
+    let shelfCards = '';
+    // 陳列中アイテム（既存の displayed カード）
+    shelfCards += displayed.map(item => createDisplayedItemCardHTML(item)).join('');
+    // 空きスロット
+    for (let i = displayed.length; i < maxSlots; i++) {
+      shelfCards += `<div class="shop-shelf-slot shop-shelf-empty"><span class="shop-shelf-empty-icon">＋</span><span class="shop-shelf-empty-text">空きスロット</span></div>`;
     }
 
-    // 陳列品の取り下げ説明
-    if (this.shop.displayedItems.length > 0) {
-      html += `<p class="shop-hint text-dim">※ 陳列中のアイテムをクリックすると取り下げます</p>`;
-    }
+    const leftPanel = `
+      <div class="shop-panel shop-panel-left">
+        <div class="shop-panel-header">
+          <h4>📋 陳列棚</h4>
+          <span class="shop-shelf-count">${displayed.length} / ${maxSlots}</span>
+        </div>
+        <div class="shop-shelf-grid">${shelfCards}</div>
+        ${displayed.length > 0 ? '<p class="shop-shelf-hint">クリックで取り下げ</p>' : ''}
+      </div>
+    `;
 
-    // 倉庫から陳列
+    // ── 右パネル: 倉庫ブラウザ ──
     const items = this.inventory.getItems();
     const craftable = items.filter(i => i.type !== 'material');
     const materials = items.filter(i => i.type === 'material');
 
-    html += `<h4>📦 倉庫から陳列する</h4>`;
-    if (items.length > 0) {
-      html += `<div class="shop-inv-filters">`;
-      html += `<button class="btn btn-sm shop-filter-btn ${this.shopFilter === 'craftable' ? 'active' : ''}" data-shop-filter="craftable">⚔️ クラフト品 (${craftable.length})</button>`;
-      html += `<button class="btn btn-sm shop-filter-btn ${this.shopFilter === 'material' ? 'active' : ''}" data-shop-filter="material">🪨 素材 (${materials.length})</button>`;
-      html += `<button class="btn btn-sm shop-filter-btn ${this.shopFilter === 'all' ? 'active' : ''}" data-shop-filter="all">すべて (${items.length})</button>`;
-      html += `</div>`;
+    let filterItems;
+    if (this.shopFilter === 'craftable') filterItems = craftable;
+    else if (this.shopFilter === 'material') filterItems = materials;
+    else filterItems = items;
 
-      let displayItems;
-      if (this.shopFilter === 'craftable') displayItems = craftable;
-      else if (this.shopFilter === 'material') displayItems = materials;
-      else displayItems = items;
+    filterItems = [...filterItems].sort((a, b) => b.quality - a.quality);
 
-      displayItems = [...displayItems].sort((a, b) => b.quality - a.quality);
-
-      if (displayItems.length > 0) {
-        html += `<div class="item-grid">`;
-        html += displayItems.map(i => createShopItemCardHTML(i)).join('');
-        html += `</div>`;
-      } else {
-        html += `<p class="shop-empty-message">このカテゴリのアイテムはありません。</p>`;
-      }
+    let invContent = '';
+    if (filterItems.length > 0) {
+      invContent = `<div class="item-grid shop-inv-grid">${filterItems.map(i => createShopItemCardHTML(i)).join('')}</div>`;
+    } else if (items.length === 0) {
+      invContent = `<div class="shop-inv-empty"><span>📦</span><span>倉庫にアイテムがありません</span></div>`;
     } else {
-      html += `<p class="shop-empty-message">倉庫にアイテムがありません。冒険者を派遣して素材を集めましょう！</p>`;
+      invContent = `<div class="shop-inv-empty"><span>🔍</span><span>該当するアイテムがありません</span></div>`;
     }
 
-    this.el.innerHTML = html;
+    const isFull = displayed.length >= maxSlots;
 
-    // イベントバインド — カード全体クリックで陳列
+    const rightPanel = `
+      <div class="shop-panel shop-panel-right">
+        <div class="shop-panel-header">
+          <h4>📦 倉庫から陳列</h4>
+          ${isFull ? '<span class="shop-shelf-full-badge">棚がいっぱい</span>' : ''}
+        </div>
+        <div class="shop-inv-filters">
+          <button class="shop-filter-btn ${this.shopFilter === 'craftable' ? 'active' : ''}" data-shop-filter="craftable">⚔️ クラフト品 <span class="shop-filter-count">${craftable.length}</span></button>
+          <button class="shop-filter-btn ${this.shopFilter === 'material' ? 'active' : ''}" data-shop-filter="material">🪨 素材 <span class="shop-filter-count">${materials.length}</span></button>
+          <button class="shop-filter-btn ${this.shopFilter === 'all' ? 'active' : ''}" data-shop-filter="all">すべて <span class="shop-filter-count">${items.length}</span></button>
+        </div>
+        <div class="shop-inv-scroll ${isFull ? 'shop-inv-disabled' : ''}">${invContent}</div>
+      </div>
+    `;
+
+    // ── 組み立て ──
+    this.el.innerHTML = `
+      <div class="shop-layout">
+        ${customerBar}
+        <div class="shop-columns">${leftPanel}${rightPanel}</div>
+      </div>
+    `;
+
+    // ── イベントバインド ──
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    // 倉庫 → 陳列（カード全体クリック）
     this.el.querySelectorAll('.shop-displayable-card').forEach(card => {
       card.addEventListener('click', () => {
+        if (this.shop.displayedItems.length >= this.shop.maxSlots) return;
         const uid = card.getAttribute('data-uid');
         this.shop.displayItem(uid);
         eventBus.emit('inventory:changed');
@@ -106,14 +124,7 @@ export class ShopTab {
       });
     });
 
-    this.el.querySelectorAll('.shop-filter-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        this.shopFilter = e.currentTarget.dataset.shopFilter;
-        this.render();
-      });
-    });
-
-    // 陳列品の取り下げバインド
+    // 陳列 → 取り下げ
     this.el.querySelectorAll('.displayed-glow').forEach(card => {
       card.style.cursor = 'pointer';
       card.addEventListener('click', () => {
@@ -125,15 +136,20 @@ export class ShopTab {
         this.render();
       });
     });
+
+    // フィルター
+    this.el.querySelectorAll('.shop-filter-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        this.shopFilter = e.currentTarget.dataset.shopFilter;
+        this.render();
+      });
+    });
   }
 
   /** 客タイマーのリアルタイム更新（毎フレーム） */
   updateCustomerTimers() {
     const customers = this.customers ? this.customers.getActiveCustomers() : [];
     customers.forEach(c => {
-      const timerEl = this.el.querySelector(`[data-customer-id="${c.id}"]`);
-      if (timerEl && c.timer < 5) timerEl.textContent = `⏳ もうすぐ帰る...`;
-
       const barEl = this.el.querySelector(`[data-customer-bar="${c.id}"]`);
       if (barEl) barEl.style.width = `${Math.max(0, (c.timer / c.maxTimer) * 100)}%`;
     });

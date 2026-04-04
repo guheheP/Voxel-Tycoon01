@@ -2,7 +2,7 @@
  * ShopSystem — リアルタイム販売 + 陳列管理
  */
 import { GameConfig } from './data/config.js';
-import { ItemBlueprints } from './data/items.js';
+import { ItemBlueprints, TraitDefs } from './data/items.js';
 import { UpgradeDefs } from './data/upgrades.js';
 import { eventBus } from './core/EventBus.js';
 import { StatsTracker } from './StatsTracker.js';
@@ -82,7 +82,32 @@ export class ShopSystem {
   _calcValue(item) {
     const bp = ItemBlueprints[item.blueprintId];
     if (!bp) return 10;
-    return Math.max(1, Math.floor(bp.baseValue * (item.quality / QUALITY_REFERENCE)));
+
+    // Q1-50: 線形（quality/50）、Q51-100: 二次曲線で加速
+    // Q50=×1.0, Q75=×2.0, Q100=×5.0
+    let multiplier;
+    if (item.quality <= QUALITY_REFERENCE) {
+      multiplier = item.quality / QUALITY_REFERENCE;
+    } else {
+      const t = (item.quality - QUALITY_REFERENCE) / QUALITY_REFERENCE;
+      multiplier = 1 + 4 * (t * t);
+    }
+    let value = Math.max(1, Math.floor(bp.baseValue * multiplier));
+
+    // 特性の売値ボーナスを合算
+    if (item.traits && item.traits.length > 0) {
+      let sellBonusPct = 0;
+      for (const traitName of item.traits) {
+        const def = TraitDefs[traitName];
+        if (def && def.effects && def.effects.sellBonus) {
+          sellBonusPct += def.effects.sellBonus;
+        }
+      }
+      if (sellBonusPct !== 0) {
+        value = Math.max(1, Math.floor(value * (1 + sellBonusPct / 100)));
+      }
+    }
+    return value;
   }
 
   /** アップグレード購入処理 */

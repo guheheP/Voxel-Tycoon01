@@ -30,10 +30,10 @@ export function getTypeInfo(type) {
   return TypeInfo[type] || TypeInfo.material;
 }
 
-// 特性バッジの色CSSクラス
+// 特性バッジの色CSSクラス（レアリティベース）
 function traitColorClass(traitName) {
   const def = TraitDefs[traitName];
-  return def ? `trait-${def.color}` : '';
+  return def ? `trait-rarity-${def.rarity || 'common'}` : '';
 }
 
 // アイテムの画像URL（将来のカスタム画像パス対応）

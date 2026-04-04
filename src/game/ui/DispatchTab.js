@@ -1,11 +1,13 @@
 /**
- * DispatchTab — 冒険者の派遣タブ（自動探索版）
- * エリア割り当て・レベル/EXP表示・装備管理を担当
+ * DispatchTab — 冒険者の派遣タブ（2カラム分割レイアウト版）
+ * 左: エリア情報カード / 右: 冒険者カード
  */
 import { LevelExpTable, LevelBonuses } from '../data/adventurers.js';
 import { AreaDefs } from '../data/areas.js';
-import { ItemBlueprints } from '../data/items.js';
+import { ItemBlueprints, TraitDefs } from '../data/items.js';
 import { eventBus } from '../core/EventBus.js';
+import { getQualityTier } from './UIHelpers.js';
+import { assetPath } from '../core/assetPath.js';
 
 export class DispatchTab {
   constructor(adventurerSystem, inventorySystem) {
@@ -18,88 +20,135 @@ export class DispatchTab {
     const areas = this.adventurers.getUnlockedAreas();
     const advs = this.adventurers.getAdventurers();
 
-    let html = `<h3>🗺️ 冒険者の探索</h3>`;
-    html += `<p class="text-dim dispatch-description">冒険者は割り当てられたエリアを自動で繰り返し探索します。<br>レベルが上がると探索が速くなります。</p>`;
-
-    html += `<div class="dispatch-list">`;
+    // 各エリアの派遣人数を集計
+    const areaAdvCount = {};
     advs.forEach(adv => {
+      if (adv.assignedArea) {
+        areaAdvCount[adv.assignedArea] = (areaAdvCount[adv.assignedArea] || 0) + 1;
+      }
+    });
+
+    // ── 左パネル: エリア一覧 ──
+    const areaCards = areas.map(area => {
+      const topDrops = (area.dropTable || [])
+        .sort((a, b) => b.weight - a.weight)
+        .slice(0, 5);
+      const dropNames = topDrops.map(d => {
+        const bp = ItemBlueprints[d.blueprintId];
+        return bp ? bp.name : d.blueprintId;
+      }).join('、');
+      const advCount = areaAdvCount[area.id] || 0;
+
+      return `
+        <div class="disp-area-card">
+          <div class="disp-area-header">
+            <span class="disp-area-icon">${area.icon}</span>
+            <span class="disp-area-name">${area.name}</span>
+            ${advCount > 0 ? `<span class="disp-area-badge">👤×${advCount}</span>` : ''}
+          </div>
+          <div class="disp-area-desc">${area.description || ''}</div>
+          <div class="disp-area-stats">
+            <span class="disp-area-stat">💎 Q${area.qualityMin}〜${area.qualityMax}</span>
+            <span class="disp-area-stat">⏱ ${area.baseTime}s</span>
+            <span class="disp-area-stat disp-area-diff">☠${'★'.repeat(area.difficulty || 0)}${'☆'.repeat(Math.max(0, 4 - (area.difficulty || 0)))}</span>
+          </div>
+          <div class="disp-area-drops">📦 ${dropNames}</div>
+        </div>
+      `;
+    }).join('');
+
+    const leftPanel = `
+      <div class="disp-panel disp-panel-left">
+        <div class="disp-panel-header">
+          <h4>🗺️ エリア一覧</h4>
+          <span class="disp-area-count">${areas.length}エリア</span>
+        </div>
+        <div class="disp-area-grid">${areaCards}</div>
+      </div>
+    `;
+
+    // ── 右パネル: 冒険者一覧 ──
+    const advCards = advs.map(adv => {
       const isExploring = adv.status === 'exploring';
       const progressPct = isExploring && adv.maxTimer > 0
         ? Math.max(0, (1 - adv.timer / adv.maxTimer) * 100) : 0;
       const assignedArea = AreaDefs[adv.assignedArea];
-
-      html += `
-        <div class="dispatch-card">
-          <div class="dispatch-card-header">
-            <div>
-              <h4>${adv.icon} ${adv.name}</h4>
-              <span class="adv-level">Lv.${adv.level}</span>
-            </div>
-            <span class="timer-display ${isExploring ? 'timer-exploring' : ''}" data-adv-id="${adv.id}">
-              ${isExploring ? '🚶 探索中...' : '☕ 準備中...'}
-            </span>
-          </div>
-          <div class="adv-exp-bar">
-            <div class="adv-exp-fill" style="width:${this._expPct(adv)}%"></div>
-            <span class="adv-exp-text">EXP: ${adv.exp} / ${LevelExpTable[adv.level] || '—'}</span>
-          </div>
-      `;
-
-      // 探索プログレスバー
-      html += `
-        <div class="progress-bar-container">
-          <div class="progress-bar-fill" data-adv-progress="${adv.id}" style="width:${progressPct}%"></div>
-        </div>
-      `;
-
-      // 現在の割り当て表示
-      html += `<div class="assigned-area-info">`;
-      html += `<span class="assigned-label">探索先:</span>`;
-      html += `<span class="assigned-area-name">${assignedArea ? `${assignedArea.icon} ${assignedArea.name}` : '未設定'}</span>`;
-
-      // 探索時間の目安
-      if (assignedArea) {
-        const time = this._calcTimeText(adv, assignedArea);
-        html += `<span class="explore-time-hint">（${time}）</span>`;
-      }
-      html += `</div>`;
+      const weapon = adv.equipment.weapon;
 
       // エリア選択ボタン
-      html += `<div class="area-select-row">`;
-      areas.forEach(area => {
+      const areaBtns = areas.map(area => {
         const selected = adv.assignedArea === area.id;
-        // ドロップ品のプレビュー（上位5件）
-        const topDrops = (area.dropTable || []).sort((a, b) => b.weight - a.weight).slice(0, 5);
-        const dropNames = topDrops.map(d => {
-          const bp = ItemBlueprints[d.blueprintId];
-          return bp ? bp.name : d.blueprintId;
-        }).join('、');
-        const tooltipText = `${area.description || ''}\n📦 主な素材: ${dropNames}\n⏱ 基本時間: ${area.baseTime}秒\n💎 品質: ${area.qualityMin || '?'}〜${area.qualityMax || '?'}`;
+        return `<button class="disp-area-btn ${selected ? 'disp-area-btn-active' : ''}" data-adv-id="${adv.id}" data-area-id="${area.id}" title="${area.name}">${area.icon}</button>`;
+      }).join('');
 
-        html += `
-          <button class="btn area-btn ${selected ? 'area-btn-selected' : ''}"
-                  data-adv-id="${adv.id}" data-area-id="${area.id}"
-                  title="${tooltipText}">
-            <span class="area-icon">${area.icon}</span>
-            <span class="area-name">${area.name}</span>
-            <span class="area-quality-hint">Q${area.qualityMin || '?'}-${area.qualityMax || '?'}</span>
-          </button>
-        `;
-      });
-      html += `</div>`;
+      return `
+        <div class="disp-adv-card">
+          <div class="disp-adv-header">
+            <div class="disp-adv-identity">
+              <span class="disp-adv-icon">${adv.icon}</span>
+              <span class="disp-adv-name">${adv.name}</span>
+              <span class="disp-adv-level">Lv.${adv.level}</span>
+            </div>
+            <span class="disp-adv-status ${isExploring ? 'disp-status-exploring' : ''}" data-adv-id="${adv.id}">
+              ${isExploring ? '🚶 探索中' : '☕ 準備中'}
+            </span>
+          </div>
 
-      // 装備スロット
-      const weapon = adv.equipment.weapon;
-      html += `<button class="btn btn-sm btn-equip" data-adv-id="${adv.id}">${weapon ? `⚔️ ${weapon.name} (Q:${weapon.quality})` : '🔧 装備変更'}</button>`;
+          <div class="disp-adv-exp">
+            <div class="disp-exp-bar"><div class="disp-exp-fill" style="width:${this._expPct(adv)}%"></div></div>
+            <span class="disp-exp-text">EXP ${adv.exp}/${LevelExpTable[adv.level] || '—'}</span>
+          </div>
 
-      html += `</div>`;
-    });
-    html += `</div>`;
+          <div class="disp-adv-progress">
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" data-adv-progress="${adv.id}" style="width:${progressPct}%"></div>
+            </div>
+          </div>
 
-    this.el.innerHTML = html;
+          <div class="disp-adv-info">
+            <div class="disp-adv-area">
+              <span class="disp-info-label">探索先:</span>
+              <span class="disp-info-value">${assignedArea ? `${assignedArea.icon} ${assignedArea.name}` : '未設定'}</span>
+              ${assignedArea ? `<span class="disp-time-hint">${this._calcTimeText(adv, assignedArea)}</span>` : ''}
+            </div>
+            ${assignedArea ? this._renderSuccessRate(adv, assignedArea) : ''}
+          </div>
 
-    // エリア割り当てバインド
-    this.el.querySelectorAll('.area-btn').forEach(btn => {
+          <div class="disp-equip-slot" data-adv-id="${adv.id}">
+            ${this._renderEquipSlot(weapon)}
+          </div>
+          ${weapon && weapon.traits && weapon.traits.length > 0 ? this._renderTraitEffects(weapon) : ''}
+
+          <div class="disp-area-select">
+            ${areaBtns}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const rightPanel = `
+      <div class="disp-panel disp-panel-right">
+        <div class="disp-panel-header">
+          <h4>👥 冒険者</h4>
+          <span class="disp-adv-count">${advs.length}人</span>
+        </div>
+        <div class="disp-adv-list">${advCards}</div>
+      </div>
+    `;
+
+    this.el.innerHTML = `
+      <div class="disp-layout">
+        <p class="text-dim disp-description">冒険者は割り当てられたエリアを自動で繰り返し探索します。レベルが上がると探索が速くなります。</p>
+        <div class="disp-columns">${leftPanel}${rightPanel}</div>
+      </div>
+    `;
+
+    this._bindEvents();
+  }
+
+  _bindEvents() {
+    // エリア割り当て
+    this.el.querySelectorAll('.disp-area-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const advId = e.currentTarget.dataset.advId;
         const areaId = e.currentTarget.dataset.areaId;
@@ -108,10 +157,10 @@ export class DispatchTab {
       });
     });
 
-    // 装備バインド
-    this.el.querySelectorAll('.btn-equip').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const advId = e.currentTarget.dataset.advId;
+    // 装備スロットクリック
+    this.el.querySelectorAll('.disp-equip-slot').forEach(slot => {
+      slot.addEventListener('click', (e) => {
+        const advId = slot.dataset.advId;
         this._showEquipmentPanel(advId);
       });
     });
@@ -124,6 +173,24 @@ export class DispatchTab {
     return Math.min(100, ((adv.exp - prev) / (next - prev)) * 100);
   }
 
+  _renderSuccessRate(adv, area) {
+    const rate = this.adventurers.calcSuccessRate(adv, area);
+    let colorClass = 'disp-rate-low';
+    if (rate >= 70) colorClass = 'disp-rate-high';
+    else if (rate >= 40) colorClass = 'disp-rate-mid';
+    return `<span class="disp-success-rate ${colorClass}" title="探索成功率">🎯 ${rate}%</span>`;
+  }
+
+  _renderTraitEffects(weapon) {
+    const badges = weapon.traits.map(t => {
+      const def = TraitDefs[t];
+      if (!def) return '';
+      const rarityClass = `trait-rarity-${def.rarity || 'common'}`;
+      return `<span class="trait-badge ${rarityClass}" title="${def.description}">${t}</span>`;
+    }).join('');
+    return `<div class="disp-trait-row">${badges}</div>`;
+  }
+
   _calcTimeText(adv, area) {
     const levelReduction = 1 - ((adv.level - 1) * LevelBonuses.timeReduction);
     const time = Math.max(8, Math.ceil(area.baseTime * (adv.exploreTimeMultiplier || 1.0) * levelReduction));
@@ -134,61 +201,115 @@ export class DispatchTab {
     return 'ゆっくり';
   }
 
+  /** 装備スロット表示 */
+  _renderEquipSlot(weapon) {
+    if (!weapon) {
+      return `
+        <div class="disp-equip-empty">
+          <span class="disp-equip-empty-icon">＋</span>
+          <span class="disp-equip-empty-text">装備なし — クリックで装備</span>
+        </div>
+      `;
+    }
+    const bp = ItemBlueprints[weapon.blueprintId];
+    const tier = getQualityTier(weapon.quality);
+    const imgUrl = bp && bp.image ? assetPath(bp.image) : null;
+    const imgHtml = imgUrl
+      ? `<img class="disp-equip-img" src="${imgUrl}" alt="${weapon.name}" />`
+      : `<span class="disp-equip-emoji">⚔️</span>`;
+
+    return `
+      <div class="disp-equip-item ${tier.css}">
+        ${imgHtml}
+        <div class="disp-equip-info">
+          <span class="disp-equip-name">${weapon.name}</span>
+          <span class="disp-equip-quality" style="color:${tier.color}">${tier.icon} Q${weapon.quality}</span>
+        </div>
+        <span class="disp-equip-change">変更 ▾</span>
+      </div>
+    `;
+  }
+
   _showEquipmentPanel(advId) {
     const adv = this.adventurers.getAdventurers().find(a => a.id === advId);
     if (!adv) return;
-    const weapons = this.inventory.getItems().filter(i => i.type === 'equipment');
+    const weapons = this.inventory.getItems().filter(i => i.type === 'equipment')
+      .sort((a, b) => b.quality - a.quality);
 
-    let html = `<div class="equipment-panel"><h4>装備選択 — ${adv.name}</h4>`;
+    let itemsHtml = '';
     if (adv.equipment.weapon) {
-      html += `<button class="btn btn-sm btn-unequip" data-adv-id="${advId}">❌ ${adv.equipment.weapon.name}を外す</button>`;
+      itemsHtml += `<button class="disp-equip-option disp-equip-unequip" data-adv-id="${advId}">❌ 装備を外す</button>`;
     }
-    if (weapons.length === 0) {
-      html += `<p class="text-dim">装備可能なアイテムがありません。</p>`;
+    if (weapons.length === 0 && !adv.equipment.weapon) {
+      itemsHtml = `<p class="text-dim" style="padding:12px;text-align:center;">装備可能なアイテムがありません</p>`;
     } else {
       weapons.forEach(w => {
-        html += `<button class="btn btn-sm btn-select-weapon" data-adv-id="${advId}" data-uid="${w.uid}">
-          ⚔️ ${w.name} (Q:${w.quality})
-        </button>`;
+        const bp = ItemBlueprints[w.blueprintId];
+        const tier = getQualityTier(w.quality);
+        const imgUrl = bp && bp.image ? assetPath(bp.image) : null;
+        const imgHtml = imgUrl
+          ? `<img class="disp-equip-opt-img" src="${imgUrl}" alt="${w.name}" />`
+          : `<span class="disp-equip-opt-emoji">⚔️</span>`;
+
+        itemsHtml += `
+          <button class="disp-equip-option ${tier.css}" data-adv-id="${advId}" data-uid="${w.uid}">
+            ${imgHtml}
+            <div class="disp-equip-opt-info">
+              <span class="disp-equip-opt-name">${w.name}</span>
+              <span class="disp-equip-opt-quality" style="color:${tier.color}">${tier.icon} Q${w.quality}</span>
+            </div>
+          </button>
+        `;
       });
     }
-    html += `<button class="btn btn-sm btn-close-equip">閉じる</button></div>`;
 
-    const panel = document.createElement('div');
-    panel.className = 'equipment-overlay';
-    panel.innerHTML = html;
-    this.el.appendChild(panel);
+    const html = `
+      <div class="disp-equip-panel">
+        <div class="disp-equip-panel-header">
+          <h4>⚔️ 装備選択 — ${adv.name}</h4>
+          <button class="disp-equip-panel-close">✕</button>
+        </div>
+        <div class="disp-equip-panel-list">${itemsHtml}</div>
+      </div>
+    `;
 
-    panel.querySelectorAll('.btn-select-weapon').forEach(btn => {
+    const overlay = document.createElement('div');
+    overlay.className = 'disp-equip-overlay';
+    overlay.innerHTML = html;
+    this.el.appendChild(overlay);
+
+    // 装備選択
+    overlay.querySelectorAll('.disp-equip-option[data-uid]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         this.adventurers.equipWeapon(e.currentTarget.dataset.advId, e.currentTarget.dataset.uid);
-        panel.remove();
+        overlay.remove();
         this.render();
       });
     });
-    panel.querySelectorAll('.btn-unequip').forEach(btn => {
+    // 装備解除
+    overlay.querySelectorAll('.disp-equip-unequip').forEach(btn => {
       btn.addEventListener('click', (e) => {
         this.adventurers.unequipWeapon(e.currentTarget.dataset.advId);
-        panel.remove();
+        overlay.remove();
         this.render();
       });
     });
-    panel.querySelector('.btn-close-equip')?.addEventListener('click', () => {
-      panel.remove();
-    });
+    // 閉じる
+    overlay.querySelector('.disp-equip-panel-close')?.addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
   }
 
   /** プログレスバーのリアルタイム更新 */
   updateTimers() {
     const advs = this.adventurers.getAdventurers();
-    this.el.querySelectorAll('.timer-display').forEach(el => {
+    this.el.querySelectorAll('.disp-adv-status').forEach(el => {
       const advId = el.getAttribute('data-adv-id');
       const adv = advs.find(a => a.id === advId);
       if (adv) {
         if (adv.status === 'exploring' && adv.timer < 3) {
-          el.textContent = '🏠 もうすぐ帰還...';
+          el.textContent = '🏠 帰還中...';
         } else {
-          el.textContent = adv.status === 'idle' ? '☕ 準備中...' : '🚶 探索中...';
+          el.textContent = adv.status === 'idle' ? '☕ 準備中' : '🚶 探索中';
         }
       }
     });

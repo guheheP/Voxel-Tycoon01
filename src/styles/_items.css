@@ -579,21 +579,300 @@
   padding: 24px;
 }
 
-/* ===== Shop Inventory Filters ===== */
+/* ===================================================================
+   Shop Tab — 2-Column Split Layout
+   =================================================================== */
+
+/* ── Root Layout ── */
+.shop-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0;
+}
+
+/* ── Compact Customer Bar ── */
+.shop-customer-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, rgba(232, 184, 75, 0.06) 0%, rgba(125, 170, 104, 0.04) 100%);
+  border: 1px solid rgba(232, 184, 75, 0.12);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.shop-cust-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.shop-cust-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border: 1px solid rgba(160, 132, 92, 0.12);
+  flex-shrink: 0;
+  min-width: 0;
+}
+.shop-cust-icon { font-size: 14px; }
+.shop-cust-name { font-size: 11px; font-weight: 600; color: var(--text); white-space: nowrap; }
+.shop-cust-wants { font-size: 12px; white-space: nowrap; }
+.shop-cust-bar {
+  width: 40px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.shop-cust-bar-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+/* ── 2-Column Container ── */
+.shop-columns {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── Panels (shared) ── */
+.shop-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.shop-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.shop-panel-header h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ── Left Panel: Display Shelf ── */
+.shop-panel-left {
+  width: 42%;
+  flex-shrink: 0;
+}
+.shop-shelf-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.shop-shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 2px;
+  align-content: start;
+}
+.shop-shelf-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Shelf Slot (shared) ── */
+.shop-shelf-slot {
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s ease;
+}
+
+/* ── Empty Slot ── */
+.shop-shelf-empty {
+  border: 1px dashed rgba(160, 132, 92, 0.18);
+  background: rgba(0, 0, 0, 0.08);
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.shop-shelf-empty-icon {
+  font-size: 18px;
+  color: var(--text-muted);
+  opacity: 0.3;
+}
+.shop-shelf-empty-text {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+
+/* ── Filled Slot ── */
+.shop-shelf-filled {
+  background: linear-gradient(145deg, rgba(45, 38, 28, 0.9) 0%, rgba(35, 30, 22, 0.85) 100%);
+  border: 1px solid rgba(160, 132, 92, 0.2);
+  cursor: pointer;
+  position: relative;
+  gap: 3px;
+}
+.shop-shelf-filled:hover {
+  border-color: var(--red-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.shop-shelf-filled.q-legendary { border-color: rgba(232, 184, 75, 0.3); }
+.shop-shelf-filled.q-excellent { border-color: rgba(122, 176, 196, 0.25); }
+.shop-shelf-filled.q-fine { border-color: rgba(125, 170, 104, 0.2); }
+
+.shop-shelf-top {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.shop-shelf-icon { font-size: 14px; }
+.shop-shelf-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.shop-shelf-mid {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.shop-shelf-quality { font-size: 11px; font-weight: 700; }
+.shop-shelf-price { font-size: 11px; font-weight: 700; color: var(--gold); }
+.shop-shelf-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+/* Remove hint overlay */
+.shop-shelf-remove-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(196, 106, 90, 0.88);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-title);
+  border-radius: var(--radius-sm);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+.shop-shelf-filled:hover .shop-shelf-remove-hint {
+  opacity: 1;
+}
+
+/* ── Right Panel: Inventory Browser ── */
+.shop-panel-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.shop-shelf-full-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--red-soft);
+  background: rgba(196, 106, 90, 0.12);
+  border: 1px solid rgba(196, 106, 90, 0.2);
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
+/* ── Inventory Filters ── */
 .shop-inv-filters {
   display: flex;
   gap: 4px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
 }
-
 .shop-filter-btn {
-  font-size: 11px !important;
-  padding: 4px 10px !important;
-  border-radius: 14px !important;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(160, 132, 92, 0.15);
+  background: rgba(0, 0, 0, 0.15);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.shop-filter-btn:hover {
+  border-color: rgba(160, 132, 92, 0.3);
+  background: rgba(0, 0, 0, 0.25);
+}
+.shop-filter-btn.active {
+  background: rgba(125, 170, 104, 0.12);
+  border-color: var(--green);
+  color: var(--green-light);
+}
+.shop-filter-count {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-left: 2px;
 }
 
-.shop-filter-btn.active {
-  background: rgba(125, 170, 104, 0.12) !important;
-  border-color: var(--green) !important;
-  color: var(--green-light) !important;
+/* ── Inventory Scroll Container (card grid) ── */
+.shop-inv-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.shop-inv-scroll.shop-inv-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Grid sizing within shop panels */
+.shop-inv-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  align-content: start;
+}
+
+/* ── Inventory Empty State ── */
+.shop-inv-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 32px 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+.shop-inv-empty span:first-child {
+  font-size: 28px;
+  opacity: 0.3;
 }
