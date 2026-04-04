@@ -10,7 +10,6 @@ export class SceneManager {
     this.camera = camera;
     this.entities = entitiesArray;
     this.renderer = renderer;  // Renderer instance for lighting access
-    this.npcEntities = {};   // id -> entity
     this.wanderers = [];     // 背景で歩き回るNPC
     this.dayProgress = 0;
 
@@ -27,7 +26,8 @@ export class SceneManager {
       sunset:  new THREE.Color(0xff8844),
       night:   new THREE.Color(0x334466),
     };
-    this._tempColor = new THREE.Color();
+    this._tempColor    = new THREE.Color();  // skyColor 補間用
+    this._sunTempColor = new THREE.Color();  // sunColor 補間用（毎フレームの new 防止）
   }
 
   async init() {
@@ -131,28 +131,28 @@ export class SceneManager {
       // 夜明け → 朝 (0.0~0.15)
       const t = p / 0.15;
       skyColor = this._tempColor.lerpColors(this._skyColors.night, this._skyColors.dawn, t);
-      sunColor = new THREE.Color().lerpColors(this._sunColors.night, this._sunColors.dawn, t);
+      sunColor = this._sunTempColor.lerpColors(this._sunColors.night, this._sunColors.dawn, t);
       sunIntensity = 0.4 + t * 0.8;
       ambientIntensity = 0.3 + t * 0.3;
     } else if (p < 0.5) {
       // 朝 → 昼 (0.15~0.5)
       const t = (p - 0.15) / 0.35;
       skyColor = this._tempColor.lerpColors(this._skyColors.dawn, this._skyColors.noon, t);
-      sunColor = new THREE.Color().lerpColors(this._sunColors.dawn, this._sunColors.noon, t);
+      sunColor = this._sunTempColor.lerpColors(this._sunColors.dawn, this._sunColors.noon, t);
       sunIntensity = 1.2 + t * 0.4;
       ambientIntensity = 0.6 + t * 0.2;
     } else if (p < 0.75) {
       // 昼 → 夕方 (0.5~0.75)
       const t = (p - 0.5) / 0.25;
       skyColor = this._tempColor.lerpColors(this._skyColors.noon, this._skyColors.sunset, t);
-      sunColor = new THREE.Color().lerpColors(this._sunColors.noon, this._sunColors.sunset, t);
+      sunColor = this._sunTempColor.lerpColors(this._sunColors.noon, this._sunColors.sunset, t);
       sunIntensity = 1.6 - t * 0.6;
       ambientIntensity = 0.8 - t * 0.2;
     } else {
       // 夕方 → 夜 (0.75~1.0)
       const t = (p - 0.75) / 0.25;
       skyColor = this._tempColor.lerpColors(this._skyColors.sunset, this._skyColors.night, t);
-      sunColor = new THREE.Color().lerpColors(this._sunColors.sunset, this._sunColors.night, t);
+      sunColor = this._sunTempColor.lerpColors(this._sunColors.sunset, this._sunColors.night, t);
       sunIntensity = 1.0 - t * 0.6;
       ambientIntensity = 0.6 - t * 0.3;
     }

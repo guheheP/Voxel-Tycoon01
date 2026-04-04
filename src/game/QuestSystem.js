@@ -21,13 +21,11 @@ export class QuestSystem {
   }
 
   _initProgress() {
-    for (const [, quests] of Object.entries(QuestDefs)) {
-      for (const q of quests) {
-        if (!(q.id in this.progress)) {
-          this.progress[q.id] = 0;
-        }
+    this._forEachQuest(q => {
+      if (!(q.id in this.progress)) {
+        this.progress[q.id] = 0;
       }
-    }
+    });
   }
 
   _bindEvents() {
@@ -82,73 +80,70 @@ export class QuestSystem {
     });
   }
 
-  /** 指定conditionTypeの全クエスト進捗を+1 */
+  /** 全クエストを走査してコールバックを呼ぶ共通ヘルパー */
+  _forEachQuest(fn) {
+    for (const [, quests] of Object.entries(QuestDefs)) {
+      for (const q of quests) {
+        fn(q);
+      }
+    }
+  }
+
+  /** 指定conditionTypeの全クエスト進捗を加算 */
   _increment(conditionType, amount) {
-    for (const [, quests] of Object.entries(QuestDefs)) {
-      for (const q of quests) {
-        if (q.conditionType === conditionType) {
-          this.progress[q.id] = (this.progress[q.id] || 0) + amount;
-        }
+    this._forEachQuest(q => {
+      if (q.conditionType === conditionType) {
+        this.progress[q.id] = (this.progress[q.id] || 0) + amount;
       }
-    }
+    });
   }
 
-  /** フィルタ付きインクリメント (特定のtargetArea/targetType/targetCustomerにマッチするクエストのみ) */
+  /** フィルタ付きインクリメント (targetArea/targetType/targetCustomer に一致するクエストのみ) */
   _incrementFiltered(conditionType, filterValue, amount) {
-    for (const [, quests] of Object.entries(QuestDefs)) {
-      for (const q of quests) {
-        if (q.conditionType !== conditionType) continue;
-        const match =
-          (q.targetArea && q.targetArea === filterValue) ||
-          (q.targetType && q.targetType === filterValue) ||
-          (q.targetCustomer && q.targetCustomer === filterValue);
-        if (match) {
-          this.progress[q.id] = (this.progress[q.id] || 0) + amount;
-        }
+    this._forEachQuest(q => {
+      if (q.conditionType !== conditionType) return;
+      const match =
+        (q.targetArea     && q.targetArea     === filterValue) ||
+        (q.targetType     && q.targetType     === filterValue) ||
+        (q.targetCustomer && q.targetCustomer === filterValue);
+      if (match) {
+        this.progress[q.id] = (this.progress[q.id] || 0) + amount;
       }
-    }
+    });
   }
 
-  /** 最大値更新 (品質系) */
+  /** 最大値更新 (品質・トレイト数など) */
   _updateMax(conditionType, value) {
-    for (const [, quests] of Object.entries(QuestDefs)) {
-      for (const q of quests) {
-        if (q.conditionType === conditionType) {
-          this.progress[q.id] = Math.max(this.progress[q.id] || 0, value);
-        }
+    this._forEachQuest(q => {
+      if (q.conditionType === conditionType) {
+        this.progress[q.id] = Math.max(this.progress[q.id] || 0, value);
       }
-    }
+    });
   }
 
   _updateDailySales() {
-    for (const [, quests] of Object.entries(QuestDefs)) {
-      for (const q of quests) {
-        if (q.conditionType === 'daily_sales') {
-          this.progress[q.id] = Math.max(this.progress[q.id] || 0, this._bestDaySales);
-        }
+    this._forEachQuest(q => {
+      if (q.conditionType === 'daily_sales') {
+        this.progress[q.id] = Math.max(this.progress[q.id] || 0, this._bestDaySales);
       }
-    }
+    });
   }
 
   _updateUpgradeCount() {
-    for (const [, quests] of Object.entries(QuestDefs)) {
-      for (const q of quests) {
-        if (q.conditionType === 'upgrade_count') {
-          this.progress[q.id] = this.upgradeCount;
-        }
+    this._forEachQuest(q => {
+      if (q.conditionType === 'upgrade_count') {
+        this.progress[q.id] = this.upgradeCount;
       }
-    }
+    });
   }
 
   /** 累計売上をセット (DayCycleSystemから呼ばれる) */
   updateTotalSales(totalSales) {
-    for (const [, quests] of Object.entries(QuestDefs)) {
-      for (const q of quests) {
-        if (q.conditionType === 'total_sales') {
-          this.progress[q.id] = totalSales;
-        }
+    this._forEachQuest(q => {
+      if (q.conditionType === 'total_sales') {
+        this.progress[q.id] = totalSales;
       }
-    }
+    });
   }
 
   /** 指定クエストが完了しているか */
@@ -185,12 +180,9 @@ export class QuestSystem {
   }
 
   _findQuest(questId) {
-    for (const [, quests] of Object.entries(QuestDefs)) {
-      for (const q of quests) {
-        if (q.id === questId) return q;
-      }
-    }
-    return null;
+    let found = null;
+    this._forEachQuest(q => { if (q.id === questId) found = q; });
+    return found;
   }
 
   // --- セーブ/ロード ---
