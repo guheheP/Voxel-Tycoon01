@@ -5,12 +5,13 @@
  * ファイル不在時はプロシージャルBGMにフォールバック。
  */
 import { eventBus } from './EventBus.js';
+import { assetPath } from './assetPath.js';
 
 // --- プレイリスト定義 ---
-const TITLE_TRACK = '/bgm/title_01.mp3';
-const ENDING_TRACK = '/bgm/Ending_01.mp3';
+const TITLE_TRACK = assetPath('/bgm/title_01.mp3');
+const ENDING_TRACK = assetPath('/bgm/Ending_01.mp3');
 const GAME_TRACKS = Array.from({ length: 15 }, (_, i) =>
-  `/bgm/bgm_${String(i + 1).padStart(2, '0')}.mp3`
+  assetPath(`/bgm/bgm_${String(i + 1).padStart(2, '0')}.mp3`)
 );
 
 class SoundManagerClass {

@@ -3,6 +3,7 @@
  * 大型カードデザイン・画像対応版
  */
 import { ItemBlueprints, TraitDefs } from '../data/items.js';
+import { assetPath } from '../core/assetPath.js';
 
 // ===== 品質ティア定義 =====
 const QualityTiers = [
@@ -38,7 +39,7 @@ function traitColorClass(traitName) {
 // アイテムの画像URL（将来のカスタム画像パス対応）
 function getItemImageUrl(item) {
   const bp = ItemBlueprints[item.blueprintId];
-  if (bp && bp.image) return bp.image;
+  if (bp && bp.image) return assetPath(bp.image);
   return null; // 画像未設定
 }
 

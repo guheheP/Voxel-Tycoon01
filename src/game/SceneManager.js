@@ -1,6 +1,7 @@
 import { VoxelEntity } from '../engine/VoxelEntity.js';
 import { eventBus } from './core/EventBus.js';
 import { ParticleSystem } from './ParticleSystem.js';
+import { assetPath } from './core/assetPath.js';
 import * as THREE from 'three';
 
 export class SceneManager {
@@ -177,7 +178,7 @@ export class SceneManager {
 
   async loadEntity(path, options = {}) {
     try {
-      const res = await fetch(path);
+      const res = await fetch(assetPath(path));
       const def = await res.json();
       const entity = new VoxelEntity(def, options);
       entity.addTo(this.scene);

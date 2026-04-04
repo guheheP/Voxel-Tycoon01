@@ -3,6 +3,7 @@
  */
 import { eventBus } from '../core/EventBus.js';
 import { ItemBlueprints } from '../data/items.js';
+import { assetPath } from '../core/assetPath.js';
 
 const MAX_ITEM_ICONS = 5;
 
@@ -55,7 +56,7 @@ export class ToastManager {
 
       if (imagePath) {
         const img = document.createElement('img');
-        img.src = imagePath;
+        img.src = assetPath(imagePath);
         img.alt = item.name;
         img.loading = 'lazy';
         wrapper.appendChild(img);

@@ -5,6 +5,7 @@ import { SaveSystem } from '../core/SaveSystem.js';
 import { GameConfig } from '../data/config.js';
 import { SoundManager } from '../core/SoundManager.js';
 import { settingsPanel, SettingsPanel } from './SettingsPanel.js';
+import { assetPath } from '../core/assetPath.js';
 
 export class TitleScreen {
   // 波紋のタイミング（ms）— BGMに合わせてここを調整
@@ -119,7 +120,7 @@ export class TitleScreen {
       <div class="title-particles">${particlesHTML}</div>
       <div class="title-content">
         <div class="title-logo">
-          <img src="/art/Title_logo.png" alt="ひだまり森の錬金工房" class="title-logo-img" />
+          <img src="${assetPath('/art/Title_logo.png')}" alt="ひだまり森の錬金工房" class="title-logo-img" />
         </div>
         <div class="title-buttons">
           <button class="title-menu-btn title-menu-btn-primary" id="btn-new-game">
