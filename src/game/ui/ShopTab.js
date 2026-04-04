@@ -1,7 +1,7 @@
 /**
  * ShopTab — お店タブ（リアルタイム客タイマー対応版）
  */
-import { createItemCardHTML, createShopItemCardHTML, createDisplayedItemCardHTML } from './UIHelpers.js';
+import { createShopItemCardHTML, createDisplayedItemCardHTML } from './UIHelpers.js';
 import { eventBus } from '../core/EventBus.js';
 import { GameConfig } from '../data/config.js';
 
