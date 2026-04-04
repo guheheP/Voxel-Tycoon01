@@ -3,14 +3,19 @@
  *
  * 使い方:
  *   import { eventBus } from './core/EventBus.js';
- *   eventBus.on('item:sold', (data) => { ... });
+ *   eventBus.on('item:sold', (data) => { ... });      // 継続リスナー
+ *   eventBus.once('rank:up', (data) => { ... });      // 一度だけ発火
  *   eventBus.emit('item:sold', { item, gold });
  *
  * イベント一覧:
- *   'item:sold'       — 商品が売れた { item }
- *   'adventurer:return' — 冒険者帰還 { adventurer, loot }
+ *   'item:sold'         — 商品が売れた { item, price }
+ *   'adventurer:return' — 冒険者帰還 { adventurer, items, areaId }
  *   'inventory:changed' — 在庫変更
- *   'gold:changed'     — ゴールド変更 { gold }
+ *   'gold:changed'      — ゴールド変更 { gold }
+ *   'day:newDay'        — 日替わり { day, rent }
+ *   'rank:up'           — ランクアップ { rank, index }
+ *   'game:over'         — ゲームオーバー { day, totalSales, rank, reason }
+ *   'game:clear'        — ゲームクリア { day, totalSales, rank }
  */
 
 class EventBus {
