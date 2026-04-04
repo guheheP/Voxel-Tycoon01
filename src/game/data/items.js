@@ -35,16 +35,16 @@ export const ItemBlueprints = {
   amber: { id: 'amber', name: '琥珀', type: 'material', tier: 2, baseValue: 14, image: '/art/items/amber.png' },
 
   // --- Tier 3: 妖精の森・火山 (10種) ---
-  fire_stone: { id: 'fire_stone', name: '火石', type: 'material', tier: 3, baseValue: 25 },
-  ice_shard: { id: 'ice_shard', name: '氷片', type: 'material', tier: 3, baseValue: 25 },
-  feather: { id: 'feather', name: '不死鳥の羽', type: 'material', tier: 3, baseValue: 40 },
-  dragon_scale: { id: 'dragon_scale', name: '竜の鱗', type: 'material', tier: 3, baseValue: 50 },
-  fairy_dust: { id: 'fairy_dust', name: '妖精の粉', type: 'material', tier: 3, baseValue: 30 },
-  lava_core: { id: 'lava_core', name: '溶岩核', type: 'material', tier: 3, baseValue: 28 },
-  spirit_essence: { id: 'spirit_essence', name: '精霊のエッセンス', type: 'material', tier: 3, baseValue: 35 },
-  enchanted_wood: { id: 'enchanted_wood', name: '霊樹の枝', type: 'material', tier: 3, baseValue: 22 },
-  thunder_stone: { id: 'thunder_stone', name: '雷石', type: 'material', tier: 3, baseValue: 30 },
-  cursed_gem: { id: 'cursed_gem', name: '呪いの宝石', type: 'material', tier: 3, baseValue: 32 },
+  fire_stone: { id: 'fire_stone', name: '火石', type: 'material', tier: 3, baseValue: 25, image: '/art/items/fire_stone.png' },
+  ice_shard: { id: 'ice_shard', name: '氷片', type: 'material', tier: 3, baseValue: 25, image: '/art/items/ice_shard.png' },
+  feather: { id: 'feather', name: '不死鳥の羽', type: 'material', tier: 3, baseValue: 40, image: '/art/items/feather.png' },
+  dragon_scale: { id: 'dragon_scale', name: '竜の鱗', type: 'material', tier: 3, baseValue: 50, image: '/art/items/dragon_scale.png' },
+  fairy_dust: { id: 'fairy_dust', name: '妖精の粉', type: 'material', tier: 3, baseValue: 30, image: '/art/items/fairy_dust.png' },
+  lava_core: { id: 'lava_core', name: '溶岩核', type: 'material', tier: 3, baseValue: 28, image: '/art/items/lava_core.png' },
+  spirit_essence: { id: 'spirit_essence', name: '精霊のエッセンス', type: 'material', tier: 3, baseValue: 35, image: '/art/items/spirit_essence.png' },
+  enchanted_wood: { id: 'enchanted_wood', name: '霊樹の枝', type: 'material', tier: 3, baseValue: 22, image: '/art/items/enchanted_wood.png' },
+  thunder_stone: { id: 'thunder_stone', name: '雷石', type: 'material', tier: 3, baseValue: 30, image: '/art/items/thunder_stone.png' },
+  cursed_gem: { id: 'cursed_gem', name: '呪いの宝石', type: 'material', tier: 3, baseValue: 32, image: '/art/items/cursed_gem.png' },
 
   // --- Tier 4: 深海・竜の巣 (10種) ---
   deep_pearl: { id: 'deep_pearl', name: '深海の真珠', type: 'material', tier: 4, baseValue: 55 },
