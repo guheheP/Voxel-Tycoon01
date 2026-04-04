@@ -1,5 +1,6 @@
 import { eventBus } from '../core/EventBus.js';
 import { ItemBlueprints } from '../data/items.js';
+import { GameConfig } from '../data/config.js';
 
 export class BattleScreen {
   constructor(inventorySystem) {
@@ -12,6 +13,8 @@ export class BattleScreen {
 
     // DOM element caches (set in show())
     this._els = {};
+
+    this._resultShown = false;
 
     this._unsubs = [
       eventBus.on('battle:start', (state) => this.show(state)),
@@ -190,7 +193,7 @@ export class BattleScreen {
     // Cooldown + inventory update
     if (els.cdBar) {
        if (state.itemCooldown > 0) {
-         const cdMax = 5;
+         const cdMax = GameConfig.bossBattle.itemCooldownSeconds;
          const pct = (state.itemCooldown / cdMax) * 100;
          els.cdBar.style.width = `${Math.min(100, pct)}%`;
          els.cdBar.style.display = 'block';
