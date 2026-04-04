@@ -135,6 +135,10 @@ function startGame(saveData) {
 
   gameStarted = true;
 
+  // パズル中のゲーム一時停止
+  eventBus.on('game:pause', () => { gamePaused = true; });
+  eventBus.on('game:resume', () => { gamePaused = false; });
+
   // ゲームBGMへ移行（タイトル曲が終わったら切り替わる）
   SoundManager.startGameBGM();
 
@@ -243,10 +247,6 @@ boot();
 
 const clock = new THREE.Clock();
 let gamePaused = false;
-
-// パズル中のゲーム一時停止
-eventBus.on('game:pause', () => { gamePaused = true; });
-eventBus.on('game:resume', () => { gamePaused = false; });
 
 function animate() {
   requestAnimationFrame(animate);

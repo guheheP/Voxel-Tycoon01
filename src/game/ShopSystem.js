@@ -7,6 +7,9 @@ import { UpgradeDefs } from './data/upgrades.js';
 import { eventBus } from './core/EventBus.js';
 import { StatsTracker } from './StatsTracker.js';
 
+const AUTO_SELL_CHANCE = 0.15;  // 自動販売確率 (お客さんなし時のフォールバック)
+const QUALITY_REFERENCE = 50;   // 品質基準値: quality=50 のとき baseValue が売値になる
+
 export class ShopSystem {
   constructor(inventorySystem) {
     this.inventory = inventorySystem;
@@ -66,7 +69,7 @@ export class ShopSystem {
   _tryAutoSell() {
     if (this.displayedItems.length === 0) return;
     const item = this.displayedItems[Math.floor(Math.random() * this.displayedItems.length)];
-    if (Math.random() < 0.15) {
+    if (Math.random() < AUTO_SELL_CHANCE) {
       this.processSale(item);
     }
   }
@@ -74,7 +77,7 @@ export class ShopSystem {
   _calcValue(item) {
     const bp = ItemBlueprints[item.blueprintId];
     if (!bp) return 10;
-    return Math.max(1, Math.floor(bp.baseValue * (item.quality / 50)));
+    return Math.max(1, Math.floor(bp.baseValue * (item.quality / QUALITY_REFERENCE)));
   }
 
   /** アップグレード購入処理 */
@@ -104,12 +107,6 @@ export class ShopSystem {
 
     eventBus.emit('upgrade:purchased', { upgradeId, effect });
     return true;
-  }
-
-  /** アップグレード適用（セーブデータ復元用） */
-  applyUpgrade(upgradeId, effect) {
-    this.purchasedUpgrades.push(upgradeId);
-    if (effect.maxSlots) this.maxSlots += effect.maxSlots;
   }
 
   /** アップグレード購入済み判定 */

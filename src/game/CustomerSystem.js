@@ -4,7 +4,6 @@
  */
 import { GameConfig } from './data/config.js';
 import { eventBus } from './core/EventBus.js';
-import { StatsTracker } from './StatsTracker.js';
 
 const CUSTOMER_NAMES = [
   { name: '旅の商人', icon: '🧳', dialogue: '珍しいものはないかね？' },
@@ -40,7 +39,7 @@ export class CustomerSystem {
     this.currentDay = 1;
 
     // 日替わりリセット
-    eventBus.on('day:newDay', () => {
+    this._unsub = eventBus.on('day:newDay', () => {
       this.customersToday = 0;
       this.spawnTimer = 0;
       this.customers = [];
@@ -76,7 +75,6 @@ export class CustomerSystem {
       if (c.timer <= 0) {
         this.customers.splice(i, 1);
         eventBus.emit('customer:left', { customer: c, reason: 'timeout' });
-        StatsTracker.add('totalCustomersLost', 0); // tracked by StatsTracker's own listener
       }
     }
   }
@@ -124,5 +122,9 @@ export class CustomerSystem {
   }
 
   getActiveCustomers() { return this.customers; }
+
+  dispose() {
+    this._unsub?.();
+  }
 }
 
