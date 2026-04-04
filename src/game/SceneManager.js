@@ -302,6 +302,7 @@ export class SceneManager {
               const idx = this.entities.indexOf(npc);
               if (idx !== -1) this.entities.splice(idx, 1);
               npc.removeFrom(this.scene);
+              npc.dispose(); // メモリリーク防止のためdisposeを呼び出す
               this._returnNpcCount--;
             }, 3000);
           }

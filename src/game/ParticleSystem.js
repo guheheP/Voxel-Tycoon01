@@ -7,6 +7,14 @@ export class ParticleSystem {
   constructor(scene) {
     this.scene = scene;
     this.particles = [];
+
+    // メモリアロケーションとGC負荷を下げるために共有ジオメトリを使用
+    this.geometries = {
+      box: new THREE.BoxGeometry(1, 0.3, 1),
+      octahedron: new THREE.OctahedronGeometry(1, 0),
+      plane: new THREE.PlaneGeometry(1, 1),
+      sphere: new THREE.SphereGeometry(1, 4, 4),
+    };
   }
 
   update(dt) {
@@ -16,7 +24,7 @@ export class ParticleSystem {
 
       if (p.life <= 0) {
         this.scene.remove(p.mesh);
-        p.mesh.geometry.dispose();
+        // shared geometry なので dispose しない
         p.mesh.material.dispose();
         this.particles.splice(i, 1);
         continue;
@@ -42,7 +50,7 @@ export class ParticleSystem {
   spawnCoinBurst(position = new THREE.Vector3(0, 2, 5), count = 12) {
     for (let i = 0; i < count; i++) {
       const size = 0.15 + Math.random() * 0.15;
-      const geo = new THREE.BoxGeometry(size, size * 0.3, size);
+      const geo = this.geometries.box;
       const mat = new THREE.MeshStandardMaterial({
         color: new THREE.Color().setHSL(0.12 + Math.random() * 0.05, 0.9, 0.55 + Math.random() * 0.15),
         metalness: 0.8,
@@ -51,6 +59,7 @@ export class ParticleSystem {
         opacity: 1,
       });
       const mesh = new THREE.Mesh(geo, mat);
+      mesh.scale.set(size, size, size); // 共有ジオメトリをスケールで調整
       mesh.position.copy(position);
       mesh.position.x += (Math.random() - 0.5) * 1;
       mesh.position.z += (Math.random() - 0.5) * 1;
@@ -92,7 +101,7 @@ export class ParticleSystem {
 
     for (let i = 0; i < count; i++) {
       const size = 0.08 + Math.random() * 0.12;
-      const geo = new THREE.OctahedronGeometry(size, 0);
+      const geo = this.geometries.octahedron;
       const mat = new THREE.MeshStandardMaterial({
         color: baseColor,
         emissive: baseColor,
@@ -101,6 +110,7 @@ export class ParticleSystem {
         opacity: 1,
       });
       const mesh = new THREE.Mesh(geo, mat);
+      mesh.scale.set(size, size, size); // 共有ジオメトリをスケールで調整
       mesh.position.copy(position);
       mesh.position.x += (Math.random() - 0.5) * 2;
       mesh.position.z += (Math.random() - 0.5) * 2;
@@ -135,7 +145,7 @@ export class ParticleSystem {
     for (let i = 0; i < count; i++) {
       const w = 0.15 + Math.random() * 0.15;
       const h = 0.08 + Math.random() * 0.08;
-      const geo = new THREE.PlaneGeometry(w, h);
+      const geo = this.geometries.plane;
       const mat = new THREE.MeshStandardMaterial({
         color: colors[Math.floor(Math.random() * colors.length)],
         transparent: true,
@@ -143,6 +153,7 @@ export class ParticleSystem {
         side: THREE.DoubleSide,
       });
       const mesh = new THREE.Mesh(geo, mat);
+      mesh.scale.set(w, h, 1); // 共有ジオメトリをスケールで調整
       mesh.position.set(
         (Math.random() - 0.5) * 30,
         15 + Math.random() * 10,
@@ -188,7 +199,7 @@ export class ParticleSystem {
     }
 
     const size = 0.04 + Math.random() * 0.06;
-    const geo = new THREE.SphereGeometry(size, 4, 4);
+    const geo = this.geometries.sphere;
     const mat = new THREE.MeshStandardMaterial({
       color,
       emissive: color,
@@ -197,6 +208,7 @@ export class ParticleSystem {
       opacity: 0.6,
     });
     const mesh = new THREE.Mesh(geo, mat);
+    mesh.scale.set(size, size, size); // 共有ジオメトリをスケールで調整
     mesh.position.set(
       (Math.random() - 0.5) * 40,
       Math.random() * 2,
@@ -222,9 +234,12 @@ export class ParticleSystem {
   dispose() {
     for (const p of this.particles) {
       this.scene.remove(p.mesh);
-      p.mesh.geometry.dispose();
+      // shared geometry なので dispose しない
       p.mesh.material.dispose();
     }
     this.particles.length = 0;
+
+    // 共有ジオメトリを破棄
+    Object.values(this.geometries).forEach(g => g.dispose());
   }
 }
