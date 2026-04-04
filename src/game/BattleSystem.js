@@ -198,6 +198,8 @@ export class BattleSystem {
     return this.state;
   }
 
+  dispose() { /* no EventBus subscriptions */ }
+
   // --- Private ---
 
   _updateBuffs(actor, dt) {
