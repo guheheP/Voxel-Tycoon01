@@ -1,10 +1,10 @@
 /**
  * assetPath — publicディレクトリ内のアセットパスをViteのbase設定に基づいて解決する
  *
- * ローカル開発時: base='/' → '/art/items/wood.jpeg'
- * GitHub Pages:   base='/Voxel-Tycoon01/' → '/Voxel-Tycoon01/art/items/wood.jpeg'
+ * ローカル開発時: base='/' → '/art/items/wood.png'
+ * GitHub Pages:   base='/Voxel-Tycoon01/' → '/Voxel-Tycoon01/art/items/wood.png'
  *
- * @param {string} path - '/' で始まるpublicアセットパス (例: '/art/items/wood.jpeg')
+ * @param {string} path - '/' で始まるpublicアセットパス (例: '/art/items/wood.png')
  * @returns {string} 正しく解決されたパス
  */
 export function assetPath(path) {

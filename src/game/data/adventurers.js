@@ -9,12 +9,14 @@ export const AdventurerDefs = [
     name: '新人騎士アーサー',
     icon: '🛡️',
     exploreTimeMultiplier: 1.0,
+    battle: { maxHp: 120, atk: 22, def: 15, spd: 70 },
   },
   {
     id: 'adv_archer',
     name: '狩人ロビン',
     icon: '🏹',
     exploreTimeMultiplier: 0.85,
+    battle: { maxHp: 90, atk: 28, def: 8, spd: 90 },
   },
 ];
 
@@ -26,6 +28,7 @@ export const UnlockableAdventurers = [
     icon: '🧙‍♀️',
     exploreTimeMultiplier: 1.1,
     unlockRank: 2,
+    battle: { maxHp: 80, atk: 35, def: 5, spd: 75 },
   },
   {
     id: 'adv_thief',
@@ -33,6 +36,7 @@ export const UnlockableAdventurers = [
     icon: '🐱',
     exploreTimeMultiplier: 0.7,
     unlockRank: 3,
+    battle: { maxHp: 100, atk: 25, def: 10, spd: 100 },
   },
   {
     id: 'adv_paladin',
@@ -40,6 +44,7 @@ export const UnlockableAdventurers = [
     icon: '⚜️',
     exploreTimeMultiplier: 1.2,
     unlockRank: 4,
+    battle: { maxHp: 140, atk: 18, def: 20, spd: 60 },
   },
 ];
 

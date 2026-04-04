@@ -43,6 +43,37 @@ function getItemImageUrl(item) {
   return null; // 画像未設定
 }
 
+// 戦闘効果のテキスト生成
+function renderBattleEffectHTML(item) {
+  const bp = ItemBlueprints[item.blueprintId];
+  if (!bp || !bp.battleEffect) return '';
+  const fx = bp.battleEffect;
+  
+  let desc = '';
+  let icon = '⚔️';
+  
+  if (fx.type === 'heal') {
+    icon = '❤️';
+    desc = `HP ${fx.value} 回復`;
+  } else if (fx.type === 'healfull') {
+    icon = '❤️‍🩹';
+    desc = 'HP 全回復';
+  } else if (fx.type === 'revive') {
+    icon = '✨';
+    desc = `復活 (HP ${fx.value})`;
+  } else if (fx.type === 'buff') {
+    icon = '⬆️';
+    const stat = fx.stat === 'atk' ? '攻撃' : fx.stat === 'def' ? '防御' : '素早さ';
+    desc = `${stat}+${fx.amount} (${fx.duration}秒)`;
+  } else if (fx.type === 'debuff') {
+    icon = '⬇️';
+    const stat = fx.stat === 'atk' ? '攻撃' : fx.stat === 'def' ? '防御' : '素早さ';
+    desc = `敵${stat}${fx.amount} (${fx.duration}秒)`;
+  }
+  
+  return `<div class="item-battle-effect"><span class="battle-effect-icon">${icon}</span><span class="battle-effect-desc">戦闘: ${desc}</span></div>`;
+}
+
 // 画像エリアのHTML（画像がない場合は絵文字プレースホルダ）
 function renderImageArea(item, typeInfo) {
   const imageUrl = getItemImageUrl(item);
@@ -83,6 +114,7 @@ export function createItemCardHTML(item) {
           <div class="item-quality-fill" style="width:${item.quality}%"></div>
         </div>
         <div class="item-traits">${traitsHtml}</div>
+        ${renderBattleEffectHTML(item)}
       </div>
     </div>
   `;

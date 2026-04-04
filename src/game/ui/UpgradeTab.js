@@ -22,6 +22,17 @@ export class UpgradeTab {
     const nextRankIndex = this.dayCycle.currentRankIndex + 1;
     const nextRank = nextRankIndex < GameConfig.ranks.length ? GameConfig.ranks[nextRankIndex] : null;
 
+    let bossHTML = '';
+    if (this.dayCycle.rankBossAvailable && nextRank && nextRank.requiredBossId) {
+      bossHTML = `
+        <div class="upgrade-boss-panel">
+          <h3 class="upgrade-section-title" style="color: #ffcccc;">⚠️ 昇格試験に挑戦可能！</h3>
+          <p style="margin-bottom: 1rem;">ランクアップ条件を満たしました。ボスを撃破して新しいランクとエリアを解放しましょう！</p>
+          <button id="btn-challenge-boss" class="btn btn-boss-challenge">⚔️ ボスに挑戦する</button>
+        </div>
+      `;
+    }
+
     // クエスト進捗
     let questHTML = '';
     if (nextRank && this.quest) {
@@ -115,7 +126,7 @@ export class UpgradeTab {
       </div>
     `;
 
-    section.innerHTML = capacityHTML + questHTML + upgradesHTML;
+    section.innerHTML = capacityHTML + bossHTML + questHTML + upgradesHTML;
 
     // 購入ボタンのイベント
     section.querySelectorAll('.upgrade-available').forEach(card => {
@@ -128,5 +139,15 @@ export class UpgradeTab {
         }
       });
     });
+
+    const bossBtn = section.querySelector('#btn-challenge-boss');
+    if (bossBtn) {
+      bossBtn.addEventListener('click', () => {
+         eventBus.emit('battle:requestStart', { 
+            rankIndex: nextRankIndex, 
+            bossId: nextRank.requiredBossId 
+         });
+      });
+    }
   }
 }

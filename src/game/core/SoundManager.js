@@ -10,6 +10,7 @@ import { assetPath } from './assetPath.js';
 // --- プレイリスト定義 ---
 const TITLE_TRACK = assetPath('/bgm/title_01.mp3');
 const ENDING_TRACK = assetPath('/bgm/Ending_01.mp3');
+const BATTLE_TRACK = assetPath('/bgm/battle_01.mp3');
 const GAME_TRACKS = Array.from({ length: 15 }, (_, i) =>
   assetPath(`/bgm/bgm_${String(i + 1).padStart(2, '0')}.mp3`)
 );
@@ -34,6 +35,9 @@ class SoundManagerClass {
     this.shuffledPlaylist = [];  // シャッフル済みゲームBGM
     this.currentTrackIndex = 0;
     this.isTitleBGM = false;
+    this.isBattleBGM = false;
+    this.preBattleTrackSrc = null;
+    this.preBattleTrackTime = 0;
     this.isFading = false;
 
     // --- プロシージャルBGM (フォールバック) ---
@@ -129,6 +133,28 @@ class SoundManagerClass {
 
     // エンディング
     eventBus.on('game:clear', () => this.playEndingBGM());
+
+    // --- バトルBGM & SE ---
+    eventBus.on('battle:start', () => this.startBattleBGM());
+    eventBus.on('battle:win', () => {
+      this.playBattleVictory();
+      // 少し待ってからゲームBGMに戻す
+      setTimeout(() => this.stopBattleBGM(), 2500);
+    });
+    eventBus.on('battle:lose', () => {
+      this.playBattleDefeat();
+      setTimeout(() => this.stopBattleBGM(), 2000);
+    });
+
+    // バトルSEイベント
+    eventBus.on('battle:se:advAttack', () => this.playBattleAdvAttack());
+    eventBus.on('battle:se:bossAttack', () => this.playBattleBossAttack());
+    eventBus.on('battle:se:itemUse', () => this.playBattleItemUse());
+    eventBus.on('battle:se:heal', () => this.playBattleHeal());
+    eventBus.on('battle:se:buff', () => this.playBattleBuff());
+    eventBus.on('battle:se:debuff', () => this.playBattleDebuff());
+    eventBus.on('battle:se:ko', () => this.playBattleKO());
+    eventBus.on('battle:se:revive', () => this.playBattleRevive());
   }
 
   // ===== 音量制御 =====
@@ -225,6 +251,43 @@ class SoundManagerClass {
     this._playTrack(this.shuffledPlaylist[this.currentTrackIndex]);
   }
 
+  // ===== バトルBGM =====
+
+  /** バトルBGM開始 — 現在のBGMをフェードアウトし、バトル曲へ切替 */
+  startBattleBGM() {
+    // 現在の再生位置を保存して復帰できるようにする
+    if (this.audioEl && !this.isBattleBGM) {
+      this.preBattleTrackSrc = this.audioEl.src;
+      this.preBattleTrackTime = this.audioEl.currentTime;
+    }
+    this.isBattleBGM = true;
+    this._fadeOutThen(() => {
+      this._playTrack(BATTLE_TRACK);
+      // バトル曲はループ
+      if (this.audioEl) this.audioEl.loop = true;
+    }, 800);
+  }
+
+  /** バトルBGM終了 — ゲームBGMに復帰 */
+  stopBattleBGM() {
+    if (!this.isBattleBGM) return;
+    this.isBattleBGM = false;
+    this._fadeOutThen(() => {
+      if (this.audioEl) this.audioEl.loop = false;
+      // 保存していた曲を再開、または次の曲を再生
+      if (this.preBattleTrackSrc) {
+        this._playTrack(this.preBattleTrackSrc);
+        // 復帰位置を少し戻す（自然にする）
+        if (this.audioEl) {
+          this.audioEl.currentTime = Math.max(0, this.preBattleTrackTime - 2);
+        }
+        this.preBattleTrackSrc = null;
+      } else {
+        this.playNextTrack();
+      }
+    }, 1200);
+  }
+
   /** エンディングBGM */
   playEndingBGM() {
     this.isTitleBGM = false;
@@ -255,7 +318,7 @@ class SoundManagerClass {
 
   /** day:newDayイベント → フェードアウトして次の曲 */
   _onNewDay() {
-    if (this.isTitleBGM) return;
+    if (this.isTitleBGM || this.isBattleBGM) return;
     this._fadeOutThen(() => {
       this.playNextTrack();
     });
@@ -364,6 +427,7 @@ class SoundManagerClass {
     gain.connect(this.bgmGain);
     osc.start(startTime);
     osc.stop(startTime + duration + 0.1);
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
   }
 
   _playPad(rootFreq, startTime, duration) {
@@ -386,6 +450,7 @@ class SoundManagerClass {
       gain.connect(this.bgmGain);
       osc.start(startTime);
       osc.stop(startTime + duration + 0.1);
+      osc.onended = () => { osc.disconnect(); filter.disconnect(); gain.disconnect(); };
     });
   }
 
@@ -519,6 +584,140 @@ class SoundManagerClass {
     this._playSENote(120, now + 0.1, 0.1, 'square', 0.06);
   }
 
+  // ===== バトルSE =====
+
+  /** 冒険者攻撃 — シャキン！ */
+  playBattleAdvAttack() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // 金属的なスラッシュ音
+    this._playSENote(800, now, 0.06, 'sawtooth', 0.10);
+    this._playSENote(1200, now + 0.02, 0.04, 'square', 0.08);
+    this._playSENote(600, now + 0.05, 0.08, 'triangle', 0.05);
+    // ノイズ的なインパクト
+    this._playNoiseBurst(now + 0.01, 0.04, 0.06);
+  }
+
+  /** ボス攻撃 — ドゴォン！ */
+  playBattleBossAttack() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // 重い打撃音
+    this._playSENote(120, now, 0.15, 'sawtooth', 0.14);
+    this._playSENote(80, now + 0.02, 0.2, 'sine', 0.10);
+    this._playSENote(200, now + 0.04, 0.08, 'square', 0.08);
+    this._playNoiseBurst(now, 0.06, 0.10);
+  }
+
+  /** アイテム使用 — ポン！ */
+  playBattleItemUse() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(660, now, 0.08, 'sine', 0.10);
+    this._playSENote(990, now + 0.04, 0.06, 'sine', 0.08);
+    this._playSENote(1320, now + 0.08, 0.1, 'sine', 0.06);
+  }
+
+  /** 回復 — キラキラ上昇音 */
+  playBattleHeal() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const notes = [523, 659, 784, 1047, 1319];
+    notes.forEach((f, i) => {
+      this._playSENote(f, now + i * 0.06, 0.25, 'sine', 0.08);
+    });
+  }
+
+  /** バフ — パワーアップ音 */
+  playBattleBuff() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(440, now, 0.12, 'triangle', 0.08);
+    this._playSENote(554, now + 0.06, 0.12, 'triangle', 0.07);
+    this._playSENote(659, now + 0.12, 0.2, 'sine', 0.09);
+    this._playSENote(880, now + 0.18, 0.25, 'sine', 0.06);
+  }
+
+  /** デバフ — 弱体化音 */
+  playBattleDebuff() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(500, now, 0.12, 'sawtooth', 0.06);
+    this._playSENote(350, now + 0.08, 0.15, 'sawtooth', 0.05);
+    this._playSENote(200, now + 0.16, 0.2, 'sine', 0.07);
+  }
+
+  /** 戦闘不能 — ガクッ */
+  playBattleKO() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(300, now, 0.1, 'sawtooth', 0.10);
+    this._playSENote(200, now + 0.08, 0.15, 'sine', 0.08);
+    this._playSENote(100, now + 0.18, 0.3, 'sine', 0.06);
+  }
+
+  /** 復活 — シャララン */
+  playBattleRevive() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const notes = [330, 440, 554, 659, 880, 1047];
+    notes.forEach((f, i) => {
+      this._playSENote(f, now + i * 0.07, 0.3, 'sine', 0.07);
+    });
+  }
+
+  /** 勝利ファンファーレ */
+  playBattleVictory() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    const notes = [523, 523, 659, 784, 1047, 784, 1047, 1319];
+    const times = [0, 0.15, 0.30, 0.45, 0.60, 0.75, 0.95, 1.15];
+    const durs  = [0.12, 0.12, 0.12, 0.15, 0.12, 0.15, 0.2, 0.8];
+    notes.forEach((freq, i) => {
+      this._playSENote(freq, now + times[i], durs[i], 'square', 0.12);
+    });
+    // ハーモニー
+    this._playSENote(1047, now + 1.15, 0.8, 'sine', 0.06);
+    this._playSENote(1319, now + 1.15, 0.8, 'sine', 0.05);
+    this._playSENote(1568, now + 1.15, 0.8, 'sine', 0.04);
+  }
+
+  /** 敗北ジングル */
+  playBattleDefeat() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this._playSENote(220, now, 0.5, 'sine', 0.10);
+    this._playSENote(196, now + 0.3, 0.5, 'sine', 0.08);
+    this._playSENote(165, now + 0.6, 0.6, 'sine', 0.10);
+    this._playSENote(110, now + 1.0, 1.2, 'sine', 0.12);
+  }
+
+  /** ノイズバースト（打撃音のインパクト補助） */
+  _playNoiseBurst(startTime, duration, volume = 0.05) {
+    if (!this.ctx) return;
+    const bufferSize = this.ctx.sampleRate * duration;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1);
+    }
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(volume, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1000;
+    filter.Q.value = 0.8;
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.seGain);
+    source.start(startTime);
+    source.stop(startTime + duration + 0.05);
+    source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+  }
+
   /** ボタンホバー — 極軽いコツッ */
   playHover() {
     if (!this.ctx) return;
@@ -540,6 +739,7 @@ class SoundManagerClass {
     gain.connect(this.seGain);
     osc.start(startTime);
     osc.stop(startTime + duration + 0.1);
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
   }
 }
 

@@ -7,8 +7,8 @@ import { AreaDefs } from '../data/areas.js';
 import { eventBus } from './EventBus.js';
 import { StatsTracker } from '../StatsTracker.js';
 
-const SAVE_KEY = 'voxelshop_save_v4';
-const LEGACY_KEYS = ['voxelshop_save_v3', 'voxelshop_save_v2', 'voxelshop_save_v1'];
+const SAVE_KEY = 'voxelshop_save_v5';
+const LEGACY_KEYS = ['voxelshop_save_v4', 'voxelshop_save_v3', 'voxelshop_save_v2', 'voxelshop_save_v1'];
 const AUTOSAVE_INTERVAL = 30;
 
 export class SaveSystem {
@@ -33,7 +33,7 @@ export class SaveSystem {
   save() {
     try {
       const data = {
-        version: 4,
+        version: 5,
         timestamp: Date.now(),
         gold: this.inventory.gold,
         maxCapacity: this.inventory.maxCapacity,
@@ -69,6 +69,8 @@ export class SaveSystem {
         reputation: this.reputation ? this.reputation.toSaveData() : null,
         stats: StatsTracker.toSaveData(),
         quest: this.quest ? this.quest.toSaveData() : null,
+        rankBossAvailable: this.dayCycle.rankBossAvailable,
+        defeatedBosses: this.dayCycle.defeatedBosses || [], // (Currently managed implicitly by rankIndex, but good to have)
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
       console.log('[Save] ゲームを保存しました (v4)');
@@ -123,18 +125,23 @@ export class SaveSystem {
         raw = localStorage.getItem(key);
         if (raw) {
           const data = JSON.parse(raw);
-          data.version = 4;
-          data.maxCapacity = data.maxCapacity || GameConfig.initialInventoryCapacity;
-          data.maxSlots = data.maxSlots || GameConfig.shopMaxDisplaySlots;
-          data.purchasedUpgrades = data.purchasedUpgrades || [];
-          data.quest = data.quest || null;
-          // AP→リアルタイム: dayTimerを0にリセット
-          data.dayTimer = 0;
-          delete data.ap;
-          delete data.maxAP;
+          if (data.version < 5) {
+             data.version = 5;
+             data.rankBossAvailable = false;
+             data.defeatedBosses = [];
+          }
+          if (data.version < 4) {
+             data.maxCapacity = data.maxCapacity || GameConfig.initialInventoryCapacity;
+             data.maxSlots = data.maxSlots || GameConfig.shopMaxDisplaySlots;
+             data.purchasedUpgrades = data.purchasedUpgrades || [];
+             data.quest = data.quest || null;
+             data.dayTimer = 0;
+             delete data.ap;
+             delete data.maxAP;
+          }
           localStorage.removeItem(key);
           localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-          console.log(`[Save] ${key} → v4 マイグレーション完了`);
+          console.log(`[Save] ${key} → v5 マイグレーション完了`);
           return data;
         }
       }

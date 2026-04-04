@@ -29,6 +29,16 @@ export const AreaDefs = {
     dropCountMax: 2,
     qualityMin: 15,
     qualityMax: 45,
+    boss: {
+      id: 'boss_plains_slime',
+      name: '巨大化スライム',
+      icon: '💧',
+      maxHp: 100,
+      atk: 10,
+      def: 5,
+      spd: 50,
+      preset: 'Slime',
+    },
   },
 
   cave: {
@@ -55,6 +65,16 @@ export const AreaDefs = {
     dropCountMax: 2,
     qualityMin: 20,
     qualityMax: 55,
+    boss: {
+      id: 'boss_cave_golem',
+      name: '岩窟ゴーレム',
+      icon: '🗿',
+      maxHp: 240,
+      atk: 18,
+      def: 8,
+      spd: 60,
+      preset: 'Golem',
+    },
   },
 
   forest: {
@@ -82,6 +102,16 @@ export const AreaDefs = {
     dropCountMax: 3,
     qualityMin: 25,
     qualityMax: 65,
+    boss: {
+      id: 'boss_forest_treant',
+      name: '森の番人ツリーアント',
+      icon: '🌳',
+      maxHp: 380,
+      atk: 22,
+      def: 12,
+      spd: 50,
+      preset: 'Treant',
+    },
   },
 
   volcano: {
@@ -108,6 +138,16 @@ export const AreaDefs = {
     dropCountMax: 2,
     qualityMin: 30,
     qualityMax: 75,
+    boss: {
+      id: 'boss_volcano_ifrit',
+      name: '炎帝イフリート',
+      icon: '🔥',
+      maxHp: 520,
+      atk: 35,
+      def: 10,
+      spd: 80,
+      preset: 'Ifrit',
+    },
   },
 
   deep_sea: {
@@ -134,6 +174,16 @@ export const AreaDefs = {
     dropCountMax: 3,
     qualityMin: 35,
     qualityMax: 80,
+    boss: {
+      id: 'boss_sea_kraken',
+      name: '深海の悪魔クラーケン',
+      icon: '🦑',
+      maxHp: 680,
+      atk: 40,
+      def: 15,
+      spd: 70,
+      preset: 'Kraken',
+    },
   },
 
   dragon_nest: {
@@ -160,6 +210,16 @@ export const AreaDefs = {
     dropCountMax: 3,
     qualityMin: 40,
     qualityMax: 90,
+    boss: {
+      id: 'boss_elder_dragon',
+      name: '古竜ヴェルムドラゴ',
+      icon: '🐉',
+      maxHp: 900,
+      atk: 55,
+      def: 20,
+      spd: 65,
+      preset: 'Dragon',
+    },
   },
 
   sky_tower: {
@@ -186,6 +246,16 @@ export const AreaDefs = {
     dropCountMax: 3,
     qualityMin: 50,
     qualityMax: 95,
+    boss: {
+      id: 'boss_sky_titan',
+      name: '天空巨神スカイタイタン',
+      icon: '⚡',
+      maxHp: 1100,
+      atk: 65,
+      def: 25,
+      spd: 75,
+      preset: 'Titan',
+    },
   },
 
   time_corridor: {
@@ -212,5 +282,15 @@ export const AreaDefs = {
     dropCountMax: 4,
     qualityMin: 60,
     qualityMax: 100,
+    boss: {
+      id: 'boss_time_lord',
+      name: '時を支配する者',
+      icon: '🕰️',
+      maxHp: 1400,
+      atk: 80,
+      def: 30,
+      spd: 90,
+      preset: 'TimeLord',
+    },
   },
 };

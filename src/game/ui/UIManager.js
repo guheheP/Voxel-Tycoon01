@@ -37,6 +37,16 @@ export class UIManager {
     this._displayedGold = inventorySystem.gold;
     this._targetGold = inventorySystem.gold;
 
+    // 最適化用キャッシュ
+    this._lastDayProgressPct = -1;
+    this._lastPaused = false;
+    this._lastDayBg = '';
+    this._cachedPauseText = '';
+    this._cachedGoldText = '';
+    this._lastTimePercent = -1;
+    this._lastTimeTint = '';
+    this._updateScheduled = false;
+
     // DOM Elements
     this.elGold = document.getElementById('gold-value');
     this.elDay = document.getElementById('day-value');
@@ -107,10 +117,15 @@ export class UIManager {
   }
 
   updateAll() {
-    this._updateStatusBar();
-    this._updateCustomerBadge();
-    const tab = this.tabs[this.activeTab];
-    if (tab) tab.render();
+    if (this._updateScheduled) return;
+    this._updateScheduled = true;
+    requestAnimationFrame(() => {
+      this._updateScheduled = false;
+      this._updateStatusBar();
+      this._updateCustomerBadge();
+      const tab = this.tabs[this.activeTab];
+      if (tab) tab.render();
+    });
   }
 
   _init() {
@@ -209,7 +224,11 @@ export class UIManager {
 
   _animateGold(dt) {
     if (Math.abs(this._displayedGold - this._targetGold) < 1) {
-      this._displayedGold = this._targetGold;
+      if (this._displayedGold !== this._targetGold) {
+        this._displayedGold = this._targetGold;
+      } else {
+        return; // 変動なし
+      }
     } else {
       // スムーズにカウントアップ/ダウン
       const speed = Math.max(1, Math.abs(this._targetGold - this._displayedGold) * 5);
@@ -219,8 +238,13 @@ export class UIManager {
         this._displayedGold = Math.max(this._targetGold, this._displayedGold - speed * dt);
       }
     }
+    
     if (this.elGold) {
-      this.elGold.textContent = this._formatGold(Math.round(this._displayedGold));
+      const formatted = this._formatGold(Math.round(this._displayedGold));
+      if (this._cachedGoldText !== formatted) {
+        this._cachedGoldText = formatted;
+        this.elGold.textContent = formatted;
+      }
     }
   }
 
@@ -337,34 +361,51 @@ export class UIManager {
     }
   }
 
-  /** 日進行バー更新（リアルタイム） */
+  /** 日進行バー更新（最適化済み：1%単位でのみ更新） */
   _updateDayProgressBar() {
     if (!this.dayCycle || !this.elDayProgress) return;
-    const pct = this.dayCycle.dayProgress * 100;
+    
+    const pct = Math.floor(this.dayCycle.dayProgress * 100);
+    // 前回から表示が変わっていなければスキップしてDOMアクセスを減らす
+    if (this._lastDayProgressPct === pct && this._lastPaused === this.dayCycle.paused) {
+      return; 
+    }
+    
+    this._lastDayProgressPct = pct;
+    this._lastPaused = this.dayCycle.paused;
     this.elDayProgress.style.width = `${pct}%`;
 
     // 時間帯で色変化（朝→昼→夕→夜）
     const p100 = pct / 100;
+    let newBg = '';
+    let newText = '';
+
     if (p100 < TIME_DAWN_END) {
-      this.elDayProgress.style.background = 'linear-gradient(90deg, #27ae60, #2ecc71)';
+      newBg = 'linear-gradient(90deg, #27ae60, #2ecc71)';
+      newText = '🌅 朝';
     } else if (p100 < TIME_NOON_END) {
-      this.elDayProgress.style.background = 'linear-gradient(90deg, #2ecc71, #f1c40f)';
+      newBg = 'linear-gradient(90deg, #2ecc71, #f1c40f)';
+      newText = '☀️ 昼';
     } else if (p100 < TIME_SUNSET_END) {
-      this.elDayProgress.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)';
+      newBg = 'linear-gradient(90deg, #f39c12, #e67e22)';
+      newText = '🌇 夕方';
     } else {
-      this.elDayProgress.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
+      newBg = 'linear-gradient(90deg, #e74c3c, #c0392b)';
+      newText = '🌙 夜';
+    }
+
+    if (this._lastDayBg !== newBg) {
+      this.elDayProgress.style.background = newBg;
+      this._lastDayBg = newBg;
     }
 
     // 一時停止表示と時間帯テキスト
     const pauseLabel = document.getElementById('ap-label');
     if (pauseLabel) {
-      if (this.dayCycle.paused) {
-        pauseLabel.textContent = '⏸ 調合中…';
-      } else {
-        if (p100 < TIME_DAWN_END) pauseLabel.textContent = '🌅 朝';
-        else if (p100 < TIME_NOON_END) pauseLabel.textContent = '☀️ 昼';
-        else if (p100 < TIME_SUNSET_END) pauseLabel.textContent = '🌇 夕方';
-        else pauseLabel.textContent = '🌙 夜';
+      const displayText = this.dayCycle.paused ? '⏸ 調合中…' : newText;
+      if (this._cachedPauseText !== displayText) {
+        this._cachedPauseText = displayText;
+        pauseLabel.textContent = displayText;
       }
     }
   }
@@ -485,7 +526,11 @@ export class UIManager {
 
   _updateTimeOfDayUI() {
     if (!this.dayCycle) return;
-    const p = this.dayCycle.dayTimer / this.dayCycle.dayDuration; // 0-1
+    
+    // スロットリンング: 1%単位(時間経過の割合)でだけスタイルを再計算する
+    const p = Math.floor((this.dayCycle.dayTimer / this.dayCycle.dayDuration) * 100) / 100;
+    if (this._lastTimePercent === p) return;
+    this._lastTimePercent = p;
 
     const root = document.documentElement;
     let tintR, tintG, tintB, tintA, borderTint;
@@ -512,8 +557,13 @@ export class UIManager {
       borderTint = `rgba(50, 60, 120, ${0.08 * t})`;
     }
 
-    root.style.setProperty('--time-tint', `rgba(${tintR}, ${tintG}, ${tintB}, ${tintA})`);
-    root.style.setProperty('--time-border', borderTint);
+    const newTint = `rgba(${tintR}, ${tintG}, ${tintB}, ${tintA})`;
+    
+    if (this._lastTimeTint !== newTint) {
+      this._lastTimeTint = newTint;
+      root.style.setProperty('--time-tint', newTint);
+      root.style.setProperty('--time-border', borderTint);
+    }
   }
 
   // =============================================

@@ -27,6 +27,8 @@ import { SoundManager } from './core/SoundManager.js';
 import { ReputationSystem } from './ReputationSystem.js';
 import { StatsTracker } from './StatsTracker.js';
 import { QuestSystem } from './QuestSystem.js';
+import { BattleSystem } from './BattleSystem.js';
+import { BattleScreen } from './ui/BattleScreen.js';
 
 // ============================================================
 //  Systems
@@ -45,6 +47,8 @@ let reputationSystem = null;
 let questSystem = null;
 let saveSystem = null;
 let uiManager = null;
+let battleSystem = null;
+let battleScreen = null;
 let gameStarted = false;
 
 // ============================================================
@@ -159,6 +163,30 @@ async function startGame(saveData) {
     new TutorialSystem();
   }
 
+  // バトルシステム初期化
+  battleSystem = new BattleSystem(adventurerSystem, inventorySystem);
+  battleScreen = new BattleScreen(inventorySystem);
+
+  eventBus.on('battle:requestStart', (d) => {
+    let bossDef = null;
+    for (const key in AreaDefs) {
+      if (AreaDefs[key].boss && AreaDefs[key].boss.id === d.bossId) {
+        bossDef = AreaDefs[key].boss;
+        break;
+      }
+    }
+    if (bossDef) {
+      battleSystem.startBattle(d.rankIndex, bossDef);
+    } else {
+      eventBus.emit('toast', { message: 'ボスの情報が見つかりません', type: 'error' });
+    }
+  });
+
+  eventBus.on('battle:command', (d) => {
+    if (d.action === 'flee') battleSystem.flee();
+    else if (d.action === 'useItem') battleSystem.useItem(d.uid);
+  });
+
   gameStarted = true;
 
   // パズル中のゲーム一時停止
@@ -204,6 +232,8 @@ function _applySaveData(data) {
   dayCycleSystem.dayTimer = data.dayTimer || 0;
   dayCycleSystem.totalSales = data.totalSales || 0;
   dayCycleSystem.currentRankIndex = data.currentRankIndex || 0;
+  dayCycleSystem.rankBossAvailable = data.rankBossAvailable || false;
+  dayCycleSystem.defeatedBosses = data.defeatedBosses || [];
 
   // アップグレード復元
   if (data.purchasedUpgrades) {
@@ -278,7 +308,7 @@ let gamePaused = false;
 
 function animate() {
   requestAnimationFrame(animate);
-  const dt = clock.getDelta();
+  const dt = Math.min(clock.getDelta(), 0.1); // タブ復帰時の巨大dt防止（最大100ms）
 
   // Update all entity animations
   for (const entity of entities) {
@@ -290,8 +320,12 @@ function animate() {
     return;
   }
 
+  if (battleSystem && battleSystem.active) {
+    battleSystem.update(dt);
+  }
+
   // Update game logic (paused during puzzle)
-  if (!gamePaused) {
+  if (!gamePaused && !(battleSystem && battleSystem.active)) {
     if (sceneManager) sceneManager.update(dt);
     if (dayCycleSystem) dayCycleSystem.update(dt);
     if (shopSystem) shopSystem.update(dt);

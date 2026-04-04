@@ -22,6 +22,7 @@ export class DayCycleSystem {
 
     // GameConfig.ranks を正規のランク定義として使用
     this.currentRankIndex = 0;
+    this.rankBossAvailable = false;
 
     // 売上追跡
     this._unsubs = [];
@@ -45,6 +46,13 @@ export class DayCycleSystem {
     // 一時停止イベント
     this._unsubs.push(eventBus.on('game:pause', () => { this.paused = true; }));
     this._unsubs.push(eventBus.on('game:resume', () => { this.paused = false; }));
+    
+    // ボス撃破イベント
+    this._unsubs.push(eventBus.on('battle:win', (d) => {
+       if (d.rankIndex) {
+         this._doRankUp(d.rankIndex);
+       }
+    }));
   }
 
   /** 日数の進行度 (0〜1) */
@@ -106,54 +114,70 @@ export class DayCycleSystem {
     eventBus.emit('day:newDay', { day: this.day, rent });
   }
 
-  /** ランクアップ判定 + レシピ・エリア・冒険者の解放 */
+  /** ランクアップ挑戦権の判定 */
   _checkRankUp() {
     const ranks = GameConfig.ranks;
-    while (
-      this.currentRankIndex < ranks.length - 1 &&
-      this.totalSales >= ranks[this.currentRankIndex + 1].requiredSales &&
-      // Bug#1: クエスト要件も満たすまでランクアップしない
-      (this.quest ? this.quest.isRankQuestSatisfied(this.currentRankIndex + 1) : true)
-    ) {
-      this.currentRankIndex++;
-      const rankDef = ranks[this.currentRankIndex];
+    if (this.currentRankIndex < ranks.length - 1) {
+       const nextRank = ranks[this.currentRankIndex + 1];
+       if (this.totalSales >= nextRank.requiredSales && 
+           (this.quest ? this.quest.isRankQuestSatisfied(this.currentRankIndex + 1) : true)) {
+           
+           if (!this.rankBossAvailable) {
+               this.rankBossAvailable = true;
+               eventBus.emit('rank:boss_available', { rankIndex: this.currentRankIndex + 1, bossId: nextRank.requiredBossId });
+           }
+       }
+    }
+  }
 
-      // レシピ解放
-      if (rankDef.newRecipes) {
-        for (const key of rankDef.newRecipes) {
-          if (Recipes[key]) {
-            Recipes[key].unlocked = true;
-            eventBus.emit('recipe:unlocked', { name: Recipes[key].targetId, key });
-          }
+  /** 実際のランクアップ処理（ボス撃破時に呼ばれる） */
+  _doRankUp(targetRankIndex) {
+    if (targetRankIndex !== this.currentRankIndex + 1) return;
+    
+    this.currentRankIndex = targetRankIndex;
+    this.rankBossAvailable = false;
+    
+    const ranks = GameConfig.ranks;
+    const rankDef = ranks[this.currentRankIndex];
+
+    // レシピ解放
+    if (rankDef.newRecipes) {
+      for (const key of rankDef.newRecipes) {
+        if (Recipes[key]) {
+          Recipes[key].unlocked = true;
+          eventBus.emit('recipe:unlocked', { name: Recipes[key].targetId, key });
         }
-      }
-
-      // エリア解放
-      if (rankDef.newAreas) {
-        for (const key of rankDef.newAreas) {
-          if (AreaDefs[key]) {
-            AreaDefs[key].unlocked = true;
-            eventBus.emit('area:unlocked', { name: AreaDefs[key].name, key });
-          }
-        }
-      }
-
-      // 冒険者加入
-      const newAdventurers = UnlockableAdventurers.filter(a => a.unlockRank === rankDef.rank);
-      for (const def of newAdventurers) {
-        eventBus.emit('adventurer:unlock', { adventurer: def });
-      }
-
-      eventBus.emit('rank:up', { rank: rankDef.name, index: this.currentRankIndex });
-
-      if (this.currentRankIndex >= GameConfig.goalShopRank - 1) {
-        eventBus.emit('game:clear', {
-          day: this.day,
-          totalSales: this.totalSales,
-          rank: rankDef.name,
-        });
       }
     }
+
+    // エリア解放
+    if (rankDef.newAreas) {
+      for (const key of rankDef.newAreas) {
+        if (AreaDefs[key]) {
+          AreaDefs[key].unlocked = true;
+          eventBus.emit('area:unlocked', { name: AreaDefs[key].name, key });
+        }
+      }
+    }
+
+    // 冒険者加入
+    const newAdventurers = UnlockableAdventurers.filter(a => a.unlockRank === rankDef.rank);
+    for (const def of newAdventurers) {
+      eventBus.emit('adventurer:unlock', { adventurer: def });
+    }
+
+    eventBus.emit('rank:up', { rank: rankDef.name, index: this.currentRankIndex });
+
+    if (this.currentRankIndex >= GameConfig.goalShopRank - 1) {
+      eventBus.emit('game:clear', {
+        day: this.day,
+        totalSales: this.totalSales,
+        rank: rankDef.name,
+      });
+    }
+    
+    // さらに次のランクへの条件を即座に満たしているかチェック
+    this._checkRankUp();
   }
 
   dispose() {

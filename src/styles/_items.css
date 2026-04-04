@@ -509,6 +509,30 @@
   background: rgba(240, 232, 216, 0.10);
 }
 
+/* --- Battle Effect Indicator --- */
+.item-battle-effect {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(196, 90, 90, 0.10) 0%, rgba(232, 184, 75, 0.08) 100%);
+  border: 1px solid rgba(232, 140, 75, 0.18);
+}
+
+.battle-effect-icon {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.battle-effect-desc {
+  font-size: 10px;
+  font-weight: 600;
+  color: #e8a060;
+  letter-spacing: 0.3px;
+}
+
 /* ===== Item Grid ===== */
 .item-grid {
   display: grid;

@@ -48,7 +48,7 @@ export class StatsTab {
       <div class="stats-section">
         <h3 class="stats-section-title">📈 日別売上推移</h3>
         <div class="stats-chart-container">
-          <canvas id="stats-chart" width="500" height="160"></canvas>
+          <canvas id="stats-chart" height="160"></canvas>
         </div>
         <div class="stats-avg">直近7日平均: <strong>${avgSales}G</strong> / 日</div>
       </div>
@@ -123,6 +123,11 @@ export class StatsTab {
     const canvas = document.getElementById('stats-chart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    // コンテナ幅に合わせてcanvasサイズを設定
+    const container = canvas.parentElement;
+    if (container) {
+      canvas.width = container.clientWidth;
+    }
     const W = canvas.width;
     const H = canvas.height;
     const padding = { top: 10, right: 10, bottom: 25, left: 40 };
