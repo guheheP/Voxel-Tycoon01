@@ -33,7 +33,7 @@ export class AdventurerSystem {
     });
 
     // 冒険者解放イベント
-    eventBus.on('adventurer:unlock', (data) => {
+    this._unlockUnsub = eventBus.on('adventurer:unlock', (data) => {
       const def = data.adventurer;
       if (!def) return;
       // 既に加入済みの場合はスキップ
@@ -154,10 +154,9 @@ export class AdventurerSystem {
       const dropCount = minDrops + Math.floor(Math.random() * (maxDrops - minDrops + 1)) + extraDrops;
 
       const pool = area.dropTable;
+      const totalWeight = pool.reduce((sum, d) => sum + d.weight, 0);
 
       for (let i = 0; i < dropCount; i++) {
-        let totalWeight = 0;
-        pool.forEach(d => totalWeight += d.weight);
         let r = Math.random() * totalWeight;
         let selectedItemId = pool[0].blueprintId;
         for (const drop of pool) {
@@ -276,4 +275,8 @@ export class AdventurerSystem {
 
   getAdventurers() { return this.adventurers; }
   getUnlockedAreas() { return Object.values(AreaDefs).filter(a => a.unlocked); }
+
+  dispose() {
+    this._unlockUnsub?.();
+  }
 }
