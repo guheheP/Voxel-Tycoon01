@@ -64,14 +64,23 @@ export class CraftingTab {
         ? `<div class="craft-rcard-img"><img src="${imgUrl}" alt="${bp.name}" /></div>`
         : `<div class="craft-rcard-img craft-rcard-img-placeholder"><span>${typeInfo.emoji}</span></div>`;
 
+      const needed = {};
+      r.materials.forEach(m => { needed[m] = (needed[m] || 0) + 1; });
+      const matBadges = Object.entries(needed).map(([matId, cnt]) => {
+        const owned = this.inventory.getItemsByBlueprint(matId).length;
+        const ok = owned >= cnt;
+        const name = ItemBlueprints[matId]?.name ?? matId;
+        return `<span class="craft-mat-badge ${ok ? 'ok' : 'ng'}">${name} ${owned}/${cnt}</span>`;
+      }).join('');
+
       return `
         <div class="craft-rcard ${isSelected ? 'craft-rcard-selected' : ''} ${!canCraft ? 'craft-rcard-disabled' : ''}" data-recipe-id="${key}">
           ${imgHtml}
           <div class="craft-rcard-body">
             <span class="craft-rcard-name">${bp.name}</span>
             <span class="craft-rcard-meta">${typeInfo.icon} ${bp.baseValue}G</span>
+            <div class="craft-rcard-mats">${matBadges}</div>
           </div>
-          ${!canCraft ? '<div class="craft-rcard-lock">素材不足</div>' : ''}
         </div>
       `;
     }).join('');

@@ -1029,31 +1029,56 @@
   font-weight: 600;
 }
 
-/* ── Success Rate Badge ── */
-.disp-success-rate {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 8px;
+/* ── Success Rate Bar ── */
+.disp-success-bar-wrap {
+  position: relative;
+  height: 20px;
   border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  min-width: 80px;
+}
+.disp-success-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+.disp-rate-high.disp-success-bar-fill { background: linear-gradient(90deg, #4a9a5c, #7daa68); }
+.disp-rate-mid.disp-success-bar-fill  { background: linear-gradient(90deg, #9a8030, #c8a840); }
+.disp-rate-low.disp-success-bar-fill  { background: linear-gradient(90deg, #8a3030, #c07070); }
+.disp-success-bar-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 11px;
-  font-weight: 800;
-  white-space: nowrap;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
 }
-.disp-rate-high {
-  color: var(--green-light);
-  background: rgba(125, 170, 104, 0.12);
-  border: 1px solid rgba(125, 170, 104, 0.25);
+
+/* ── Craft Material Badges ── */
+.craft-rcard-mats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
 }
-.disp-rate-mid {
-  color: var(--gold);
-  background: rgba(232, 184, 75, 0.1);
-  border: 1px solid rgba(232, 184, 75, 0.2);
+.craft-mat-badge {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 8px;
 }
-.disp-rate-low {
-  color: var(--red-soft);
-  background: rgba(200, 80, 80, 0.1);
-  border: 1px solid rgba(200, 80, 80, 0.2);
+.craft-mat-badge.ok {
+  background: rgba(125, 170, 104, 0.2);
+  color: #7daa68;
+}
+.craft-mat-badge.ng {
+  background: rgba(180, 80, 80, 0.2);
+  color: #c87070;
 }
 
 /* ── Trait Row (equipped weapon traits) ── */

@@ -240,6 +240,7 @@
 
 .item-card.q-fine {
   border-color: rgba(125, 170, 104, 0.25);
+  border-left: 3px solid rgba(125, 170, 104, 0.8);
 }
 
 .item-card.q-fine::before {
@@ -257,6 +258,7 @@
 
 .item-card.q-excellent {
   border-color: rgba(122, 176, 196, 0.3);
+  border-left: 3px solid rgba(122, 176, 196, 0.8);
 }
 
 .item-card.q-excellent::before {
@@ -275,6 +277,7 @@
 
 .item-card.q-legendary {
   border-color: rgba(232, 184, 75, 0.35);
+  border-left: 3px solid rgba(232, 184, 75, 0.9);
   animation: legendaryShimmer 3s ease-in-out infinite;
 }
 

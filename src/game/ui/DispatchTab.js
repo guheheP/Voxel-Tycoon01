@@ -178,7 +178,12 @@ export class DispatchTab {
     let colorClass = 'disp-rate-low';
     if (rate >= 70) colorClass = 'disp-rate-high';
     else if (rate >= 40) colorClass = 'disp-rate-mid';
-    return `<span class="disp-success-rate ${colorClass}" title="探索成功率">🎯 ${rate}%</span>`;
+    return `
+      <div class="disp-success-bar-wrap" title="探索成功率: ${rate}%">
+        <div class="disp-success-bar-fill ${colorClass}" style="width:${rate}%"></div>
+        <span class="disp-success-bar-label">🎯 ${rate}%</span>
+      </div>
+    `;
   }
 
   _renderTraitEffects(weapon) {
