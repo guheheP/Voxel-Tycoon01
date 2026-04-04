@@ -30,7 +30,7 @@ export class QuestSystem {
 
   _bindEvents() {
     // 売った
-    eventBus.on('item:sold', (data) => {
+    this._unsubSold = eventBus.on('item:sold', (data) => {
       this._increment('sell_count', 1);
       const type = data.item?.type;
       if (type) this._incrementFiltered('sell_type', type, 1);
@@ -38,14 +38,14 @@ export class QuestSystem {
     });
 
     // 客が買った
-    eventBus.on('customer:bought', (data) => {
+    this._unsubBought = eventBus.on('customer:bought', (data) => {
       this._increment('total_customers', 1);
       const custId = data.customer?.id;
       if (custId) this._incrementFiltered('serve_customer', custId, 1);
     });
 
     // 調合した
-    eventBus.on('item:crafted', (data) => {
+    this._unsubCrafted = eventBus.on('item:crafted', (data) => {
       this._increment('craft_count', 1);
       const quality = data.item?.quality || 0;
       this._updateMax('craft_quality', quality);
@@ -57,14 +57,14 @@ export class QuestSystem {
     });
 
     // 探索完了
-    eventBus.on('adventurer:return', (data) => {
+    this._unsubReturn = eventBus.on('adventurer:return', (data) => {
       this._increment('explore_count', 1);
       const areaId = data.areaId;
       if (areaId) this._incrementFiltered('explore_area', areaId, 1);
     });
 
     // 日替わり
-    eventBus.on('day:newDay', () => {
+    this._unsubNewDay = eventBus.on('day:newDay', () => {
       if (this._currentDaySales > this._bestDaySales) {
         this._bestDaySales = this._currentDaySales;
       }
@@ -74,7 +74,7 @@ export class QuestSystem {
     });
 
     // アップグレード購入
-    eventBus.on('upgrade:purchased', () => {
+    this._unsubUpgrade = eventBus.on('upgrade:purchased', () => {
       this.upgradeCount++;
       this._updateUpgradeCount();
     });
@@ -201,5 +201,14 @@ export class QuestSystem {
     }
     this._bestDaySales = data.bestDaySales || 0;
     this.upgradeCount = data.upgradeCount || 0;
+  }
+
+  dispose() {
+    this._unsubSold?.();
+    this._unsubBought?.();
+    this._unsubCrafted?.();
+    this._unsubReturn?.();
+    this._unsubNewDay?.();
+    this._unsubUpgrade?.();
   }
 }

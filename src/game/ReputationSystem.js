@@ -24,7 +24,7 @@ export class ReputationSystem {
 
   _bindEvents() {
     // 売買完了 → 評判UP
-    eventBus.on('customer:bought', (data) => {
+    this._unsubBought = eventBus.on('customer:bought', (data) => {
       // 品質ティアに応じた評判ボーナス
       const quality = data.item?.quality || 30;
       let gain = 1;
@@ -36,19 +36,19 @@ export class ReputationSystem {
     });
 
     // お客が買わずに帰る → 評判DOWN
-    eventBus.on('customer:left', (data) => {
+    this._unsubLeft = eventBus.on('customer:left', (data) => {
       if (data?.reason === 'no_match' || data?.reason === 'timeout') {
         this.addReputation(-2);
       }
     });
 
     // ランクアップ → 評判ボーナス
-    eventBus.on('rank:up', () => {
+    this._unsubRankUp = eventBus.on('rank:up', () => {
       this.addReputation(10);
     });
 
     // 調合成功 → 少し評判UP
-    eventBus.on('item:crafted', () => {
+    this._unsubCrafted = eventBus.on('item:crafted', () => {
       this.addReputation(1);
     });
   }
@@ -118,5 +118,12 @@ export class ReputationSystem {
       this.reputation = data.reputation;
       this._updateLevel();
     }
+  }
+
+  dispose() {
+    this._unsubBought?.();
+    this._unsubLeft?.();
+    this._unsubRankUp?.();
+    this._unsubCrafted?.();
   }
 }
