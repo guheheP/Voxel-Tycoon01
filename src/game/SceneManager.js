@@ -80,15 +80,15 @@ export class SceneManager {
         w.timer = 5 + Math.random() * 8;
       }
       const entity = w.entity;
-      if (entity && entity.group) {
+      if (entity && entity.root) {
         const speed = 1.5 * dt;
-        const dx = w.targetX - entity.group.position.x;
-        const dz = w.targetZ - entity.group.position.z;
+        const dx = w.targetX - entity.root.position.x;
+        const dz = w.targetZ - entity.root.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
         if (dist > 0.5) {
-          entity.group.position.x += (dx / dist) * speed;
-          entity.group.position.z += (dz / dist) * speed;
-          entity.group.rotation.y = Math.atan2(dx, dz);
+          entity.root.position.x += (dx / dist) * speed;
+          entity.root.position.z += (dz / dist) * speed;
+          entity.root.rotation.y = Math.atan2(dx, dz);
         }
       }
     }
@@ -291,22 +291,26 @@ export class SceneManager {
 
       // 歩いてお店に向かう
       const walkInterval = setInterval(() => {
-        if (npc.group) {
-          npc.group.position.x -= 0.15;
-          npc.group.rotation.y = Math.PI / 2;
-          if (npc.group.position.x <= 4) {
+        if (npc.root) {
+          npc.root.position.x -= 0.15;
+          npc.root.rotation.y = Math.PI / 2;
+          if (npc.root.position.x <= 4) {
             clearInterval(walkInterval);
             npc.playAnimation('idle');
             // 3秒後に消える
             setTimeout(() => {
-              npc.group.visible = false;
+              npc.root.visible = false;
               const idx = this.entities.indexOf(npc);
               if (idx !== -1) this.entities.splice(idx, 1);
               npc.removeFrom(this.scene);
-              npc.dispose(); // メモリリーク防止のためdisposeを呼び出す
+              npc.dispose();
               this._returnNpcCount--;
             }, 3000);
           }
+        } else {
+          // root が無ければ即クリーンアップ
+          clearInterval(walkInterval);
+          this._returnNpcCount--;
         }
       }, 33);
     } catch (e) {
@@ -369,10 +373,10 @@ export class SceneManager {
         });
 
         // 出現アニメーション（下から浮き上がる）
-        if (entity && entity.group) {
-          const targetY = entity.group.position.y;
-          entity.group.position.y = -3;
-          entity.group.scale.set(0, 0, 0);
+        if (entity && entity.root) {
+          const targetY = entity.root.position.y;
+          entity.root.position.y = -3;
+          entity.root.scale.set(0, 0, 0);
 
           const startTime = performance.now();
           const animDuration = 800;
@@ -381,8 +385,8 @@ export class SceneManager {
             const t = Math.min(1, elapsed / animDuration);
             // Ease-out bounce
             const ease = 1 - Math.pow(1 - t, 3);
-            entity.group.position.y = -3 + (targetY + 3) * ease;
-            entity.group.scale.setScalar(dec.scale * ease);
+            entity.root.position.y = -3 + (targetY + 3) * ease;
+            entity.root.scale.setScalar(dec.scale * ease);
             if (t < 1) requestAnimationFrame(popAnim);
           };
           requestAnimationFrame(popAnim);

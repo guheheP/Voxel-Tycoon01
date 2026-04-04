@@ -98,10 +98,12 @@ function _showSplash(onContinue) {
 
   const handleClick = () => {
     splash.removeEventListener('click', handleClick);
+    // タイトル画面をスプラッシュの下に先に生成してから、
+    // スプラッシュをフェードアウトする（ゲーム画面が見えるのを防ぐ）
+    onContinue();
     splash.classList.add('splash-fade-out');
     setTimeout(() => {
       splash.remove();
-      onContinue();
     }, 600);
   };
   splash.addEventListener('click', handleClick);

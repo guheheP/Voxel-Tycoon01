@@ -75,6 +75,11 @@ export class AdventurerSystem {
 
   /** 自動派遣 */
   _autoDispatch(adv) {
+    // 倉庫が溢れすぎている場合は自動派遣を一時停止（メモリリーク防止）
+    if (this.inventory.items.length >= this.inventory.maxCapacity * 2) {
+      return;
+    }
+
     const areaId = adv.assignedArea;
     const area = AreaDefs[areaId];
     if (!area || !area.unlocked) {
@@ -160,7 +165,12 @@ export class AdventurerSystem {
         tier: bp.tier || 1,
       };
       items.push(item);
-      this.inventory.addItem(item);
+      // 容量の2倍までは強制追加（戦利品を消さない）、それ以上は通常追加で拒否
+      if (this.inventory.items.length < this.inventory.maxCapacity * 2) {
+        this.inventory.forceAddItem(item);
+      } else {
+        this.inventory.addItem(item);
+      }
     }
 
     // 経験値

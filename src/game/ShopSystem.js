@@ -46,6 +46,11 @@ export class ShopSystem {
   removeDisplayedItem(uid) {
     const idx = this.displayedItems.findIndex(i => i.uid === uid);
     if (idx === -1) return null;
+    // Bug#3: 倉庫がいっぱいの場合は取り下げを拒否してアイテムロストを防ぐ
+    if (this.inventory.isFull) {
+      eventBus.emit('toast', { message: '⚠️ 倉庫がいっぱいのため取り下げできません！', type: 'warning' });
+      return null;
+    }
     const item = this.displayedItems.splice(idx, 1)[0];
     this.inventory.addItem(item);
     return item;

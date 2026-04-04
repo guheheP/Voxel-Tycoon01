@@ -4,6 +4,8 @@
 import * as THREE from 'three';
 
 export class ParticleSystem {
+  static MAX_PARTICLES = 200; // パーティクル数の上限（メモリ保護）
+
   constructor(scene) {
     this.scene = scene;
     this.particles = [];
@@ -15,6 +17,9 @@ export class ParticleSystem {
       plane: new THREE.PlaneGeometry(1, 1),
       sphere: new THREE.SphereGeometry(1, 4, 4),
     };
+
+    // 毎フレームの Vector3 アロケーションを避けるための一時変数
+    this._tempVec = new THREE.Vector3();
   }
 
   update(dt) {
@@ -30,9 +35,10 @@ export class ParticleSystem {
         continue;
       }
 
-      // 物理更新
+      // 物理更新（clone() を排除して共有 tempVec を使用）
       p.velocity.y -= p.gravity * dt;
-      p.mesh.position.add(p.velocity.clone().multiplyScalar(dt));
+      this._tempVec.copy(p.velocity).multiplyScalar(dt);
+      p.mesh.position.add(this._tempVec);
       p.mesh.rotation.x += p.spin.x * dt;
       p.mesh.rotation.y += p.spin.y * dt;
       p.mesh.rotation.z += p.spin.z * dt;
@@ -41,6 +47,15 @@ export class ParticleSystem {
       const alpha = Math.min(1, p.life / p.fadeTime);
       p.mesh.material.opacity = alpha;
       p.mesh.scale.setScalar(p.baseScale * (0.5 + 0.5 * alpha));
+    }
+  }
+
+  /** パーティクル上限を超えていたら古いものを即座に除去 */
+  _enforceLimit() {
+    while (this.particles.length > ParticleSystem.MAX_PARTICLES) {
+      const oldest = this.particles.shift();
+      this.scene.remove(oldest.mesh);
+      oldest.mesh.material.dispose();
     }
   }
 
@@ -83,6 +98,7 @@ export class ParticleSystem {
         baseScale: 1,
       });
     }
+    this._enforceLimit();
   }
 
   /**
@@ -134,6 +150,7 @@ export class ParticleSystem {
         baseScale: 1,
       });
     }
+    this._enforceLimit();
   }
 
   /**
@@ -179,6 +196,7 @@ export class ParticleSystem {
         baseScale: 1,
       });
     }
+    this._enforceLimit();
   }
 
   /**
@@ -229,6 +247,7 @@ export class ParticleSystem {
       fadeTime: 3,
       baseScale: 1,
     });
+    this._enforceLimit();
   }
 
   dispose() {

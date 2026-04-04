@@ -35,6 +35,13 @@ export class DayCycleSystem {
       this._checkRankUp();
     }));
 
+    // Bug#4: クエスト条件達成後すぐにランクアップを検知するため、
+    // 調合完了・日替わり・アップグレード購入時にもチェック
+    this._unsubs.push(eventBus.on('item:crafted',       () => this._checkRankUp()));
+    this._unsubs.push(eventBus.on('day:newDay',          () => this._checkRankUp()));
+    this._unsubs.push(eventBus.on('upgrade:purchased',   () => this._checkRankUp()));
+    this._unsubs.push(eventBus.on('adventurer:return',   () => this._checkRankUp()));
+
     // 一時停止イベント
     this._unsubs.push(eventBus.on('game:pause', () => { this.paused = true; }));
     this._unsubs.push(eventBus.on('game:resume', () => { this.paused = false; }));
@@ -93,10 +100,8 @@ export class DayCycleSystem {
     this.day++;
     StatsTracker.add('totalDays', 1);
 
-    // クエスト日替わり更新
-    if (this.quest && typeof this.quest.onNewDay === 'function') {
-      this.quest.onNewDay(this.day);
-    }
+    // Bug#5: quest.onNewDay は存在しない死にコードだったため削除。
+    // QuestSystem は eventBus.on('day:newDay') で自主的に日替わり処理を行う。
 
     eventBus.emit('day:newDay', { day: this.day, rent });
   }
@@ -106,7 +111,9 @@ export class DayCycleSystem {
     const ranks = GameConfig.ranks;
     while (
       this.currentRankIndex < ranks.length - 1 &&
-      this.totalSales >= ranks[this.currentRankIndex + 1].requiredSales
+      this.totalSales >= ranks[this.currentRankIndex + 1].requiredSales &&
+      // Bug#1: クエスト要件も満たすまでランクアップしない
+      (this.quest ? this.quest.isRankQuestSatisfied(this.currentRankIndex + 1) : true)
     ) {
       this.currentRankIndex++;
       const rankDef = ranks[this.currentRankIndex];
