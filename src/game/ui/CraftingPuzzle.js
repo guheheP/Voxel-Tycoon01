@@ -30,11 +30,11 @@ const BLOCK_TYPES = [
 
 // スコア → 品質ボーナステーブル
 const SCORE_TIERS = [
-  { min: 0,    bonus: 0,  rank: 'なし',  color: '#888' },
-  { min: 300,  bonus: 5,  rank: '銅',    color: '#c4a87a' },
-  { min: 800,  bonus: 10, rank: '銀',    color: '#c0c0c0' },
-  { min: 1500, bonus: 18, rank: '金',    color: '#e8b84b' },
-  { min: 2800, bonus: 25, rank: '極',    color: '#e87ae8' },
+  { min: 0,    bonus: 0, rank: 'なし',  color: '#888' },
+  { min: 300,  bonus: 1, rank: '銅',    color: '#c4a87a' },
+  { min: 800,  bonus: 2, rank: '銀',    color: '#c0c0c0' },
+  { min: 1500, bonus: 3, rank: '金',    color: '#e8b84b' },
+  { min: 2800, bonus: 5, rank: '極',    color: '#e87ae8' },
 ];
 
 export class CraftingPuzzle {
