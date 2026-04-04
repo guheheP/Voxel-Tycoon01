@@ -36,7 +36,6 @@ export class UIManager {
     // ゴールドアニメーション用
     this._displayedGold = inventorySystem.gold;
     this._targetGold = inventorySystem.gold;
-    this._goldAnimTimer = 0;
 
     // DOM Elements
     this.elGold = document.getElementById('gold-value');

@@ -179,10 +179,12 @@ function _applySaveData(data) {
     inventorySystem.items.push(createItemInstance(item.blueprintId, item.quality, item.traits));
   }
 
-  // 陳列中アイテム
+  // 陳列中アイテム（売値をShopSystemの計算式で再設定する）
   shopSystem.displayedItems = [];
   for (const item of data.displayedItems || []) {
-    shopSystem.displayedItems.push(createItemInstance(item.blueprintId, item.quality, item.traits));
+    const inst = createItemInstance(item.blueprintId, item.quality, item.traits);
+    inst.value = shopSystem._calcValue(inst);
+    shopSystem.displayedItems.push(inst);
   }
 
   // レシピ解放

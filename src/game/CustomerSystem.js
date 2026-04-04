@@ -36,7 +36,6 @@ export class CustomerSystem {
     this.customers = [];
     this.spawnTimer = 0;
     this.customersToday = 0;
-    this.currentDay = 1;
 
     // 日替わりリセット
     this._unsub = eventBus.on('day:newDay', () => {
