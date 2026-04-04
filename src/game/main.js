@@ -68,8 +68,13 @@ async function boot() {
       SoundManager.startTitleBGM();
 
       // タイトル画面を表示
-      new TitleScreen((saveData) => {
-        startGame(saveData);
+      new TitleScreen(async (saveData) => {
+        // ローディング画面を表示してからゲームを初期化
+        const loading = _showLoading();
+        // 1フレーム待ってDOMを確実に描画
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        await startGame(saveData);
+        _hideLoading(loading);
       });
     });
   } catch (err) {
@@ -102,7 +107,26 @@ function _showSplash(onContinue) {
   splash.addEventListener('click', handleClick);
 }
 
-function startGame(saveData) {
+function _showLoading() {
+  const overlay = document.createElement('div');
+  overlay.className = 'loading-overlay';
+  overlay.innerHTML = `
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Now Loading...</p>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function _hideLoading(overlay) {
+  if (!overlay) return;
+  overlay.classList.add('loading-fade-out');
+  setTimeout(() => overlay.remove(), 500);
+}
+
+async function startGame(saveData) {
   // データシステムの初期化
   inventorySystem = new InventorySystem();
   shopSystem = new ShopSystem(inventorySystem);
