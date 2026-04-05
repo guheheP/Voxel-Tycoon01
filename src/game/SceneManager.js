@@ -52,19 +52,25 @@ export class SceneManager {
       this.particles.spawnConfetti(50);
     });
 
-    // 売上時コインパーティクル
+    // 売上時コインパーティクル（スロットリング: 2秒間隔）
+    this._lastCoinBurstTime = 0;
+    this._coinBurstPos = new THREE.Vector3(-2, 2, 5);
     eventBus.on('item:sold', () => {
-      this.particles.spawnCoinBurst(new THREE.Vector3(-2, 2, 5), 10 + Math.floor(Math.random() * 8));
+      const now = performance.now();
+      if (now - this._lastCoinBurstTime < 2000) return;
+      this._lastCoinBurstTime = now;
+      this.particles.spawnCoinBurst(this._coinBurstPos, 8);
     });
 
     // 調合時スターパーティクル
+    this._craftStarPos = new THREE.Vector3(6, 1, 0);
     eventBus.on('item:crafted', (d) => {
       const tier = d.item && d.item.quality >= 81 ? 'q-legendary'
                  : d.item && d.item.quality >= 61 ? 'q-excellent'
                  : d.item && d.item.quality >= 41 ? 'q-fine'
                  : 'q-common';
-      const count = tier === 'q-legendary' ? 20 : tier === 'q-excellent' ? 15 : 10;
-      this.particles.spawnCraftStars(new THREE.Vector3(6, 1, 0), count, tier);
+      const count = tier === 'q-legendary' ? 15 : tier === 'q-excellent' ? 10 : 8;
+      this.particles.spawnCraftStars(this._craftStarPos, count, tier);
     });
 
     // 背景NPC (お客さんが歩き回る)

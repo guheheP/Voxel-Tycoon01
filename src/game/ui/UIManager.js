@@ -442,6 +442,10 @@ export class UIManager {
     const price = data?.price || data?.item?.value || 0;
     if (price <= 0) return;
 
+    // 同時表示上限: 10個を超えたら間引く
+    const existing = document.querySelectorAll('.sale-floating-text');
+    if (existing.length >= 10) return;
+
     const el = document.createElement('div');
     el.className = 'sale-floating-text';
     el.textContent = `+${price.toLocaleString('ja-JP')}G`;
