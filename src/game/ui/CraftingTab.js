@@ -6,6 +6,7 @@ import { ItemBlueprints, Recipes, TraitDefs } from '../data/items.js';
 import { craftItem } from '../ItemSystem.js';
 import { eventBus } from '../core/EventBus.js';
 import { GameConfig } from '../data/config.js';
+import { ShopSystem } from '../ShopSystem.js';
 import { getQualityTier, getTypeInfo, createItemCardHTML } from './UIHelpers.js';
 import { CraftingPuzzle } from './CraftingPuzzle.js';
 import { assetPath } from '../core/assetPath.js';
@@ -284,7 +285,7 @@ export class CraftingTab {
       const allTraitsSet = new Set();
       materialInstances.forEach(i => i.traits.forEach(t => allTraitsSet.add(t)));
       const previewTraits = Array.from(allTraitsSet).slice(0, GameConfig.maxTraitSlots);
-      const estimatedValue = Math.floor(targetBp.baseValue * (1 + avgQ / 100));
+      const estimatedValue = ShopSystem.calcValue({ blueprintId: this.selectedRecipeId ? Recipes[this.selectedRecipeId].targetId : '', quality: avgQ, traits: previewTraits });
       const previewTier = getQualityTier(avgQ);
       const previewType = getTypeInfo(targetBp.type);
 
@@ -472,7 +473,7 @@ export class CraftingTab {
   _showCraftResult(item) {
     const tier = getQualityTier(item.quality);
     const bp = ItemBlueprints[item.blueprintId];
-    const value = item.value || Math.floor(bp.baseValue * (1 + item.quality / 100));
+    const value = item.value || ShopSystem.calcValue(item);
 
     const overlay = document.createElement('div');
     overlay.className = 'craft-result-overlay';
