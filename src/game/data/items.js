@@ -181,7 +181,7 @@ export const ItemBlueprints = {
   cosmos_bow: { id: 'cosmos_bow', name: '星界弓コスモス', type: 'equipment', baseValue: 830, image: '/art/items/cosmos_bow.png' },
   panacea: { id: 'panacea', name: '万象の霊薬', type: 'consumable', baseValue: 600, image: '/art/items/panacea.png', battleEffect: { type: 'healfull', target: 'all' } },
   oblivion_shield: { id: 'oblivion_shield', name: '忘却の盾', type: 'equipment', baseValue: 770, image: '/art/items/oblivion_shield.png' },
-  astral_robe: { id: 'astral_robe', name: '星衣アストラル', type: 'equipment', baseValue: 860 },
+  astral_robe: { id: 'astral_robe', name: '星衣アストラル', type: 'equipment', baseValue: 860, image: '/art/items/astral_robe.png' },
 };
 
 // ===================================================================

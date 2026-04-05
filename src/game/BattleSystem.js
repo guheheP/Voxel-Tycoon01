@@ -18,7 +18,9 @@ export class BattleSystem {
     this.state = null;
   }
 
-  startBattle(rankIndex, bossDef) {
+  startBattle(rankIndex, bossDef, selectedItems = null) {
+    // 持ち込みアイテムを保存（BattleScreenで参照）
+    this.selectedItems = selectedItems;
     // 参加冒険者は全生存者
     const participants = this.adventurers.adventurers.map(a => {
       const def = _getAdvDef(a.id);
@@ -73,8 +75,8 @@ export class BattleSystem {
     }
 
     this.state = {
-      rankIndex: rankIndex, // このバトルをクリアしたら昇格するランクのインデックス
-      phase: 'fighting', // fighting, win, lose
+      rankIndex: rankIndex,
+      phase: 'fighting',
       boss: {
         id: bossDef.id,
         name: bossDef.name,
@@ -87,10 +89,14 @@ export class BattleSystem {
         atbGauge: 0,
         activeBuffs: [],
         stunTimer: 0,
+        phases: bossDef.phases || [],
+        triggeredPhases: [],
+        currentPhaseName: null,
       },
       adventurers: participants,
       log: [],
       itemCooldown: 0,
+      selectedItems: selectedItems, // 持ち込みアイテムのuid[] (nullなら全アイテム)
     };
 
     this.active = true;
@@ -317,6 +323,9 @@ export class BattleSystem {
     this._log(`${adv.name}の攻撃！ ボスに ${damage} のダメージ！`);
     eventBus.emit('battle:se:advAttack');
 
+    // フェーズシフトチェック
+    this._checkPhaseShift();
+
     if (s.boss.hp <= 0) {
       s.boss.hp = 0;
       this._doWin();
@@ -365,5 +374,49 @@ export class BattleSystem {
     if (!this.state) return;
     this.state.log.unshift({ time: Date.now(), msg });
     if (this.state.log.length > 50) this.state.log.pop();
+  }
+
+  /** フェーズシフト判定 — ボスHPが閾値を下回ったら永続バフを付与 */
+  _checkPhaseShift() {
+    const boss = this.state.boss;
+    if (!boss.phases || boss.phases.length === 0) return;
+
+    const hpRatio = boss.hp / boss.maxHp;
+
+    for (const phase of boss.phases) {
+      // 既に発動済みならスキップ
+      if (boss.triggeredPhases.includes(phase.name)) continue;
+      // HP割合が閾値以下になったら発動
+      if (hpRatio <= phase.hpThreshold) {
+        boss.triggeredPhases.push(phase.name);
+        boss.currentPhaseName = phase.name;
+
+        // 永続バフとして基本ステータスに加算（戦闘終了まで持続）
+        if (phase.effect) {
+          const stat = phase.effect.stat;
+          const amount = phase.effect.amount;
+          if (stat === 'atk') boss.baseAtk += amount;
+          else if (stat === 'def') boss.baseDef += amount;
+          else if (stat === 'spd') boss.baseSpd += amount;
+        }
+
+        // ログ・演出
+        this._log(`── ${phase.name} ──`);
+        if (phase.message) this._log(phase.message);
+
+        const statName = phase.effect?.stat === 'atk' ? '攻撃力'
+                       : phase.effect?.stat === 'def' ? '防御力'
+                       : phase.effect?.stat === 'spd' ? '素早さ' : '';
+        if (statName) {
+          this._log(`ボスの${statName}が上がった！`);
+        }
+
+        eventBus.emit('battle:phaseShift', { phase });
+        eventBus.emit('battle:se:phaseShift');
+
+        // 1回のチェックで1フェーズのみ発動（同時に複数発動しない）
+        break;
+      }
+    }
   }
 }
