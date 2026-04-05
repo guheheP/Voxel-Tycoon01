@@ -306,6 +306,9 @@ export const TraitDefs = {
   '光る':     { name: '光る',     rarity: 'common',    color: 'gray',   description: '売値+10%',                   effects: { sellBonus: 10 } },
   '水溶性':   { name: '水溶性',   rarity: 'common',    color: 'gray',   description: '調合品質+2',                 effects: { craftQualityBonus: 2 } },
 
+  // ── Common (コモン) ── 新規
+  '幸運':     { name: '幸運',     rarity: 'common',    color: 'gray',   description: '特性付与率+8%',              effects: { traitChanceBonus: 8 } },
+
   // ── Uncommon (アンコモン) ── 一部バトル対応に変更 + 2種新規
   '攻撃力+1': { name: '攻撃力+1', rarity: 'uncommon',  color: 'green',  description: 'バトル攻撃力+8',             effects: { battleAtk: 8 } },
   '防御力+1': { name: '防御力+1', rarity: 'uncommon',  color: 'green',  description: 'バトル防御力+5',             effects: { battleDef: 5 } },
@@ -317,6 +320,9 @@ export const TraitDefs = {
   '練磨':     { name: '練磨',     rarity: 'uncommon',  color: 'green',  description: '調合品質+3',                 effects: { craftQualityBonus: 3 } },
   '先制':     { name: '先制',     rarity: 'uncommon',  color: 'green',  description: 'バトル開始時ATB+25',         effects: { startAtb: 25 } },
   '体力強化': { name: '体力強化', rarity: 'uncommon',  color: 'green',  description: 'バトル最大HP+30, 防御力+3',  effects: { battleHp: 30, battleDef: 3 } },
+
+  // ── Uncommon (アンコモン) ── 新規
+  '強運':     { name: '強運',     rarity: 'uncommon',  color: 'green',  description: '特性付与率+15%, はみ出し率UP', effects: { traitChanceBonus: 15 } },
 
   // ── Rare (レア) ── 一部バトル対応に変更 + 2種新規
   '攻撃力+2': { name: '攻撃力+2', rarity: 'rare',      color: 'blue',   description: 'バトル攻撃力+16',            effects: { battleAtk: 16 } },

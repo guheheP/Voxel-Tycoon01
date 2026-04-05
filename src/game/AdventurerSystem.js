@@ -194,13 +194,23 @@ export class AdventurerSystem {
         quality += traitEffects.qualityBonus || 0;
         quality = Math.min(100, Math.max(1, quality));
 
-        // 特性 — エリアのtraitPoolから付与
+        // 特性 — エリアのtraitPoolから付与 + はみ出し抽選
         const traits = [];
         const traitPool = area.traitPool || [];
+        // 装備の特性チャンスボーナス
+        const traitChanceBonus = traitEffects.traitChanceBonus || 0;
+        const effectiveTraitChance = Math.min(0.8, GameConfig.traitChance + traitChanceBonus / 100);
+
         for (const t of traitPool) {
-          if (Math.random() < GameConfig.traitChance) {
+          if (Math.random() < effectiveTraitChance) {
             traits.push(t);
           }
+        }
+
+        // はみ出し抽選 — エリアのプール外からランダムにレアな特性が出る
+        if (Math.random() < GameConfig.traitBonusRollChance) {
+          const bonusTrait = this._rollBonusTrait(traitPool, traits);
+          if (bonusTrait) traits.push(bonusTrait);
         }
 
         const item = {
@@ -239,6 +249,32 @@ export class AdventurerSystem {
       successRate,
     });
     if (isSuccess) StatsTracker.add('materialsGathered', items.length);
+  }
+
+  /** はみ出し抽選 — エリアプール外の特性をレアリティ重み付きで抽選 */
+  _rollBonusTrait(currentPool, alreadyObtained) {
+    const weights = GameConfig.traitBonusRarityWeights;
+    // レアリティ別に候補を収集（現在のプール・既に取得済みを除外）
+    const excludeSet = new Set([...currentPool, ...alreadyObtained]);
+    const candidates = [];
+    for (const [name, def] of Object.entries(TraitDefs)) {
+      if (excludeSet.has(name)) continue;
+      const rarity = def.rarity || 'common';
+      const weight = weights[rarity];
+      if (weight && weight > 0) {
+        candidates.push({ name, weight });
+      }
+    }
+    if (candidates.length === 0) return null;
+
+    // 重み付きランダム選択
+    const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
+    let roll = Math.random() * totalWeight;
+    for (const c of candidates) {
+      roll -= c.weight;
+      if (roll <= 0) return c.name;
+    }
+    return candidates[0].name;
   }
 
   _checkLevelUp(adv) {
