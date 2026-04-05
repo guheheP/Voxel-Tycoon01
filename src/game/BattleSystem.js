@@ -1,6 +1,6 @@
 import { eventBus } from './core/EventBus.js';
 import { GameConfig } from './data/config.js';
-import { ItemBlueprints } from './data/items.js';
+import { ItemBlueprints, TraitDefs } from './data/items.js';
 import { AdventurerDefs, UnlockableAdventurers } from './data/adventurers.js';
 
 // 全冒険者定義を結合して高速ルックアップ
@@ -30,26 +30,39 @@ export class BattleSystem {
       const atk = bat.atk + (level - 1) * 2;
       const defStat = bat.def + (level - 1) * 1;
       
-      // equipment bonus
-      let eqAtk = 0, eqDef = 0;
+      // equipment bonus (weapon value + trait passive effects)
+      let eqAtk = 0, eqDef = 0, eqSpd = 0, eqHp = 0;
+      let initialAtb = 0, regen = 0, dmgReduction = 0;
       if (a.equipment?.weapon) {
-         // rough conversion from item value or we could check trait
-         const wVal = a.equipment.weapon.value || 0;
-         eqAtk += Math.floor(wVal / 10);
+        const wVal = a.equipment.weapon.value || 0;
+        eqAtk += Math.floor(wVal / 10);
+        for (const traitName of (a.equipment.weapon.traits || [])) {
+          const td = TraitDefs[traitName];
+          if (!td?.effects) continue;
+          eqAtk        += td.effects.battleAtk         || 0;
+          eqDef        += td.effects.battleDef         || 0;
+          eqSpd        += td.effects.battleSpd         || 0;
+          eqHp         += td.effects.battleHp          || 0;
+          initialAtb    = Math.max(initialAtb, td.effects.startAtb || 0);
+          regen        += td.effects.battleRegen       || 0;
+          dmgReduction += td.effects.battleDmgReduction || 0;
+        }
       }
-      
+
       return {
         id: a.id,
         name: a.name,
         icon: a.icon,
         level: level,
-        hp: maxHp,
-        maxHp: maxHp,
+        hp: maxHp + eqHp,
+        maxHp: maxHp + eqHp,
         baseAtk: atk + eqAtk,
         baseDef: defStat + eqDef,
-        baseSpd: spd,
-        atbGauge: 0,
+        baseSpd: spd + eqSpd,
+        atbGauge: Math.min(50, initialAtb),
         status: 'active',
+        regen,
+        dmgReduction,
         activeBuffs: []
       };
     });
@@ -111,6 +124,13 @@ export class BattleSystem {
       s.boss.atbGauge += this._getSpd(s.boss) * dt * fillRate;
       if (s.boss.atbGauge >= 100 && this.state.phase === 'fighting') {
         this._executeBossAction();
+      }
+    }
+
+    // リジェネ処理
+    for (const a of s.adventurers) {
+      if (a.status === 'active' && a.regen > 0) {
+        a.hp = Math.min(a.maxHp, a.hp + a.regen * dt);
       }
     }
 
@@ -264,10 +284,11 @@ export class BattleSystem {
 
     const target = aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
     
-    // ダメージ計算
+    // ダメージ計算（鉄壁特性によるダメージ軽減を考慮）
     const atk = this._getAtk(s.boss);
     const def = this._getDef(target);
-    const damage = Math.max(1, Math.floor(atk * (1 + Math.random() * 0.2) - def));
+    const dmgReduction = target.dmgReduction || 0;
+    const damage = Math.max(1, Math.floor(atk * (1 + Math.random() * 0.2) - def) - dmgReduction);
 
     target.hp -= damage;
     this._log(`ボスの攻撃！ ${target.name}に ${damage} のダメージ！`);
