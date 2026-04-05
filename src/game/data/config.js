@@ -10,8 +10,8 @@ export const GameConfig = {
 
   // --- 経済 ---
   initialGold: 250,
-  dailyRent: 25,
-  rentIncreasePerRank: 12,
+  dailyRent: 15,
+  rentIncreasePerRank: 10,
   bankruptcyThreshold: 0,
 
   // --- ショップ ---

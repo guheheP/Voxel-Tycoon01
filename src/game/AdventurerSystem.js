@@ -10,7 +10,7 @@ import { eventBus } from './core/EventBus.js';
 import { StatsTracker } from './StatsTracker.js';
 
 const BASE_SUCCESS_RATE = 50; // 基本成功率 50%
-const DIFFICULTY_PENALTY = 30; // difficulty×30%
+const DIFFICULTY_PENALTY = 20; // difficulty×20%
 
 export class AdventurerSystem {
   constructor(inventorySystem) {
