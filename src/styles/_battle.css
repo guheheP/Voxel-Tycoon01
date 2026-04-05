@@ -342,3 +342,14 @@
   color: #dd8888;
   border: 1px solid rgba(200, 100, 100, 0.3);
 }
+
+/* ── Boss Stun ── */
+.boss-stunned {
+  animation: bossStun 0.5s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 8px rgba(100, 180, 255, 0.8));
+}
+
+@keyframes bossStun {
+  from { transform: scale(1.0); }
+  to   { transform: scale(0.95) rotate(-3deg); }
+}
