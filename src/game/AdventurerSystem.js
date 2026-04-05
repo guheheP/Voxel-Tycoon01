@@ -238,7 +238,6 @@ export class AdventurerSystem {
       success: isSuccess,
       successRate,
     });
-    StatsTracker.add('expeditionsSent', 1);
     if (isSuccess) StatsTracker.add('materialsGathered', items.length);
   }
 

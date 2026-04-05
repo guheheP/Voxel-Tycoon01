@@ -23,6 +23,7 @@ export class DayCycleSystem {
     // GameConfig.ranks を正規のランク定義として使用
     this.currentRankIndex = 0;
     this.rankBossAvailable = false;
+    this.defeatedBosses = [];
 
     // 売上追跡
     this._unsubs = [];
