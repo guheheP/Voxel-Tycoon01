@@ -73,7 +73,7 @@ export class SaveSystem {
         defeatedBosses: this.dayCycle.defeatedBosses || [], // (Currently managed implicitly by rankIndex, but good to have)
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-      console.log('[Save] ゲームを保存しました (v4)');
+      console.log('[Save] ゲームを保存しました (v5)');
       eventBus.emit('save:completed');
     } catch (e) {
       console.error('[Save] 保存失敗:', e);

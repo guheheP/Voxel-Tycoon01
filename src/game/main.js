@@ -29,6 +29,7 @@ import { StatsTracker } from './StatsTracker.js';
 import { QuestSystem } from './QuestSystem.js';
 import { BattleSystem } from './BattleSystem.js';
 import { BattleScreen } from './ui/BattleScreen.js';
+import { BattlePrepScreen } from './ui/BattlePrepScreen.js';
 
 // ============================================================
 //  Systems
@@ -49,6 +50,7 @@ let saveSystem = null;
 let uiManager = null;
 let battleSystem = null;
 let battleScreen = null;
+let battlePrepScreen = null;
 let gameStarted = false;
 
 // ============================================================
@@ -158,14 +160,13 @@ async function startGame(saveData) {
   new ToastManager();
   new GameOverScreen();
 
-  // チュートリアル (初回のみ)
-  if (!saveData) {
-    new TutorialSystem();
-  }
+  // タブガイド（各タブ初回訪問時に表示）
+  new TutorialSystem();
 
   // バトルシステム初期化
   battleSystem = new BattleSystem(adventurerSystem, inventorySystem);
   battleScreen = new BattleScreen(inventorySystem);
+  battlePrepScreen = new BattlePrepScreen(inventorySystem, adventurerSystem);
 
   eventBus.on('battle:requestStart', (d) => {
     let bossDef = null;
@@ -176,10 +177,16 @@ async function startGame(saveData) {
       }
     }
     if (bossDef) {
-      battleSystem.startBattle(d.rankIndex, bossDef);
+      // 準備画面を先に表示
+      battlePrepScreen.show(d.rankIndex, bossDef);
     } else {
       eventBus.emit('toast', { message: 'ボスの情報が見つかりません', type: 'error' });
     }
+  });
+
+  // 準備完了 → バトル開始
+  eventBus.on('battle:prepComplete', (d) => {
+    battleSystem.startBattle(d.rankIndex, d.bossDef, d.selectedItems);
   });
 
   eventBus.on('battle:command', (d) => {

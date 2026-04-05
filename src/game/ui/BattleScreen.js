@@ -21,6 +21,7 @@ export class BattleScreen {
       eventBus.on('battle:tick', (state) => this.update(state)),
       eventBus.on('battle:win', () => this.showResult('win')),
       eventBus.on('battle:lose', (data) => this.showResult(data.reason)),
+      eventBus.on('battle:phaseShift', (d) => this._onPhaseShift(d)),
     ];
   }
 
@@ -30,11 +31,18 @@ export class BattleScreen {
     this._lastItemCount = -1;
     eventBus.emit('game:pause');
 
-    // Filter available items
-    this.itemsWithEffects = this.inventory.items.filter(item => {
+    // Filter available items — 持ち込みアイテムが選択されていればそれだけ表示
+    const allBattleItems = this.inventory.items.filter(item => {
       const bp = ItemBlueprints[item.blueprintId];
       return bp && bp.battleEffect;
     });
+    if (state.selectedItems && state.selectedItems.length > 0) {
+      this.itemsWithEffects = allBattleItems.filter(item =>
+        state.selectedItems.includes(item.uid)
+      );
+    } else {
+      this.itemsWithEffects = allBattleItems;
+    }
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'battle-overlay';
@@ -50,6 +58,7 @@ export class BattleScreen {
                <div class="bar-fill hp-fill boss-hp" id="boss-hp-fill" style="width:100%"></div>
              </div>
              <div class="bar-text" id="boss-hp-text">${state.boss.hp}/${state.boss.maxHp}</div>
+             <div class="boss-phase-badge" id="boss-phase-badge"></div>
              <div class="bar-container atb-container">
                <div class="bar-fill atb-fill boss-atb" id="boss-atb-fill" style="width:0%"></div>
              </div>
@@ -283,6 +292,31 @@ export class BattleScreen {
       this._els = {};
       this._resultShown = false;
     });
+  }
+
+  _onPhaseShift(data) {
+    if (!this.overlay || !data?.phase) return;
+    const phase = data.phase;
+
+    // ボスアイコンのシェイクアニメーション
+    const bossIcon = this._els.bossIcon;
+    if (bossIcon) {
+      bossIcon.classList.add('boss-phase-shake');
+      setTimeout(() => bossIcon.classList.remove('boss-phase-shake'), 1000);
+    }
+
+    // フェーズ名バッジを表示
+    const badge = this.overlay.querySelector('#boss-phase-badge');
+    if (badge) {
+      badge.textContent = `🔥 ${phase.name}`;
+      badge.classList.add('phase-badge-active');
+    }
+
+    // 画面フラッシュ
+    const flash = document.createElement('div');
+    flash.className = 'battle-phase-flash';
+    this.overlay.appendChild(flash);
+    setTimeout(() => flash.remove(), 800);
   }
 
   _showConfirmModal(message, onConfirm) {

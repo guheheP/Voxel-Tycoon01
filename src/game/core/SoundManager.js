@@ -153,8 +153,11 @@ class SoundManagerClass {
     eventBus.on('battle:se:heal', () => this.playBattleHeal());
     eventBus.on('battle:se:buff', () => this.playBattleBuff());
     eventBus.on('battle:se:debuff', () => this.playBattleDebuff());
+    eventBus.on('battle:se:damage', () => this.playBattleDamage());
+    eventBus.on('battle:se:stun', () => this.playBattleStun());
     eventBus.on('battle:se:ko', () => this.playBattleKO());
     eventBus.on('battle:se:revive', () => this.playBattleRevive());
+    eventBus.on('battle:se:phaseShift', () => this.playBattlePhaseShift());
   }
 
   // ===== 音量制御 =====
@@ -654,6 +657,46 @@ class SoundManagerClass {
     this._playSENote(300, now, 0.1, 'sawtooth', 0.10);
     this._playSENote(200, now + 0.08, 0.15, 'sine', 0.08);
     this._playSENote(100, now + 0.18, 0.3, 'sine', 0.06);
+  }
+
+  /** ダメージアイテム — ドカン！ */
+  playBattleDamage() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // 爆発的なインパクト音
+    this._playSENote(150, now, 0.12, 'sawtooth', 0.12);
+    this._playSENote(300, now + 0.02, 0.08, 'square', 0.10);
+    this._playSENote(100, now + 0.05, 0.15, 'sine', 0.08);
+    this._playNoiseBurst(now, 0.08, 0.10);
+    this._playSENote(500, now + 0.08, 0.06, 'sawtooth', 0.06);
+  }
+
+  /** スタン — ビリビリッ！ */
+  playBattleStun() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // 電撃的なスタン音
+    this._playSENote(800, now, 0.04, 'square', 0.10);
+    this._playSENote(1200, now + 0.03, 0.03, 'square', 0.08);
+    this._playSENote(600, now + 0.06, 0.05, 'sawtooth', 0.07);
+    this._playSENote(1000, now + 0.09, 0.04, 'square', 0.06);
+    this._playSENote(400, now + 0.12, 0.08, 'triangle', 0.05);
+    this._playNoiseBurst(now + 0.02, 0.06, 0.06);
+  }
+
+  /** フェーズシフト — ゴゴゴゴゴ…！ */
+  playBattlePhaseShift() {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    // 低音の不吉な轟音
+    this._playSENote(80, now, 0.6, 'sawtooth', 0.12);
+    this._playSENote(100, now + 0.1, 0.5, 'sine', 0.10);
+    this._playSENote(60, now + 0.2, 0.4, 'sawtooth', 0.08);
+    // 上昇する金属音
+    this._playSENote(200, now + 0.3, 0.2, 'square', 0.06);
+    this._playSENote(400, now + 0.4, 0.2, 'square', 0.05);
+    this._playSENote(600, now + 0.5, 0.3, 'sine', 0.04);
+    this._playNoiseBurst(now + 0.1, 0.15, 0.08);
   }
 
   /** 復活 — シャララン */

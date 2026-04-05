@@ -37,7 +37,10 @@ export const AreaDefs = {
       atk: 10,
       def: 5,
       spd: 50,
-      preset: 'Slime',
+      preset: '/presets/RPG_Characters/Slime.json',
+      phases: [
+        { hpThreshold: 0.4, name: '粘液暴走', effect: { stat: 'spd', amount: 20 }, message: 'スライムが震え始めた！' },
+      ],
     },
   },
 
@@ -73,7 +76,10 @@ export const AreaDefs = {
       atk: 18,
       def: 8,
       spd: 60,
-      preset: 'Golem',
+      preset: '/presets/TD_Enemies/Troll.json',
+      phases: [
+        { hpThreshold: 0.5, name: '岩石硬化', effect: { stat: 'def', amount: 10 }, message: 'ゴーレムの体が硬く輝き始めた！' },
+      ],
     },
   },
 
@@ -110,7 +116,11 @@ export const AreaDefs = {
       atk: 22,
       def: 12,
       spd: 50,
-      preset: 'Treant',
+      preset: '/presets/TD_Enemies/Gargoyle.json',
+      phases: [
+        { hpThreshold: 0.6, name: '根の再生', effect: { stat: 'def', amount: 8 }, message: 'ツリーアントの根が地中から伸び始めた！' },
+        { hpThreshold: 0.3, name: '森の怒り', effect: { stat: 'atk', amount: 15 }, message: 'ツリーアントが咆哮を上げた！' },
+      ],
     },
   },
 
@@ -146,7 +156,11 @@ export const AreaDefs = {
       atk: 35,
       def: 10,
       spd: 80,
-      preset: 'Ifrit',
+      preset: '/presets/TD_Enemies/Orc.json',
+      phases: [
+        { hpThreshold: 0.5, name: '灼熱の怒り', effect: { stat: 'atk', amount: 20 }, message: 'イフリートが炎に包まれた！' },
+        { hpThreshold: 0.2, name: '炎帝覚醒', effect: { stat: 'spd', amount: 30 }, message: 'イフリートの怒りが頂点に達した！' },
+      ],
     },
   },
 
@@ -182,7 +196,11 @@ export const AreaDefs = {
       atk: 40,
       def: 15,
       spd: 70,
-      preset: 'Kraken',
+      preset: '/presets/TD_Enemies/Giant Spider.json',
+      phases: [
+        { hpThreshold: 0.6, name: '墨の防壁', effect: { stat: 'def', amount: 12 }, message: 'クラーケンが墨を吐いた！' },
+        { hpThreshold: 0.3, name: '触手乱舞', effect: { stat: 'atk', amount: 18 }, message: 'クラーケンの触手が暴れ始めた！' },
+      ],
     },
   },
 
@@ -218,7 +236,12 @@ export const AreaDefs = {
       atk: 55,
       def: 20,
       spd: 65,
-      preset: 'Dragon',
+      preset: '/presets/RPG_Characters/Bat.json',
+      phases: [
+        { hpThreshold: 0.7, name: '竜の咆哮', effect: { stat: 'atk', amount: 15 }, message: '古竜が天を揺るがす咆哮を上げた！' },
+        { hpThreshold: 0.4, name: '古竜覚醒', effect: { stat: 'spd', amount: 25 }, message: '古竜の瞳が赤く燃え始めた！' },
+        { hpThreshold: 0.15, name: '最後の抵抗', effect: { stat: 'def', amount: 15 }, message: '古竜が翼で身を守り始めた！' },
+      ],
     },
   },
 
@@ -254,7 +277,11 @@ export const AreaDefs = {
       atk: 65,
       def: 25,
       spd: 75,
-      preset: 'Titan',
+      preset: '/presets/RPG_Characters/Knight.json',
+      phases: [
+        { hpThreshold: 0.6, name: '雷神降臨', effect: { stat: 'spd', amount: 20 }, message: 'タイタンの体に雷が纏い始めた！' },
+        { hpThreshold: 0.3, name: '天空の裁き', effect: { stat: 'atk', amount: 25 }, message: 'タイタンが天の力を解放した！' },
+      ],
     },
   },
 
@@ -290,7 +317,12 @@ export const AreaDefs = {
       atk: 80,
       def: 30,
       spd: 90,
-      preset: 'TimeLord',
+      preset: '/presets/RPG_Characters/Skeleton.json',
+      phases: [
+        { hpThreshold: 0.7, name: '時間減速', effect: { stat: 'spd', amount: 30 }, message: '時の支配者が時間を歪め始めた！' },
+        { hpThreshold: 0.4, name: '因果崩壊', effect: { stat: 'atk', amount: 30 }, message: '因果律が乱れ始めた！' },
+        { hpThreshold: 0.15, name: '時の終焉', effect: { stat: 'def', amount: 20 }, message: '時の支配者が最後の力を解き放った！' },
+      ],
     },
   },
 };

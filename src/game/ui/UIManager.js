@@ -148,6 +148,9 @@ export class UIManager {
 
     this.updateAll();
 
+    // 初期タブのガイド表示用にイベント発行
+    eventBus.emit('tab:switched', { tabId: this.activeTab });
+
     // 設定ボタン追加
     this._addSettingsButton();
 
