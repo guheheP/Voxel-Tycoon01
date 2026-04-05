@@ -343,6 +343,40 @@
   border: 1px solid rgba(200, 100, 100, 0.3);
 }
 
+/* ── Passive Trait Badges ── */
+.adv-passives {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.adv-passive-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.adv-passive-badge.regen {
+  background: rgba(80, 200, 120, 0.25);
+  color: #70ddaa;
+  border: 1px solid rgba(80, 200, 120, 0.3);
+}
+
+.adv-passive-badge.guard {
+  background: rgba(100, 140, 220, 0.25);
+  color: #88aaee;
+  border: 1px solid rgba(100, 140, 220, 0.3);
+}
+
+.adv-passive-badge.quick {
+  background: rgba(230, 200, 80, 0.25);
+  color: #ddcc60;
+  border: 1px solid rgba(230, 200, 80, 0.3);
+}
+
 /* ── Boss Stun ── */
 .boss-stunned {
   animation: bossStun 0.5s ease-in-out infinite alternate;

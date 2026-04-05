@@ -299,40 +299,47 @@ export const Recipes = {
 };
 // 特性マスタ — 名前と効果の説明
 export const TraitDefs = {
-  // ── Common (コモン) ──
-  '丈夫':     { name: '丈夫',     rarity: 'common',    color: 'gray',   description: '探索成功率+3%',         effects: { exploreSuccess: 3 } },
-  '軽い':     { name: '軽い',     rarity: 'common',    color: 'gray',   description: '探索速度+8%',           effects: { speedBonus: 8 } },
-  '硬い':     { name: '硬い',     rarity: 'common',    color: 'gray',   description: '成功率+2%, 調合+1',     effects: { exploreSuccess: 2, craftQualityBonus: 1 } },
-  '光る':     { name: '光る',     rarity: 'common',    color: 'gray',   description: '売値+10%',              effects: { sellBonus: 10 } },
-  '水溶性':   { name: '水溶性',   rarity: 'common',    color: 'gray',   description: '調合品質+2',            effects: { craftQualityBonus: 2 } },
+  // ── Common (コモン) ── 変更なし
+  '丈夫':     { name: '丈夫',     rarity: 'common',    color: 'gray',   description: '探索成功率+3%',              effects: { exploreSuccess: 3 } },
+  '軽い':     { name: '軽い',     rarity: 'common',    color: 'gray',   description: '探索速度+8%',                effects: { speedBonus: 8 } },
+  '硬い':     { name: '硬い',     rarity: 'common',    color: 'gray',   description: '成功率+2%, 調合+1',          effects: { exploreSuccess: 2, craftQualityBonus: 1 } },
+  '光る':     { name: '光る',     rarity: 'common',    color: 'gray',   description: '売値+10%',                   effects: { sellBonus: 10 } },
+  '水溶性':   { name: '水溶性',   rarity: 'common',    color: 'gray',   description: '調合品質+2',                 effects: { craftQualityBonus: 2 } },
 
-  // ── Uncommon (アンコモン) ──
-  '攻撃力+1': { name: '攻撃力+1', rarity: 'uncommon',  color: 'green',  description: '探索成功率+5%',         effects: { exploreSuccess: 5 } },
-  '防御力+1': { name: '防御力+1', rarity: 'uncommon',  color: 'green',  description: '成功率+3%, 品質+2',     effects: { exploreSuccess: 3, qualityBonus: 2 } },
-  'HP回復+':  { name: 'HP回復+',  rarity: 'uncommon',  color: 'green',  description: '売値+15%',              effects: { sellBonus: 15 } },
-  '売値UP':   { name: '売値UP',   rarity: 'uncommon',  color: 'green',  description: '売値+20%',              effects: { sellBonus: 20 } },
-  '採取量UP': { name: '採取量UP', rarity: 'uncommon',  color: 'green',  description: 'ドロップ+1',            effects: { dropBonus: 1 } },
-  '燃えやすい': { name: '燃えやすい', rarity: 'uncommon', color: 'green', description: '速度+12%, 成功率-3%',  effects: { speedBonus: 12, exploreSuccess: -3 } },
-  '猛毒':     { name: '猛毒',     rarity: 'uncommon',  color: 'green',  description: '探索成功率+6%',         effects: { exploreSuccess: 6 } },
-  '練磨':     { name: '練磨',     rarity: 'uncommon',  color: 'green',  description: '調合品質+3',            effects: { craftQualityBonus: 3 } },
+  // ── Uncommon (アンコモン) ── 一部バトル対応に変更 + 2種新規
+  '攻撃力+1': { name: '攻撃力+1', rarity: 'uncommon',  color: 'green',  description: 'バトル攻撃力+8',             effects: { battleAtk: 8 } },
+  '防御力+1': { name: '防御力+1', rarity: 'uncommon',  color: 'green',  description: 'バトル防御力+5',             effects: { battleDef: 5 } },
+  'HP回復+':  { name: 'HP回復+',  rarity: 'uncommon',  color: 'green',  description: 'バトル最大HP+20',            effects: { battleHp: 20 } },
+  '売値UP':   { name: '売値UP',   rarity: 'uncommon',  color: 'green',  description: '売値+20%',                   effects: { sellBonus: 20 } },
+  '採取量UP': { name: '採取量UP', rarity: 'uncommon',  color: 'green',  description: 'ドロップ+1',                 effects: { dropBonus: 1 } },
+  '燃えやすい': { name: '燃えやすい', rarity: 'uncommon', color: 'green', description: '速度+12%, 成功率-3%',       effects: { speedBonus: 12, exploreSuccess: -3 } },
+  '猛毒':     { name: '猛毒',     rarity: 'uncommon',  color: 'green',  description: '探索成功率+6%',              effects: { exploreSuccess: 6 } },
+  '練磨':     { name: '練磨',     rarity: 'uncommon',  color: 'green',  description: '調合品質+3',                 effects: { craftQualityBonus: 3 } },
+  '先制':     { name: '先制',     rarity: 'uncommon',  color: 'green',  description: 'バトル開始時ATB+25',         effects: { startAtb: 25 } },
+  '体力強化': { name: '体力強化', rarity: 'uncommon',  color: 'green',  description: 'バトル最大HP+30, 防御力+3',  effects: { battleHp: 30, battleDef: 3 } },
 
-  // ── Rare (レア) ──
-  '攻撃力+2': { name: '攻撃力+2', rarity: 'rare',      color: 'blue',   description: '探索成功率+10%',        effects: { exploreSuccess: 10 } },
-  '防御力+2': { name: '防御力+2', rarity: 'rare',      color: 'blue',   description: '成功率+6%, 品質+3',     effects: { exploreSuccess: 6, qualityBonus: 3 } },
-  'HP回復++': { name: 'HP回復++', rarity: 'rare',      color: 'blue',   description: '売値+30%',              effects: { sellBonus: 30 } },
-  '売値UP+':  { name: '売値UP+',  rarity: 'rare',      color: 'blue',   description: '売値+40%',              effects: { sellBonus: 40 } },
-  '風の加護': { name: '風の加護', rarity: 'rare',      color: 'blue',   description: '速度+12%, 成功率+5%',   effects: { speedBonus: 12, exploreSuccess: 5 } },
-  '雷撃':     { name: '雷撃',     rarity: 'rare',      color: 'blue',   description: '探索成功率+12%',        effects: { exploreSuccess: 12 } },
-  '吸血':     { name: '吸血',     rarity: 'rare',      color: 'blue',   description: '成功率+5%, 売値+15%',   effects: { exploreSuccess: 5, sellBonus: 15 } },
-  '聖なる力': { name: '聖なる力', rarity: 'rare',      color: 'blue',   description: '成功率+8%, 調合+3',     effects: { exploreSuccess: 8, craftQualityBonus: 3 } },
+  // ── Rare (レア) ── 一部バトル対応に変更 + 2種新規
+  '攻撃力+2': { name: '攻撃力+2', rarity: 'rare',      color: 'blue',   description: 'バトル攻撃力+16',            effects: { battleAtk: 16 } },
+  '防御力+2': { name: '防御力+2', rarity: 'rare',      color: 'blue',   description: 'バトル防御力+10',            effects: { battleDef: 10 } },
+  'HP回復++': { name: 'HP回復++', rarity: 'rare',      color: 'blue',   description: 'バトル最大HP+40',            effects: { battleHp: 40 } },
+  '売値UP+':  { name: '売値UP+',  rarity: 'rare',      color: 'blue',   description: '売値+40%',                   effects: { sellBonus: 40 } },
+  '風の加護': { name: '風の加護', rarity: 'rare',      color: 'blue',   description: '速度+12%, 成功率+5%',        effects: { speedBonus: 12, exploreSuccess: 5 } },
+  '雷撃':     { name: '雷撃',     rarity: 'rare',      color: 'blue',   description: 'バトル素早さ+20',            effects: { battleSpd: 20 } },
+  '吸血':     { name: '吸血',     rarity: 'rare',      color: 'blue',   description: '成功率+5%, 売値+15%',        effects: { exploreSuccess: 5, sellBonus: 15 } },
+  '聖なる力': { name: '聖なる力', rarity: 'rare',      color: 'blue',   description: '成功率+8%, 調合+3',          effects: { exploreSuccess: 8, craftQualityBonus: 3 } },
+  '鉄壁':     { name: '鉄壁',     rarity: 'rare',      color: 'blue',   description: 'バトルダメージ軽減+4',       effects: { battleDmgReduction: 4 } },
+  '疾走':     { name: '疾走',     rarity: 'rare',      color: 'blue',   description: 'バトル素早さ+18, ATB+15',   effects: { battleSpd: 18, startAtb: 15 } },
 
-  // ── Epic (エピック) ──
-  '攻撃力+3': { name: '攻撃力+3', rarity: 'epic',      color: 'purple', description: '探索成功率+18%',        effects: { exploreSuccess: 18 } },
-  '防御力+3': { name: '防御力+3', rarity: 'epic',      color: 'purple', description: '成功率+10%, 品質+5',    effects: { exploreSuccess: 10, qualityBonus: 5 } },
-  '混沌':     { name: '混沌',     rarity: 'epic',      color: 'purple', description: '成功率+15%, 売値-10%',  effects: { exploreSuccess: 15, sellBonus: -10 } },
-  '名匠の技': { name: '名匠の技', rarity: 'epic',      color: 'purple', description: '調合品質+8',            effects: { craftQualityBonus: 8 } },
+  // ── Epic (エピック) ── 一部バトル対応に変更 + 1種新規
+  '攻撃力+3': { name: '攻撃力+3', rarity: 'epic',      color: 'purple', description: 'バトル攻撃力+28',            effects: { battleAtk: 28 } },
+  '防御力+3': { name: '防御力+3', rarity: 'epic',      color: 'purple', description: 'バトル防御力+18',            effects: { battleDef: 18 } },
+  '混沌':     { name: '混沌',     rarity: 'epic',      color: 'purple', description: '成功率+15%, 売値-10%',       effects: { exploreSuccess: 15, sellBonus: -10 } },
+  '名匠の技': { name: '名匠の技', rarity: 'epic',      color: 'purple', description: '調合品質+8',                 effects: { craftQualityBonus: 8 } },
+  '再生':     { name: '再生',     rarity: 'epic',      color: 'purple', description: 'バトル中HP2/秒回復',         effects: { battleRegen: 2 } },
 
-  // ── Legendary (レジェンダリー) ──
-  '時の祝福': { name: '時の祝福', rarity: 'legendary', color: 'gold',   description: '速度+15%, 調合+5',      effects: { speedBonus: 15, craftQualityBonus: 5 } },
-  '星の輝き': { name: '星の輝き', rarity: 'legendary', color: 'gold',   description: '売値+25%, 調合+3',      effects: { sellBonus: 25, craftQualityBonus: 3 } },
+  // ── Legendary (レジェンダリー) ── 変更なし + 2種新規
+  '時の祝福': { name: '時の祝福', rarity: 'legendary', color: 'gold',   description: '速度+15%, 調合+5',           effects: { speedBonus: 15, craftQualityBonus: 5 } },
+  '星の輝き': { name: '星の輝き', rarity: 'legendary', color: 'gold',   description: '売値+25%, 調合+3',           effects: { sellBonus: 25, craftQualityBonus: 3 } },
+  '武神':     { name: '武神',     rarity: 'legendary', color: 'gold',   description: 'バトル攻撃力+15, 素早さ+15, ATB+20', effects: { battleAtk: 15, battleSpd: 15, startAtb: 20 } },
+  '不死鳥':   { name: '不死鳥',   rarity: 'legendary', color: 'gold',   description: 'HP4/秒回復, 防御力+12, HP+30', effects: { battleRegen: 4, battleDef: 12, battleHp: 30 } },
 };

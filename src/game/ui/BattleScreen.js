@@ -142,6 +142,11 @@ export class BattleScreen {
              <div class="bar-fill atb-fill adv-atb" id="adv-atb-fill-${a.id}" style="width:${Math.min(100,a.atbGauge)}%"></div>
            </div>
            <div class="adv-buffs" id="adv-buffs-${a.id}"></div>
+           <div class="adv-passives">
+             ${a.regen > 0 ? '<span class="adv-passive-badge regen">再生</span>' : ''}
+             ${a.dmgReduction > 0 ? '<span class="adv-passive-badge guard">鉄壁</span>' : ''}
+             ${a.atbGauge > 0 ? '<span class="adv-passive-badge quick">先制</span>' : ''}
+           </div>
         </div>
       </div>
     `).join('');
