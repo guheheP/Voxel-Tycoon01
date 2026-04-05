@@ -88,6 +88,7 @@ export class BattleScreen {
       bossHpFill: this.overlay.querySelector('#boss-hp-fill'),
       bossHpText: this.overlay.querySelector('#boss-hp-text'),
       bossAtbFill: this.overlay.querySelector('#boss-atb-fill'),
+      bossIcon: this.overlay.querySelector('#boss-icon'),
       logContainer: this.overlay.querySelector('#battle-log'),
       cdBar: this.overlay.querySelector('#item-cooldown-bar'),
       inventory: this.overlay.querySelector('#battle-inventory'),
@@ -172,6 +173,10 @@ export class BattleScreen {
     if (els.bossHpFill) els.bossHpFill.style.width = `${bossHpPct}%`;
     if (els.bossHpText) els.bossHpText.textContent = `${state.boss.hp}/${state.boss.maxHp}`;
     if (els.bossAtbFill) els.bossAtbFill.style.width = `${Math.min(100, state.boss.atbGauge)}%`;
+    if (els.bossIcon) {
+      if (state.boss.stunTimer > 0) els.bossIcon.classList.add('boss-stunned');
+      else els.bossIcon.classList.remove('boss-stunned');
+    }
 
     // Party updates (cached elements)
     for (const a of state.adventurers) {

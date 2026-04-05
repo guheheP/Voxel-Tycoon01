@@ -72,7 +72,8 @@ export class BattleSystem {
         baseDef: bossDef.def,
         baseSpd: bossDef.spd,
         atbGauge: 0,
-        activeBuffs: []
+        activeBuffs: [],
+        stunTimer: 0,
       },
       adventurers: participants,
       log: [],
@@ -103,10 +104,14 @@ export class BattleSystem {
       if (a.status === 'active') this._updateBuffs(a, dt);
     }
 
-    // ATB 進行 (boss)
-    s.boss.atbGauge += this._getSpd(s.boss) * dt * fillRate;
-    if (s.boss.atbGauge >= 100 && this.state.phase === 'fighting') {
-      this._executeBossAction();
+    // ATB 進行 (boss) — スタン中は停止
+    if (s.boss.stunTimer > 0) {
+      s.boss.stunTimer = Math.max(0, s.boss.stunTimer - dt);
+    } else {
+      s.boss.atbGauge += this._getSpd(s.boss) * dt * fillRate;
+      if (s.boss.atbGauge >= 100 && this.state.phase === 'fighting') {
+        this._executeBossAction();
+      }
     }
 
     // ATB 進行 (adventurers)
@@ -162,6 +167,17 @@ export class BattleSystem {
            this._log(`${t.name}が復活した！`);
            eventBus.emit('battle:se:revive');
         }
+      } else if (fx.type === 'damage') {
+        const dmg = fx.value ?? 30;
+        this.state.boss.hp = Math.max(0, this.state.boss.hp - dmg);
+        this._log(`${item.name} がボスに ${dmg} ダメージ！`);
+        eventBus.emit('battle:se:damage');
+        if (this.state.boss.hp <= 0) { this._doWin(); break; }
+      } else if (fx.type === 'stun') {
+        this.state.boss.atbGauge = 0;
+        this.state.boss.stunTimer = fx.duration ?? 8;
+        this._log(`${item.name} がボスをスタンさせた！`);
+        eventBus.emit('battle:se:stun');
       } else if (fx.type === 'buff' || fx.type === 'debuff') {
         if (t.status === 'dead') continue;
         t.activeBuffs.push({

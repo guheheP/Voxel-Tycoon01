@@ -83,6 +83,7 @@ export const ItemBlueprints = {
   stone_axe: { id: 'stone_axe', name: '石斧', type: 'equipment', baseValue: 28, image: '/art/items/stone_axe.png' },
   clay_pot: { id: 'clay_pot', name: '粘土の壺', type: 'accessory', baseValue: 15, image: '/art/items/clay_pot.png' },
   antidote_basic: { id: 'antidote_basic', name: '毒消し薬', type: 'consumable', baseValue: 20, image: '/art/items/antidote.png', battleEffect: { type: 'buff', target: 'ally', stat: 'def', amount: 5, duration: 15 } },
+  mud_ball: { id: 'mud_ball', name: '泥団子', type: 'consumable', baseValue: 8, battleEffect: { type: 'debuff', target: 'enemy', stat: 'spd', amount: -10, duration: 10 } },
 
   // ===== Rank 2: 洞窟解放 (10種) =====
   fire_sword: { id: 'fire_sword', name: '炎の剣', type: 'equipment', baseValue: 80, image: '/art/items/fire_sword.png' },
@@ -95,6 +96,7 @@ export const ItemBlueprints = {
   bone_charm: { id: 'bone_charm', name: '骨のお守り', type: 'accessory', baseValue: 35, image: '/art/items/bone_charm.png' },
   stamina_drink: { id: 'stamina_drink', name: 'スタミナドリンク', type: 'consumable', baseValue: 25, image: '/art/items/stamina_drink.png', battleEffect: { type: 'buff', target: 'ally', stat: 'spd', amount: 30, duration: 15 } },
   iron_helm: { id: 'iron_helm', name: '鉄兜', type: 'equipment', baseValue: 48, image: '/art/items/iron_helm.png' },
+  iron_spike: { id: 'iron_spike', name: '鉄の棘', type: 'consumable', baseValue: 22, battleEffect: { type: 'damage', target: 'enemy', value: 35 } },
 
   // ===== Rank 3: 森解放 (12種) =====
   mage_staff: { id: 'mage_staff', name: '魔法の杖', type: 'equipment', baseValue: 120, image: '/art/items/mage_staff.png' },
@@ -109,6 +111,7 @@ export const ItemBlueprints = {
   fairy_necklace: { id: 'fairy_necklace', name: '妖精のネックレス', type: 'accessory', baseValue: 70, image: '/art/items/fairy_necklace.png' },
   poison_dagger: { id: 'poison_dagger', name: '毒塗りの短剣', type: 'equipment', baseValue: 88, image: '/art/items/poison_dagger.png' },
   magic_ink: { id: 'magic_ink', name: '魔法のインク', type: 'consumable', baseValue: 40, image: '/art/items/magic_ink.png', battleEffect: { type: 'debuff', target: 'enemy', stat: 'spd', amount: -15, duration: 15 } },
+  weakness_draught: { id: 'weakness_draught', name: '弱体化の薬', type: 'consumable', baseValue: 60, battleEffect: { type: 'debuff', target: 'enemy', stat: 'atk', amount: -20, duration: 20 } },
 
   // ===== Rank 4: 火山解放 (12種) =====
   holy_sword: { id: 'holy_sword', name: '聖剣', type: 'equipment', baseValue: 250, image: '/art/items/holy_sword.png' },
@@ -123,6 +126,7 @@ export const ItemBlueprints = {
   lava_shield: { id: 'lava_shield', name: '溶岩の盾', type: 'equipment', baseValue: 195, image: '/art/items/lava_shield.png' },
   fire_cloak: { id: 'fire_cloak', name: '焔纏いのマント', type: 'equipment', baseValue: 175, image: '/art/items/fire_cloak.png' },
   enchant_scroll: { id: 'enchant_scroll', name: '付呪の巻物', type: 'consumable', baseValue: 140, image: '/art/items/enchant_scroll.png', battleEffect: { type: 'debuff', target: 'enemy', stat: 'def', amount: -15, duration: 20 } },
+  thunder_bomb: { id: 'thunder_bomb', name: '雷鳴の爆弾', type: 'consumable', baseValue: 100, battleEffect: { type: 'stun', target: 'enemy', duration: 8 } },
 
   // ===== Rank 5: 深海解放 (12種) =====
   trident: { id: 'trident', name: '海神の三叉槍', type: 'equipment', baseValue: 320, image: '/art/items/trident.png' },
@@ -137,6 +141,7 @@ export const ItemBlueprints = {
   elder_staff: { id: 'elder_staff', name: '長老樹の杖', type: 'equipment', baseValue: 260, image: '/art/items/elder_staff.png' },
   sea_serpent_whip: { id: 'sea_serpent_whip', name: '海竜の鞭', type: 'equipment', baseValue: 330, image: '/art/items/sea_serpent_whip.png' },
   lotus_perfume: { id: 'lotus_perfume', name: '黒蓮の香水', type: 'consumable', baseValue: 180, image: '/art/items/lotus_perfume.png', battleEffect: { type: 'buff', target: 'all', stat: 'spd', amount: 25, duration: 20 } },
+  revival_herb: { id: 'revival_herb', name: '蘇生草', type: 'consumable', baseValue: 250, battleEffect: { type: 'revive', target: 'ally', value: 60 } },
 
   // ===== Rank 6: 竜の巣解放 (12種) =====
   dragon_slayer: { id: 'dragon_slayer', name: '竜殺しの大剣', type: 'equipment', baseValue: 450, image: '/art/items/dragon_slayer.png' },
@@ -192,6 +197,7 @@ export const Recipes = {
   stone_axe: { id: 'r_stone_axe', targetId: 'stone_axe', materials: ['stone', 'wood'], unlocked: true, apCost: 1 },
   clay_pot: { id: 'r_clay_pot', targetId: 'clay_pot', materials: ['clay', 'sand'], unlocked: true, apCost: 1 },
   antidote_basic: { id: 'r_antidote_basic', targetId: 'antidote_basic', materials: ['bug_shell', 'slime_jelly'], unlocked: true, apCost: 1 },
+  mud_ball: { id: 'r_mud_ball', targetId: 'mud_ball', materials: ['clay', 'slime_jelly'], unlocked: true, apCost: 1 },
 
   // --- Rank 2 解放 (10種) — AP: 2 ---
   fire_sword: { id: 'r_fire_sword', targetId: 'fire_sword', materials: ['iron_ore', 'fire_stone'], unlocked: false, apCost: 2 },
@@ -204,6 +210,7 @@ export const Recipes = {
   bone_charm: { id: 'r_bone_charm', targetId: 'bone_charm', materials: ['bone', 'herb'], unlocked: false, apCost: 1 },
   stamina_drink: { id: 'r_stamina_drink', targetId: 'stamina_drink', materials: ['mushroom', 'slime_jelly'], unlocked: false, apCost: 1 },
   iron_helm: { id: 'r_iron_helm', targetId: 'iron_helm', materials: ['iron_ore', 'cloth'], unlocked: false, apCost: 2 },
+  iron_spike: { id: 'r_iron_spike', targetId: 'iron_spike', materials: ['iron_ore', 'bone'], unlocked: false, apCost: 1 },
 
   // --- Rank 3 解放 (12種) — AP: 2 ---
   mage_staff: { id: 'r_mage_staff', targetId: 'mage_staff', materials: ['crystal', 'enchanted_wood'], unlocked: false, apCost: 2 },
@@ -218,6 +225,7 @@ export const Recipes = {
   fairy_necklace: { id: 'r_fairy_necklace', targetId: 'fairy_necklace', materials: ['fairy_dust', 'silver_ore'], unlocked: false, apCost: 2 },
   poison_dagger: { id: 'r_poison_dagger', targetId: 'poison_dagger', materials: ['silver_ore', 'poison_herb'], unlocked: false, apCost: 2 },
   magic_ink: { id: 'r_magic_ink', targetId: 'magic_ink', materials: ['crystal', 'flower_petal'], unlocked: false, apCost: 1 },
+  weakness_draught: { id: 'r_weakness_draught', targetId: 'weakness_draught', materials: ['poison_herb', 'mushroom', 'slime_jelly'], unlocked: false, apCost: 2 },
 
   // --- Rank 4 解放 (12種) — AP: 2-3 ---
   holy_sword: { id: 'r_holy_sword', targetId: 'holy_sword', materials: ['iron_ore', 'crystal', 'feather'], unlocked: false, apCost: 3 },
@@ -232,6 +240,7 @@ export const Recipes = {
   lava_shield: { id: 'r_lava_shield', targetId: 'lava_shield', materials: ['lava_core', 'iron_ore', 'stone'], unlocked: false, apCost: 3 },
   fire_cloak: { id: 'r_fire_cloak', targetId: 'fire_cloak', materials: ['fire_stone', 'cloth', 'spider_silk'], unlocked: false, apCost: 2 },
   enchant_scroll: { id: 'r_enchant_scroll', targetId: 'enchant_scroll', materials: ['crystal', 'fairy_dust', 'spirit_essence'], unlocked: false, apCost: 2 },
+  thunder_bomb: { id: 'r_thunder_bomb', targetId: 'thunder_bomb', materials: ['thunder_stone', 'lava_core'], unlocked: false, apCost: 2 },
 
   // --- Rank 5 解放 (12種) — AP: 3 ---
   trident: { id: 'r_trident', targetId: 'trident', materials: ['mithril_ore', 'deep_pearl', 'coral_fragment'], unlocked: false, apCost: 3 },
@@ -246,6 +255,7 @@ export const Recipes = {
   elder_staff: { id: 'r_elder_staff', targetId: 'elder_staff', materials: ['elder_bark', 'crystal', 'fairy_dust'], unlocked: false, apCost: 3 },
   sea_serpent_whip: { id: 'r_sea_serpent_whip', targetId: 'sea_serpent_whip', materials: ['sea_serpent_fin', 'spider_silk'], unlocked: false, apCost: 3 },
   lotus_perfume: { id: 'r_lotus_perfume', targetId: 'lotus_perfume', materials: ['black_lotus', 'flower_petal', 'fairy_dust'], unlocked: false, apCost: 2 },
+  revival_herb: { id: 'r_revival_herb', targetId: 'revival_herb', materials: ['black_lotus', 'spirit_essence', 'herb'], unlocked: false, apCost: 3 },
 
   // --- Rank 6 解放 (12種) — AP: 3 ---
   dragon_slayer: { id: 'r_dragon_slayer', targetId: 'dragon_slayer', materials: ['dragon_scale', 'mithril_ore', 'fire_stone'], unlocked: false, apCost: 3 },
