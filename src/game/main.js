@@ -30,6 +30,7 @@ import { QuestSystem } from './QuestSystem.js';
 import { BattleSystem } from './BattleSystem.js';
 import { BattleScreen } from './ui/BattleScreen.js';
 import { BattlePrepScreen } from './ui/BattlePrepScreen.js';
+import { CollectionSystem } from './CollectionSystem.js';
 
 // ============================================================
 //  Systems
@@ -51,6 +52,7 @@ let uiManager = null;
 let battleSystem = null;
 let battleScreen = null;
 let battlePrepScreen = null;
+let collectionSystem = null;
 let gameStarted = false;
 
 // ============================================================
@@ -170,11 +172,14 @@ async function startGame(saveData) {
     _applySaveData(saveData);
   }
 
+  // 図鑑システム
+  collectionSystem = new CollectionSystem();
+
   // セーブシステム
-  saveSystem = new SaveSystem(inventorySystem, adventurerSystem, dayCycleSystem, shopSystem, reputationSystem, questSystem);
+  saveSystem = new SaveSystem(inventorySystem, adventurerSystem, dayCycleSystem, shopSystem, reputationSystem, questSystem, collectionSystem);
 
   // UI初期化
-  uiManager = new UIManager(inventorySystem, shopSystem, adventurerSystem, customerSystem, dayCycleSystem, randomEventSystem, reputationSystem, questSystem);
+  uiManager = new UIManager(inventorySystem, shopSystem, adventurerSystem, customerSystem, dayCycleSystem, randomEventSystem, reputationSystem, questSystem, collectionSystem);
   new ToastManager();
   new GameOverScreen();
 
@@ -287,6 +292,14 @@ function _applySaveData(data) {
     questSystem.loadSaveData(data.quest);
   }
 
+  // オートセル復元
+  if (data.autoSellEnabled != null) {
+    shopSystem.autoSellEnabled = data.autoSellEnabled;
+  }
+  if (data.autoSellRules) {
+    Object.assign(shopSystem.autoSellRules, data.autoSellRules);
+  }
+
   // 冒険者の復元
   if (data.adventurers) {
     for (const savedAdv of data.adventurers) {
@@ -327,6 +340,11 @@ function _applySaveData(data) {
   // 統計の復元
   if (data.stats) {
     StatsTracker.loadSaveData(data.stats);
+  }
+
+  // 図鑑の復元
+  if (data.collection && collectionSystem) {
+    collectionSystem.loadSaveData(data.collection);
   }
 }
 

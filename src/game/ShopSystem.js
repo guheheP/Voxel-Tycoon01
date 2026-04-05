@@ -17,11 +17,29 @@ export class ShopSystem {
     this.maxSlots = GameConfig.shopMaxDisplaySlots;
     this.sellTimer = 0;
     this.purchasedUpgrades = [];
+
+    // オートセル設定
+    this.autoSellEnabled = false;
+    this.autoSellRules = {
+      types: ['equipment', 'consumable', 'accessory'],  // 自動陳列する種類
+      minQuality: 0,     // 最低品質
+      excludeTraits: false,  // 特性付きは除外
+    };
+    this.autoSellTimer = 0;
   }
 
-  /** 毎フレーム更新 — 自動販売チェック */
+  /** 毎フレーム更新 — 自動販売チェック + オートセル */
   update(dt) {
-    if (this.displayedItems.length === 0) return;
+    // オートセル: 5秒ごとに空き棚へ自動陳列
+    if (this.autoSellEnabled) {
+      this.autoSellTimer += dt;
+      if (this.autoSellTimer >= 5) {
+        this.autoSellTimer = 0;
+        this._tryAutoDisplay();
+      }
+    }
+
+    if (this.displayedItems.length === 0 && !this.autoSellEnabled) return;
     this.sellTimer += dt;
     if (this.sellTimer >= GameConfig.shopSellInterval) {
       this.sellTimer = 0;
@@ -142,6 +160,54 @@ export class ShopSystem {
   /** アップグレード購入済み判定 */
   isPurchased(upgradeId) {
     return this.purchasedUpgrades.includes(upgradeId);
+  }
+
+  /** オートセル — ルールに合うアイテムを空き棚に自動陳列 */
+  _tryAutoDisplay() {
+    if (this.displayedItems.length >= this.maxSlots) return;
+    const rules = this.autoSellRules;
+
+    // ルールに合う候補を売値順で取得
+    const candidates = this.inventory.items
+      .filter(item => {
+        if (!rules.types.includes(item.type)) return false;
+        if (item.quality < rules.minQuality) return false;
+        if (rules.excludeTraits && item.traits && item.traits.length > 0) return false;
+        return true;
+      })
+      .map(item => ({ item, value: this._calcValue(item) }))
+      .sort((a, b) => b.value - a.value);
+
+    // 空き棚分だけ陳列
+    for (const { item } of candidates) {
+      if (this.displayedItems.length >= this.maxSlots) break;
+      this.displayItem(item.uid);
+    }
+
+    if (candidates.length > 0) {
+      eventBus.emit('inventory:changed');
+    }
+  }
+
+  /** 即時処分 — 売値の20%でアイテムを即座に売却 */
+  quickSell(uid, inventorySystem) {
+    const item = inventorySystem.removeItem(uid);
+    if (!item) return 0;
+    const fullValue = this._calcValue(item);
+    const price = Math.max(1, Math.floor(fullValue * 0.2));
+    inventorySystem.addGold(price);
+    eventBus.emit('item:sold', { item, price });
+    StatsTracker.add('itemsSold', 1);
+    return price;
+  }
+
+  /** 一括即時処分 — 複数アイテムを一度に処分 */
+  quickSellBulk(uids, inventorySystem) {
+    let totalPrice = 0;
+    for (const uid of uids) {
+      totalPrice += this.quickSell(uid, inventorySystem);
+    }
+    return totalPrice;
   }
 }
 

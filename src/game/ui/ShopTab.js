@@ -99,11 +99,43 @@ export class ShopTab {
       </div>
     `;
 
+    // ── オートセル設定パネル ──
+    const as = this.shop.autoSellRules;
+    const autoSellPanel = `
+      <div class="autosell-panel">
+        <div class="autosell-header">
+          <label class="autosell-toggle">
+            <input type="checkbox" id="autosell-enabled" ${this.shop.autoSellEnabled ? 'checked' : ''} />
+            <span class="autosell-toggle-label">🤖 オートセル</span>
+          </label>
+          <span class="autosell-desc">空き棚にルールに合うアイテムを自動陳列</span>
+        </div>
+        <div class="autosell-rules ${this.shop.autoSellEnabled ? '' : 'autosell-rules-disabled'}">
+          <div class="autosell-rule">
+            <span class="autosell-rule-label">対象:</span>
+            <label class="autosell-cb"><input type="checkbox" data-as-type="equipment" ${as.types.includes('equipment') ? 'checked' : ''} /> ⚔️ 装備</label>
+            <label class="autosell-cb"><input type="checkbox" data-as-type="consumable" ${as.types.includes('consumable') ? 'checked' : ''} /> 🧪 消耗品</label>
+            <label class="autosell-cb"><input type="checkbox" data-as-type="accessory" ${as.types.includes('accessory') ? 'checked' : ''} /> 💎 アクセ</label>
+            <label class="autosell-cb"><input type="checkbox" data-as-type="material" ${as.types.includes('material') ? 'checked' : ''} /> 🪨 素材</label>
+          </div>
+          <div class="autosell-rule">
+            <span class="autosell-rule-label">最低品質:</span>
+            <input type="range" id="autosell-min-q" min="0" max="80" step="10" value="${as.minQuality}" class="autosell-range" />
+            <span id="autosell-min-q-val" class="autosell-range-val">Q${as.minQuality}+</span>
+          </div>
+          <div class="autosell-rule">
+            <label class="autosell-cb"><input type="checkbox" id="autosell-exclude-traits" ${as.excludeTraits ? 'checked' : ''} /> 特性付きは陳列しない（装備用に温存）</label>
+          </div>
+        </div>
+      </div>
+    `;
+
     // ── 組み立て ──
     this.el.innerHTML = `
       <div class="shop-layout">
         ${customerBar}
         <div class="shop-columns">${leftPanel}${rightPanel}</div>
+        ${autoSellPanel}
       </div>
     `;
 
@@ -144,6 +176,40 @@ export class ShopTab {
         this.render();
       });
     });
+
+    // オートセル設定
+    const asEnabled = this.el.querySelector('#autosell-enabled');
+    if (asEnabled) {
+      asEnabled.addEventListener('change', () => {
+        this.shop.autoSellEnabled = asEnabled.checked;
+        this.render();
+      });
+    }
+    this.el.querySelectorAll('[data-as-type]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const type = cb.dataset.asType;
+        const types = this.shop.autoSellRules.types;
+        if (cb.checked && !types.includes(type)) types.push(type);
+        else if (!cb.checked) {
+          const idx = types.indexOf(type);
+          if (idx !== -1) types.splice(idx, 1);
+        }
+      });
+    });
+    const minQRange = this.el.querySelector('#autosell-min-q');
+    const minQVal = this.el.querySelector('#autosell-min-q-val');
+    if (minQRange) {
+      minQRange.addEventListener('input', () => {
+        this.shop.autoSellRules.minQuality = parseInt(minQRange.value);
+        if (minQVal) minQVal.textContent = `Q${minQRange.value}+`;
+      });
+    }
+    const excludeTraits = this.el.querySelector('#autosell-exclude-traits');
+    if (excludeTraits) {
+      excludeTraits.addEventListener('change', () => {
+        this.shop.autoSellRules.excludeTraits = excludeTraits.checked;
+      });
+    }
   }
 
   /** 客タイマーのリアルタイム更新（毎フレーム） */
