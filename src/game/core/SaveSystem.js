@@ -12,13 +12,14 @@ const LEGACY_KEYS = ['voxelshop_save_v4', 'voxelshop_save_v3', 'voxelshop_save_v
 const AUTOSAVE_INTERVAL = 30;
 
 export class SaveSystem {
-  constructor(inventorySystem, adventurerSystem, dayCycleSystem, shopSystem, reputationSystem, questSystem) {
+  constructor(inventorySystem, adventurerSystem, dayCycleSystem, shopSystem, reputationSystem, questSystem, collectionSystem) {
     this.inventory = inventorySystem;
     this.adventurers = adventurerSystem;
     this.dayCycle = dayCycleSystem;
     this.shop = shopSystem;
     this.reputation = reputationSystem;
     this.quest = questSystem;
+    this.collection = collectionSystem;
     this.timer = 0;
   }
 
@@ -70,7 +71,10 @@ export class SaveSystem {
         stats: StatsTracker.toSaveData(),
         quest: this.quest ? this.quest.toSaveData() : null,
         rankBossAvailable: this.dayCycle.rankBossAvailable,
-        defeatedBosses: this.dayCycle.defeatedBosses || [], // (Currently managed implicitly by rankIndex, but good to have)
+        defeatedBosses: this.dayCycle.defeatedBosses || [],
+        autoSellEnabled: this.shop.autoSellEnabled || false,
+        autoSellRules: this.shop.autoSellRules || null,
+        collection: this.collection ? this.collection.toSaveData() : null, // (Currently managed implicitly by rankIndex, but good to have)
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
       console.log('[Save] ゲームを保存しました (v5)');
