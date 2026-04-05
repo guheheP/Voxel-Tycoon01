@@ -101,6 +101,7 @@ export class BattleScreen {
         hpFill: this.overlay.querySelector(`#adv-hp-fill-${a.id}`),
         hpText: this.overlay.querySelector(`#adv-hp-text-${a.id}`),
         atbFill: this.overlay.querySelector(`#adv-atb-fill-${a.id}`),
+        buffs: this.overlay.querySelector(`#adv-buffs-${a.id}`),
       };
     }
 
@@ -139,6 +140,7 @@ export class BattleScreen {
            <div class="bar-container atb-container">
              <div class="bar-fill atb-fill adv-atb" id="adv-atb-fill-${a.id}" style="width:${Math.min(100,a.atbGauge)}%"></div>
            </div>
+           <div class="adv-buffs" id="adv-buffs-${a.id}"></div>
         </div>
       </div>
     `).join('');
@@ -177,11 +179,23 @@ export class BattleScreen {
       if (!ae || !ae.hpFill) continue;
       if (a.status === 'dead') ae.card.classList.add('dead');
       else ae.card.classList.remove('dead');
-      
+
       const hpPct = Math.max(0, (a.hp / a.maxHp) * 100);
       ae.hpFill.style.width = `${hpPct}%`;
       ae.hpText.textContent = `${a.hp}/${a.maxHp}`;
       ae.atbFill.style.width = `${Math.min(100, a.atbGauge)}%`;
+
+      if (ae.buffs) {
+        if (a.activeBuffs && a.activeBuffs.length > 0) {
+          ae.buffs.innerHTML = a.activeBuffs.map(b => {
+            const statName = b.stat === 'atk' ? '攻撃' : b.stat === 'def' ? '防御' : '速度';
+            const isPos = b.amount > 0;
+            return `<span class="adv-buff-badge ${isPos ? 'buff-up' : 'buff-down'}">${statName}${isPos ? '↑' : '↓'}</span>`;
+          }).join('');
+        } else {
+          ae.buffs.innerHTML = '';
+        }
+      }
     }
 
     // Log updates — only when log has new entries (avoid innerHTML every frame)
