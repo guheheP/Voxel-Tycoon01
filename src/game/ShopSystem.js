@@ -97,7 +97,13 @@ export class ShopSystem {
     }
   }
 
+  /** 売値計算 — 他モジュールからも呼べるように static 相当で公開 */
   _calcValue(item) {
+    return ShopSystem.calcValue(item);
+  }
+
+  /** 売値計算（静的メソッド — ShopSystem インスタンスなしで呼べる） */
+  static calcValue(item) {
     const bp = ItemBlueprints[item.blueprintId];
     if (!bp) return 10;
 

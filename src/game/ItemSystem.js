@@ -4,6 +4,7 @@
  */
 import { ItemBlueprints, Recipes, TraitDefs } from './data/items.js';
 import { GameConfig } from './data/config.js';
+import { ShopSystem } from './ShopSystem.js';
 
 // Re-export for backward compatibility
 export { ItemBlueprints, Recipes };
@@ -21,15 +22,17 @@ export function createItemInstance(blueprintId, quality, traits = []) {
   const bp = ItemBlueprints[blueprintId];
   if (!bp) throw new Error(`Unknown blueprint: ${blueprintId}`);
 
-  return {
+  const instance = {
     uid: crypto.randomUUID(),
     blueprintId,
     name: bp.name,
     type: bp.type,
     quality: Math.floor(quality),
     traits: [...traits],
-    value: Math.floor(bp.baseValue * (1 + quality / 100)),
+    value: 0,
   };
+  instance.value = ShopSystem.calcValue(instance);
+  return instance;
 }
 
 /**
