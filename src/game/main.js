@@ -203,6 +203,16 @@ async function startGame(saveData) {
   // ゲームBGMへ移行（タイトル曲が終わったら切り替わる）
   SoundManager.startGameBGM();
 
+  // DEV モード: シミュレータパネル（` キーでトグル）
+  if (import.meta.env.DEV) {
+    const { SimulatorPanel } = await import('./ui/SimulatorPanel.js');
+    const simPanel = new SimulatorPanel();
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '`' || e.key === '半角/全角') simPanel.toggle();
+    });
+    console.log('[DEV] SimulatorPanel ready — press ` to open');
+  }
+
   console.log('[VoxelGame] Game started.' + (saveData ? ' (loaded save)' : ''));
 }
 

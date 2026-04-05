@@ -1,0 +1,258 @@
+/* ========================================================
+   Simulator Panel — ゲーム内デバッグパネル
+   ======================================================== */
+
+.sim-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.sim-panel-overlay.sim-panel-visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.sim-panel {
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  width: 580px;
+  max-width: 96vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.7);
+}
+
+.sim-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.sim-panel-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #e9ecef;
+  white-space: nowrap;
+}
+
+.sim-tab-bar {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+}
+
+.sim-tab-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #868e96;
+  font-size: 0.78rem;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sim-tab-btn:hover {
+  color: #ced4da;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+.sim-tab-btn.active {
+  background: rgba(77, 171, 247, 0.2);
+  border-color: #4dabf7;
+  color: #74c0fc;
+}
+
+.sim-close-btn {
+  background: transparent;
+  border: none;
+  color: #868e96;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.sim-close-btn:hover {
+  color: #ff6b6b;
+}
+
+/* ── Body ── */
+
+.sim-panel-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 16px;
+}
+
+.sim-tab-content {
+  display: none;
+}
+.sim-tab-content.active {
+  display: block;
+}
+
+/* ── Controls ── */
+
+.sim-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sim-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sim-field label {
+  font-size: 0.75rem;
+  color: #868e96;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sim-field select,
+.sim-field input[type="number"] {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  color: #e9ecef;
+  font-size: 0.85rem;
+  padding: 6px 8px;
+  width: 100%;
+}
+
+.sim-field select:focus,
+.sim-field input:focus {
+  outline: none;
+  border-color: #4dabf7;
+}
+
+.sim-field-row {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sim-field-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100px;
+}
+
+.sim-input-sm {
+  width: 80px !important;
+}
+
+.sim-check-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sim-check-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.82rem;
+  color: #ced4da;
+  cursor: pointer;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  transition: border-color 0.15s;
+}
+.sim-check-label:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.sim-check-label input[type="checkbox"] {
+  accent-color: #4dabf7;
+}
+
+.sim-run-btn {
+  background: linear-gradient(135deg, #4dabf7, #339af0);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+  align-self: flex-start;
+}
+.sim-run-btn:hover { filter: brightness(1.1); }
+.sim-run-btn:active { transform: scale(0.97); }
+.sim-run-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Results ── */
+
+.sim-results {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 14px;
+}
+
+.sim-result-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.sim-stat-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 90px;
+}
+
+.sim-stat-label {
+  font-size: 0.7rem;
+  color: #868e96;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sim-stat-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #e9ecef;
+}
+
+#sim-battle-canvas,
+#sim-explore-canvas,
+#sim-econ-canvas {
+  display: block;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
