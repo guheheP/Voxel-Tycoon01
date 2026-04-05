@@ -29,6 +29,15 @@ export const GameConfig = {
   exploreQualityMax: 40,
   traitChance: 0.35,
 
+  // 特性はみ出し抽選 — エリアのtraitPool外からランダムに出る確率
+  traitBonusRollChance: 0.12,       // 探索ごとにはみ出し抽選が発生する確率
+  traitBonusRarityWeights: {        // はみ出し抽選時のレアリティ重み
+    uncommon: 50,
+    rare: 25,
+    epic: 8,
+    legendary: 2,
+  },
+
   // --- クラフト ---
   maxTraitSlots: 3,
 

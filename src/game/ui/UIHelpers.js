@@ -111,6 +111,7 @@ function buildTraitEffectsHTML(traitName) {
     startAtb:           v => `ATB先行 +${v} ※バトル`,
     battleRegen:        v => `HP毎秒回復 +${v} ※バトル`,
     battleDmgReduction: v => `ダメージ軽減 -${v} ※バトル`,
+    traitChanceBonus:   v => `特性付与率 +${v}%`,
   };
 
   return Object.entries(def.effects)
