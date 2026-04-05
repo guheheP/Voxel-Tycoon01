@@ -2,8 +2,9 @@
  * ToastManager — 画面右下にスタック表示される通知システム
  */
 import { eventBus } from '../core/EventBus.js';
-import { ItemBlueprints } from '../data/items.js';
+import { ItemBlueprints, TraitDefs } from '../data/items.js';
 import { assetPath } from '../core/assetPath.js';
+import { getQualityTier } from './UIHelpers.js';
 
 const MAX_ITEM_ICONS = 5;
 
@@ -29,12 +30,15 @@ export class ToastManager {
   }
 
   /**
-   * 冒険者帰還トースト — アイテムアイコン付き
+   * 冒険者帰還トースト — アイテムアイコン付き＋詳細ボタン
    */
   _showAdventurerReturn(d) {
     const items = d.items || [];
     const advName = d.adventurer?.name || '冒険者';
     const isSuccess = d.success !== false; // 後方互換
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${isSuccess ? 'green' : 'red'}`;
 
     // テキスト部分
     const textEl = document.createElement('div');
@@ -44,6 +48,7 @@ export class ToastManager {
     } else {
       textEl.textContent = `❌ ${advName} の探索失敗… 素材を入手できなかった`;
     }
+    toast.appendChild(textEl);
 
     // アイコン行
     const iconsEl = document.createElement('div');
@@ -66,7 +71,6 @@ export class ToastManager {
         img.loading = 'lazy';
         wrapper.appendChild(img);
       } else {
-        // 画像がない場合は名前の頭文字をフォールバック
         wrapper.textContent = (item.name || '?')[0];
       }
       iconsEl.appendChild(wrapper);
@@ -79,8 +83,65 @@ export class ToastManager {
       more.textContent = `+${items.length - MAX_ITEM_ICONS}`;
       iconsEl.appendChild(more);
     }
+    toast.appendChild(iconsEl);
 
-    this.showHtml([textEl, iconsEl], isSuccess ? 'green' : 'red');
+    // 詳細ボタン（成功時かつアイテムあり）
+    if (isSuccess && items.length > 0) {
+      const detailBtn = document.createElement('button');
+      detailBtn.className = 'toast-detail-btn';
+      detailBtn.textContent = '📋 詳細';
+      detailBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._showReturnDetailModal(d);
+      });
+      toast.appendChild(detailBtn);
+    }
+
+    this._present(toast);
+  }
+
+  /**
+   * 帰還ドロップ詳細モーダル
+   */
+  _showReturnDetailModal(d) {
+    const items = d.items || [];
+    const advName = d.adventurer?.name || '冒険者';
+    const successRate = d.successRate;
+
+    const itemRows = items.map(item => {
+      const tier = getQualityTier(item.quality);
+      const traitBadges = (item.traits || []).map(t => {
+        const def = TraitDefs[t];
+        const rc = def ? `trait-rarity-${def.rarity || 'common'}` : '';
+        const title = def?.description ?? '';
+        return `<span class="trait-badge ${rc}" title="${title}">${t}</span>`;
+      }).join('');
+      return `
+        <div class="return-item-row">
+          <span class="return-item-emoji">📦</span>
+          <span class="return-item-name">${item.name}</span>
+          <span class="return-item-quality" style="color:${tier.color}">${tier.icon} Q${item.quality}</span>
+          ${traitBadges ? `<div class="return-item-traits">${traitBadges}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'item-detail-overlay';
+    overlay.innerHTML = `
+      <div class="item-detail-modal return-detail-modal">
+        <button class="item-detail-close" id="return-modal-close">✕</button>
+        <div class="return-modal-title">
+          <span>✅ ${advName} が帰還</span>
+          ${successRate != null ? `<span class="return-modal-rate">🎯 ${successRate}%</span>` : ''}
+        </div>
+        <div class="return-modal-items">${itemRows}</div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    overlay.querySelector('#return-modal-close').addEventListener('click', () => overlay.remove());
   }
 
   /**

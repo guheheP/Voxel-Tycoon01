@@ -48,10 +48,10 @@ function renderBattleEffectHTML(item) {
   const bp = ItemBlueprints[item.blueprintId];
   if (!bp || !bp.battleEffect) return '';
   const fx = bp.battleEffect;
-  
+
   let desc = '';
   let icon = '⚔️';
-  
+
   if (fx.type === 'heal') {
     icon = '❤️';
     desc = `HP ${fx.value} 回復`;
@@ -69,8 +69,14 @@ function renderBattleEffectHTML(item) {
     icon = '⬇️';
     const stat = fx.stat === 'atk' ? '攻撃' : fx.stat === 'def' ? '防御' : '素早さ';
     desc = `敵${stat}${fx.amount} (${fx.duration}秒)`;
+  } else if (fx.type === 'damage') {
+    icon = '💥';
+    desc = `ボスに ${fx.value} ダメージ`;
+  } else if (fx.type === 'stun') {
+    icon = '⚡';
+    desc = `ボスをスタン (${fx.duration}秒)`;
   }
-  
+
   return `<div class="item-battle-effect"><span class="battle-effect-icon">${icon}</span><span class="battle-effect-desc">戦闘: ${desc}</span></div>`;
 }
 
@@ -85,6 +91,121 @@ function renderImageArea(item, typeInfo) {
 }
 
 /**
+ * 特性の effects オブジェクトから読みやすい説明行の HTML を生成
+ */
+function buildTraitEffectsHTML(traitName) {
+  const def = TraitDefs[traitName];
+  if (!def?.effects) return '';
+
+  const labels = {
+    exploreSuccess:     v => `探索成功率 ${v > 0 ? '+' : ''}${v}%`,
+    speedBonus:         v => `探索速度 +${v}%`,
+    dropBonus:          v => `ドロップ +${v}`,
+    qualityBonus:       v => `素材品質 +${v}`,
+    craftQualityBonus:  v => `調合品質 +${v}`,
+    sellBonus:          v => `売値 ${v > 0 ? '+' : ''}${v}%`,
+    battleAtk:          v => `攻撃力 +${v} ※バトル`,
+    battleDef:          v => `防御力 +${v} ※バトル`,
+    battleSpd:          v => `素早さ +${v} ※バトル`,
+    battleHp:           v => `最大HP +${v} ※バトル`,
+    startAtb:           v => `ATB先行 +${v} ※バトル`,
+    battleRegen:        v => `HP毎秒回復 +${v} ※バトル`,
+    battleDmgReduction: v => `ダメージ軽減 -${v} ※バトル`,
+  };
+
+  return Object.entries(def.effects)
+    .filter(([, v]) => v !== 0)
+    .map(([k, v]) => {
+      const fn = labels[k];
+      return fn ? `<span class="trait-effect-line">${fn(v)}</span>` : '';
+    })
+    .filter(Boolean)
+    .join('');
+}
+
+/**
+ * アイテムの詳細モーダルを表示する（インベントリタブ等からクリックで呼ぶ）
+ */
+export function openItemDetailModal(item) {
+  const tier = getQualityTier(item.quality);
+  const typeInfo = getTypeInfo(item.type);
+
+  const traitsDetailHtml = item.traits.length > 0
+    ? item.traits.map(t => {
+        const def = TraitDefs[t];
+        const rarityClass = def ? `trait-rarity-${def.rarity || 'common'}` : '';
+        const effectsHtml = buildTraitEffectsHTML(t);
+        return `
+          <div class="detail-trait-row">
+            <span class="trait-badge ${rarityClass}">${t}</span>
+            <div class="detail-trait-effects">${effectsHtml || '<span class="trait-effect-line text-dim">—</span>'}</div>
+          </div>
+        `;
+      }).join('')
+    : '<div class="detail-no-traits text-dim">特性なし</div>';
+
+  // 戦闘効果セクション
+  const bp = ItemBlueprints[item.blueprintId];
+  let battleSectionHtml = '';
+  if (bp?.battleEffect) {
+    const fx = bp.battleEffect;
+    let desc = '';
+    if (fx.type === 'heal') desc = `❤️ HP ${fx.value} 回復`;
+    else if (fx.type === 'healfull') desc = '❤️‍🩹 HP 全回復';
+    else if (fx.type === 'revive') desc = `✨ 復活 (HP ${fx.value})`;
+    else if (fx.type === 'buff') {
+      const stat = fx.stat === 'atk' ? '攻撃' : fx.stat === 'def' ? '防御' : '素早さ';
+      desc = `⬆️ ${stat}+${fx.amount} (${fx.duration}秒)`;
+    } else if (fx.type === 'debuff') {
+      const stat = fx.stat === 'atk' ? '攻撃' : fx.stat === 'def' ? '防御' : '素早さ';
+      desc = `⬇️ 敵${stat}${fx.amount} (${fx.duration}秒)`;
+    } else if (fx.type === 'damage') {
+      desc = `💥 ボスに ${fx.value} ダメージ`;
+    } else if (fx.type === 'stun') {
+      desc = `⚡ ボスをスタン (${fx.duration}秒)`;
+    }
+    if (desc) {
+      battleSectionHtml = `
+        <div class="detail-section">
+          <div class="detail-section-title">── 戦闘効果 ──</div>
+          <div class="detail-battle-effect">${desc}</div>
+        </div>
+      `;
+    }
+  }
+
+  const modal = document.createElement('div');
+  modal.className = 'item-detail-overlay';
+  modal.innerHTML = `
+    <div class="item-detail-modal">
+      <button class="item-detail-close" id="item-detail-close">✕</button>
+      <div class="item-detail-header">
+        <span class="item-detail-icon">${typeInfo.emoji}</span>
+        <div>
+          <div class="item-detail-name">${item.name}</div>
+          <div class="item-detail-type">${typeInfo.icon} ${typeInfo.label}</div>
+        </div>
+      </div>
+      <div class="item-detail-quality">
+        <span style="color:${tier.color}">${tier.icon} ${tier.name} (Q${item.quality}/100)</span>
+        <div class="item-quality-bar" style="margin-top:4px">
+          <div class="item-quality-fill" style="width:${item.quality}%"></div>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-title">── 特性 ──</div>
+        ${traitsDetailHtml}
+      </div>
+      ${battleSectionHtml}
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  modal.querySelector('#item-detail-close').addEventListener('click', () => modal.remove());
+}
+
+/**
  * アイテムインスタンスを DOM カード HTMLとして生成（倉庫用）
  */
 export function createItemCardHTML(item) {
@@ -92,11 +213,15 @@ export function createItemCardHTML(item) {
   const typeInfo = getTypeInfo(item.type);
 
   const traitsHtml = item.traits
-    .map(t => `<span class="trait-badge ${traitColorClass(t)}">${t}</span>`)
+    .map(t => {
+      const def = TraitDefs[t];
+      const title = def?.description ?? '';
+      return `<span class="trait-badge ${traitColorClass(t)}" title="${title}">${t}</span>`;
+    })
     .join('');
 
   return `
-    <div class="item-card ${tier.css} ${typeInfo.css}">
+    <div class="item-card ${tier.css} ${typeInfo.css}" data-uid="${item.uid}">
       ${renderImageArea(item, typeInfo)}
       <div class="item-card-body">
         <div class="item-card-type-strip">
@@ -128,7 +253,11 @@ export function createShopItemCardHTML(item) {
   const typeInfo = getTypeInfo(item.type);
 
   const traitsHtml = item.traits
-    .map(t => `<span class="trait-badge ${traitColorClass(t)}">${t}</span>`)
+    .map(t => {
+      const def = TraitDefs[t];
+      const title = def?.description ?? '';
+      return `<span class="trait-badge ${traitColorClass(t)}" title="${title}">${t}</span>`;
+    })
     .join('');
 
   return `
@@ -164,7 +293,11 @@ export function createDisplayedItemCardHTML(item) {
   const typeInfo = getTypeInfo(item.type);
 
   const traitsHtml = item.traits
-    .map(t => `<span class="trait-badge ${traitColorClass(t)}">${t}</span>`)
+    .map(t => {
+      const def = TraitDefs[t];
+      const title = def?.description ?? '';
+      return `<span class="trait-badge ${traitColorClass(t)}" title="${title}">${t}</span>`;
+    })
     .join('');
 
   return `

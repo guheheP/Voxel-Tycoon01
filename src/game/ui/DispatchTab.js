@@ -14,6 +14,12 @@ export class DispatchTab {
     this.adventurers = adventurerSystem;
     this.inventory = inventorySystem;
     this.el = document.querySelector('#tab-dispatch');
+
+    // レベルアップ演出用: 対象冒険者ID を保持
+    this._pendingLevelUps = new Set();
+    this._unsubLevelUp = eventBus.on('adventurer:levelUp', (d) => {
+      this._pendingLevelUps.add(d.adventurer.id);
+    });
   }
 
   render() {
@@ -82,7 +88,7 @@ export class DispatchTab {
       }).join('');
 
       return `
-        <div class="disp-adv-card">
+        <div class="disp-adv-card" data-adv-id="${adv.id}">
           <div class="disp-adv-header">
             <div class="disp-adv-identity">
               <span class="disp-adv-icon">${adv.icon}</span>
@@ -326,5 +332,33 @@ export class DispatchTab {
         el.style.width = `${pct}%`;
       }
     });
+
+    // レベルアップ演出
+    if (this._pendingLevelUps.size > 0) {
+      for (const advId of this._pendingLevelUps) {
+        const card = this.el.querySelector(`.disp-adv-card[data-adv-id="${advId}"]`);
+        if (!card) continue;
+
+        // カード発光フラッシュ
+        card.classList.add('levelup-flash');
+        card.addEventListener('animationend', () => card.classList.remove('levelup-flash'), { once: true });
+
+        // "+1 Lv" バッジを Lv表示の横にポップ
+        const lvEl = card.querySelector('.disp-adv-level');
+        if (lvEl) {
+          const badge = document.createElement('span');
+          badge.className = 'lv-up-badge';
+          badge.textContent = '+1 Lv';
+          lvEl.insertAdjacentElement('afterend', badge);
+          setTimeout(() => badge.remove(), 1300);
+        }
+
+        this._pendingLevelUps.delete(advId);
+      }
+    }
+  }
+
+  dispose() {
+    if (this._unsubLevelUp) this._unsubLevelUp();
   }
 }
