@@ -210,8 +210,14 @@ export class BattleScreen {
 
     // Log updates — only when log has new entries (avoid innerHTML every frame)
     if (els.logContainer && state.log.length !== this._lastLogLength) {
+      const newCount = state.log.length - this._lastLogLength;
+      const newEntries = state.log.slice(0, newCount);
       this._lastLogLength = state.log.length;
       els.logContainer.innerHTML = state.log.map(l => `<div class="log-line">${l.msg}</div>`).join('');
+      // Spawn damage/heal popups for each new log entry
+      for (const entry of newEntries) {
+        this._processLogForPopup(entry.msg);
+      }
     }
 
     // Cooldown + inventory update
@@ -302,6 +308,61 @@ export class BattleScreen {
     modal.querySelector('#confirm-no').addEventListener('click', () => {
       modal.remove();
     });
+  }
+
+  /**
+   * ログエントリを解析してダメージ/回復ポップアップを発火
+   */
+  _processLogForPopup(msg) {
+    const els = this._els;
+
+    // ボスへのダメージ: "XXXの攻撃！ ボスに 42 のダメージ！" or "XXX がボスに 30 ダメージ！"
+    const bossDmgMatch = msg.match(/ボスに (\d+) (?:のダメージ|ダメージ)/);
+    if (bossDmgMatch && els.bossIcon) {
+      this._spawnDamagePopup(`-${bossDmgMatch[1]}`, els.bossIcon, 'dmg-enemy');
+      return;
+    }
+
+    // 冒険者へのダメージ: "ボスの攻撃！ XXXに 15 のダメージ！"
+    const advDmgMatch = msg.match(/(.+?)に (\d+) のダメージ/);
+    if (advDmgMatch) {
+      const targetName = advDmgMatch[1].replace(/^.*?！ /, '');
+      const adv = this.state?.adventurers.find(a => a.name === targetName);
+      if (adv && els.advEls[adv.id]?.card) {
+        this._spawnDamagePopup(`-${advDmgMatch[2]}`, els.advEls[adv.id].card, 'dmg-ally');
+        return;
+      }
+    }
+
+    // HP回復: "XXXのHPが 30 回復！"
+    const healMatch = msg.match(/(.+?)のHPが (\d+) 回復/);
+    if (healMatch) {
+      const advName = healMatch[1];
+      const adv = this.state?.adventurers.find(a => a.name === advName);
+      if (adv && els.advEls[adv.id]?.card) {
+        this._spawnDamagePopup(`+${healMatch[2]}`, els.advEls[adv.id].card, 'dmg-heal');
+      }
+    }
+  }
+
+  /**
+   * 指定要素上にダメージ/回復テキストをフロートするポップアップを生成
+   */
+  _spawnDamagePopup(text, targetEl, cssClass) {
+    const popup = document.createElement('div');
+    popup.className = `dmg-popup ${cssClass}`;
+    popup.textContent = text;
+
+    const offsetX = (Math.random() - 0.5) * 28;
+    popup.style.left = `calc(50% + ${offsetX}px)`;
+    popup.style.top = '10%';
+
+    // 親に position:relative が必要
+    const prevPosition = targetEl.style.position;
+    if (!prevPosition) targetEl.style.position = 'relative';
+
+    targetEl.appendChild(popup);
+    setTimeout(() => popup.remove(), 900);
   }
 
   dispose() {

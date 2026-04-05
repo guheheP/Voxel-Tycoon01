@@ -387,3 +387,38 @@
   from { transform: scale(1.0); }
   to   { transform: scale(0.95) rotate(-3deg); }
 }
+
+/* ── Damage / Heal Popups ── */
+@keyframes dmgFloat {
+  0%   { transform: translateX(-50%) translateY(0) scale(1.1); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-46px) scale(0.8); opacity: 0; }
+}
+
+.dmg-popup {
+  position: absolute;
+  pointer-events: none;
+  font-family: var(--font-title, 'Outfit', sans-serif);
+  font-weight: 800;
+  font-size: 1.15rem;
+  white-space: nowrap;
+  animation: dmgFloat 0.85s ease-out forwards;
+  z-index: 200;
+  letter-spacing: 0.02em;
+}
+.dmg-popup.dmg-enemy {
+  color: #fca311;
+  text-shadow: 0 0 8px rgba(252, 163, 17, 0.7), 0 1px 3px rgba(0,0,0,0.6);
+}
+.dmg-popup.dmg-ally {
+  color: #e63946;
+  text-shadow: 0 0 8px rgba(230, 57, 70, 0.7), 0 1px 3px rgba(0,0,0,0.6);
+}
+.dmg-popup.dmg-heal {
+  color: #7ddd88;
+  text-shadow: 0 0 8px rgba(125, 221, 136, 0.7), 0 1px 3px rgba(0,0,0,0.6);
+}
+
+/* ボスエリアと冒険者カードをポップアップのアンカーに */
+.boss-icon, .party-member {
+  position: relative;
+}

@@ -1,7 +1,7 @@
 /**
  * InventoryTab — 倉庫タブ（カテゴリフィルタ・ソート対応版）
  */
-import { createItemCardHTML, getTypeInfo } from './UIHelpers.js';
+import { createItemCardHTML, getTypeInfo, openItemDetailModal } from './UIHelpers.js';
 
 export class InventoryTab {
   constructor(inventorySystem) {
@@ -87,5 +87,16 @@ export class InventoryTab {
         this.render();
       });
     });
+    // Bind item card clicks — event delegation on the grid
+    const grid = this.el.querySelector('.item-grid');
+    if (grid) {
+      grid.addEventListener('click', (e) => {
+        const card = e.target.closest('.item-card[data-uid]');
+        if (!card) return;
+        const uid = card.dataset.uid;
+        const item = sorted.find(i => i.uid === uid);
+        if (item) openItemDetailModal(item);
+      });
+    }
   }
 }
