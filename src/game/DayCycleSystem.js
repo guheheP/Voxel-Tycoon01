@@ -50,7 +50,7 @@ export class DayCycleSystem {
     
     // ボス撃破イベント
     this._unsubs.push(eventBus.on('battle:win', (d) => {
-       if (d.rankIndex) {
+       if (d.rankIndex != null) {
          this._doRankUp(d.rankIndex);
        }
     }));

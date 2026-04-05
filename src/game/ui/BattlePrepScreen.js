@@ -6,8 +6,14 @@
  */
 import { eventBus } from '../core/EventBus.js';
 import { ItemBlueprints } from '../data/items.js';
+import { AdventurerDefs, UnlockableAdventurers } from '../data/adventurers.js';
 import { GameConfig } from '../data/config.js';
 import { assetPath } from '../core/assetPath.js';
+
+const _allAdvDefs = [...AdventurerDefs, ...UnlockableAdventurers];
+function _getAdvDef(id) {
+  return _allAdvDefs.find(d => d.id === id);
+}
 
 export class BattlePrepScreen {
   constructor(inventorySystem, adventurerSystem) {
@@ -89,16 +95,23 @@ export class BattlePrepScreen {
   }
 
   _renderAdvCard(adv) {
+    const def = _getAdvDef(adv.id);
+    const bat = (def && def.battle) || { maxHp: 100, atk: 10, def: 5, spd: 50 };
+    const level = adv.level || 1;
+    const hp = bat.maxHp + (level - 1) * 5;
+    const atk = bat.atk + (level - 1) * 2;
+    const defStat = bat.def + (level - 1) * 1;
+    const spd = bat.spd + (level - 1) * 2;
     return `
       <div class="prep-adv-card">
         <span class="prep-adv-icon">${adv.icon}</span>
         <div class="prep-adv-info">
-          <div class="prep-adv-name">${adv.name} <span class="prep-adv-lv">Lv.${adv.level}</span></div>
+          <div class="prep-adv-name">${adv.name} <span class="prep-adv-lv">Lv.${level}</span></div>
           <div class="prep-adv-stats">
-            <span>❤️ ${adv.baseHp || '?'}</span>
-            <span>⚔ ${adv.baseAtk || '?'}</span>
-            <span>🛡 ${adv.baseDef || '?'}</span>
-            <span>💨 ${adv.baseSpd || '?'}</span>
+            <span>❤️ ${hp}</span>
+            <span>⚔ ${atk}</span>
+            <span>🛡 ${defStat}</span>
+            <span>💨 ${spd}</span>
           </div>
         </div>
       </div>

@@ -460,11 +460,15 @@ export class CraftingPuzzle {
       ctx.stroke();
     }
 
-    // Placed blocks
+    // Placed blocks — clearingCells を Map 化して O(1) ルックアップ
+    const clearingMap = new Map();
+    for (const cl of this.clearingCells) {
+      clearingMap.set(cl.row * COLS + cl.col, cl);
+    }
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         if (this.grid[r][c] !== -1) {
-          const clearing = this.clearingCells.find(cl => cl.row === r && cl.col === c);
+          const clearing = clearingMap.get(r * COLS + c);
           if (clearing) {
             this._drawBlock(c, r, this.grid[r][c], clearing.timer);
           } else {

@@ -13,6 +13,7 @@ export class BattleScreen {
 
     // DOM element caches (set in show())
     this._els = {};
+    this._lastBuffKeys = {};  // advId -> serialized buff string
 
     this._resultShown = false;
 
@@ -185,7 +186,7 @@ export class BattleScreen {
     // Boss updates (cached elements, no querySelector per frame)
     const bossHpPct = Math.max(0, (state.boss.hp / state.boss.maxHp) * 100);
     if (els.bossHpFill) els.bossHpFill.style.width = `${bossHpPct}%`;
-    if (els.bossHpText) els.bossHpText.textContent = `${state.boss.hp}/${state.boss.maxHp}`;
+    if (els.bossHpText) els.bossHpText.textContent = `${Math.floor(state.boss.hp)}/${state.boss.maxHp}`;
     if (els.bossAtbFill) els.bossAtbFill.style.width = `${Math.min(100, state.boss.atbGauge)}%`;
     if (els.bossIcon) {
       if (state.boss.stunTimer > 0) els.bossIcon.classList.add('boss-stunned');
@@ -201,18 +202,22 @@ export class BattleScreen {
 
       const hpPct = Math.max(0, (a.hp / a.maxHp) * 100);
       ae.hpFill.style.width = `${hpPct}%`;
-      ae.hpText.textContent = `${a.hp}/${a.maxHp}`;
+      ae.hpText.textContent = `${Math.floor(a.hp)}/${a.maxHp}`;
       ae.atbFill.style.width = `${Math.min(100, a.atbGauge)}%`;
 
       if (ae.buffs) {
-        if (a.activeBuffs && a.activeBuffs.length > 0) {
-          ae.buffs.innerHTML = a.activeBuffs.map(b => {
-            const statName = b.stat === 'atk' ? '攻撃' : b.stat === 'def' ? '防御' : '速度';
-            const isPos = b.amount > 0;
-            return `<span class="adv-buff-badge ${isPos ? 'buff-up' : 'buff-down'}">${statName}${isPos ? '↑' : '↓'}</span>`;
-          }).join('');
-        } else {
-          ae.buffs.innerHTML = '';
+        const buffKey = a.activeBuffs ? a.activeBuffs.map(b => `${b.stat}${b.amount > 0 ? '+' : '-'}`).join(',') : '';
+        if (this._lastBuffKeys[a.id] !== buffKey) {
+          this._lastBuffKeys[a.id] = buffKey;
+          if (a.activeBuffs && a.activeBuffs.length > 0) {
+            ae.buffs.innerHTML = a.activeBuffs.map(b => {
+              const statName = b.stat === 'atk' ? '攻撃' : b.stat === 'def' ? '防御' : '速度';
+              const isPos = b.amount > 0;
+              return `<span class="adv-buff-badge ${isPos ? 'buff-up' : 'buff-down'}">${statName}${isPos ? '↑' : '↓'}</span>`;
+            }).join('');
+          } else {
+            ae.buffs.innerHTML = '';
+          }
         }
       }
     }
@@ -236,24 +241,31 @@ export class BattleScreen {
          const pct = (state.itemCooldown / cdMax) * 100;
          els.cdBar.style.width = `${Math.min(100, pct)}%`;
          els.cdBar.style.display = 'block';
-         
+
          // Disable item buttons via CSS class on container (single operation, not per-button)
          if (els.inventory) els.inventory.classList.add('cooldown-active');
        } else {
          els.cdBar.style.width = '0%';
          els.cdBar.style.display = 'none';
          if (els.inventory) els.inventory.classList.remove('cooldown-active');
-         
-         // Re-check inventory only if item count actually changed
-         const currentCount = this.inventory.items.filter(i => ItemBlueprints[i.blueprintId]?.battleEffect).length;
-         if (currentCount !== this._lastItemCount) {
-            this._lastItemCount = currentCount;
-            this.itemsWithEffects = this.inventory.items.filter(i => ItemBlueprints[i.blueprintId]?.battleEffect);
-            if (els.inventory) {
-              els.inventory.innerHTML = this._renderItems();
-              this._bindItemClicks();
-            }
-         }
+       }
+
+       // アイテムリストの同期（クールダウン中も使用済みアイテムを反映）
+       const currentCount = this.inventory.items.filter(i => ItemBlueprints[i.blueprintId]?.battleEffect).length;
+       if (currentCount !== this._lastItemCount) {
+          this._lastItemCount = currentCount;
+          const allBattleItems = this.inventory.items.filter(i => ItemBlueprints[i.blueprintId]?.battleEffect);
+          if (state.selectedItems && state.selectedItems.length > 0) {
+            this.itemsWithEffects = allBattleItems.filter(item =>
+              state.selectedItems.includes(item.uid)
+            );
+          } else {
+            this.itemsWithEffects = allBattleItems;
+          }
+          if (els.inventory) {
+            els.inventory.innerHTML = this._renderItems();
+            this._bindItemClicks();
+          }
        }
     }
   }

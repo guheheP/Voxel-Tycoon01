@@ -74,7 +74,9 @@ export class RandomEventSystem {
         break;
       }
       case 'pay_tax': {
-        this.inventory.spendGold(event.taxAmount);
+        if (!this.inventory.spendGold(event.taxAmount)) {
+          eventBus.emit('toast', { message: 'ゴールド不足のため税金を支払えませんでした', type: 'warning' });
+        }
         break;
       }
       case 'explore_slow':
