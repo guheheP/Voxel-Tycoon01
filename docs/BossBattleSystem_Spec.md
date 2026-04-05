@@ -1,5 +1,8 @@
 # 仕様書：ボスバトルシステム — ひだまり森の錬金工房
 
+> **✅ 実装完了 (2025-04)**
+> 主要コミット: `e2bf16b` (実装), `48a36e9` (修正), `b09e867` (アイテム追加), `f889c60` (特性統合)
+
 ---
 
 ## 1. 概要・目的
@@ -119,27 +122,87 @@ divine_elixir:  { ..., battleEffect: { type: 'revive',   target: 'ally',  value:
 enchant_scroll: { ..., battleEffect: { type: 'debuff',   target: 'enemy', stat: 'def', amount: -15, duration: 20 } },
 ```
 
-**`battleEffect` の型定義:**
+**`battleEffect` の型定義（全7種）:**
+
+| type | target | 効果 | 追加フィールド |
+|------|--------|------|--------------|
+| `heal` | ally / all | HP回復 | `value: number` |
+| `healfull` | ally / all | HP全回復 | — |
+| `revive` | ally | 戦闘不能から復活 | `value: number`（復活HP） |
+| `buff` | ally / all | ステータス上昇 | `stat`, `amount`, `duration` |
+| `debuff` | enemy | ボスのステータス低下 | `stat`, `amount`, `duration` |
+| **`damage`** ✅ NEW | enemy | ボスへの固定ダメージ | `value: number` |
+| **`stun`** ✅ NEW | enemy | ボスのATBゲージ停止 | `duration: number`（秒） |
+
 ```ts
 type BattleEffectTarget = 'ally' | 'all' | 'enemy';
 type BattleEffect =
   | { type: 'heal',     target: BattleEffectTarget, value: number }
   | { type: 'healfull', target: BattleEffectTarget }
-  | { type: 'revive',   target: BattleEffectTarget, value: number }   // 戦闘不能から復活+HP%回復
-  | { type: 'buff',     target: BattleEffectTarget, stat: string, amount: number, duration: number }
-  | { type: 'debuff',   target: BattleEffectTarget, stat: string, amount: number, duration: number };
+  | { type: 'revive',   target: BattleEffectTarget, value: number }
+  | { type: 'buff',     target: BattleEffectTarget, stat: 'atk'|'def'|'spd', amount: number, duration: number }
+  | { type: 'debuff',   target: BattleEffectTarget, stat: 'atk'|'def'|'spd', amount: number, duration: number }
+  | { type: 'damage',   target: 'enemy', value: number }   // ✅ 実装済み
+  | { type: 'stun',     target: 'enemy', duration: number }; // ✅ 実装済み
 ```
 
-> 爆弾などの攻撃アイテムは将来課題（スコープ外）。
+**実装済みバトルアイテム一覧（全21種）:**
 
-### 3-4. config.js への追加（`src/game/data/config.js`）
+| アイテムID | Rank | 効果 | 素材 |
+|-----------|------|------|------|
+| herb_tea | 1 | heal ally 20 | ハーブ+花びら |
+| potion | 1 | heal ally 40 | ハーブ+スライムゼリー |
+| antidote_basic | 1 | buff def+5 (15s) | 虫の殻+スライムゼリー |
+| **mud_ball** ✅NEW | 1 | debuff enemy spd-10 (10s) | 粘土+スライムゼリー |
+| antidote | 2 | buff def+10 (20s) | ハーブ+毒草 |
+| stamina_drink | 2 | buff spd+30 (15s) | キノコ+スライムゼリー |
+| **iron_spike** ✅NEW | 2 | damage enemy 35 | 鉄鉱石+骨 |
+| elixir | 3 | heal ally 90 | ハーブ+水晶+スライムゼリー |
+| strength_potion | 3 | buff atk+20 (20s) | キノコ+妖精の粉 |
+| magic_ink | 3 | debuff enemy spd-15 (15s) | 水晶+花びら |
+| **weakness_draught** ✅NEW | 3 | debuff enemy atk-20 (20s) | 毒草+キノコ+スライムゼリー |
+| spirit_potion | 4 | buff def+15 (20s) | 霊の欠片+ハーブ+妖精の粉 |
+| enchant_scroll | 4 | debuff enemy def-15 (20s) | 水晶+妖精の粉+霊の欠片 |
+| **thunder_bomb** ✅NEW | 4 | stun enemy 8s | 雷石+溶岩コア |
+| deep_elixir | 5 | heal all 60 | 深海の真珠+黒蓮+ハーブ |
+| lotus_perfume | 5 | buff all spd+25 (20s) | 黒蓮+花びら+妖精の粉 |
+| **revival_herb** ✅NEW | 5 | revive ally HP60 | 黒蓮+霊の欠片+ハーブ |
+| sage_stone | 6 | heal all 100 | 水晶+ムーンストーン+霊の欠片 |
+| dragon_potion | 6 | buff all atk+30 (20s) | 竜の鱗+黒蓮+火石 |
+| divine_elixir | 7 | revive ally HP50 | エーテルの精髄+世界樹の樹液+深海の真珠 |
+| panacea | 8 | healfull all | 世界樹の樹液+不死鳥の灰+始原の宝石 |
+
+### 3-4. config.js への追加（`src/game/data/config.js`）✅
 
 ```js
 bossBattle: {
-  atbFillRate: 1.0,       // ATBゲージ基準速度係数
-  playerItemSlots: 4,     // 持ち込みアイテムスロット数
-  // ダメージ = max(1, 攻撃側 atk + atkBuff - 防御側 def)
+  atbFillRate: 1.0,         // ATBゲージ基準速度係数
+  itemCooldownSeconds: 5,   // アイテム使用後クールダウン（秒）
+  // ダメージ = max(1, 攻撃側atk + atkBuff - 防御側def - dmgReduction)
 },
+```
+
+### 3-5. 特性（トレイト）のバトル統合（`src/game/data/items.js`）✅ NEW
+
+武器に付いたトレイトが `BattleSystem.startBattle()` で冒険者のバトルステータスに反映される。
+
+| TraitDefs エフェクトキー | 効果 | 代表特性 |
+|------------------------|------|---------|
+| `battleAtk` | ATKボーナス | 攻撃力+1 (+8), 攻撃力+2 (+16), 攻撃力+3 (+28), 武神 (+15) |
+| `battleDef` | DEFボーナス | 防御力+1 (+5), 防御力+2 (+10), 防御力+3 (+18), 体力強化 (+3) |
+| `battleSpd` | SPDボーナス（ATB充填速度） | 雷撃 (+20), 疾走 (+18), 武神 (+15) |
+| `battleHp` | 最大HPボーナス | HP回復+ (+20), HP回復++ (+40), 体力強化 (+30), 不死鳥 (+30) |
+| `startAtb` | バトル開始時ATBゲージ初期値（最大50） | 先制 (+25), 疾走 (+15), 武神 (+20) |
+| `battleRegen` | 毎秒HP自動回復 | 再生 (+2/秒), 不死鳥 (+4/秒) |
+| `battleDmgReduction` | 被ダメージ軽減（固定値） | 鉄壁 (-4), 不死鳥 (-0) |
+
+**BattleState 冒険者オブジェクトへの追加フィールド:**
+```js
+{
+  regen: number,         // 毎秒回復HP（再生・不死鳥トレイト由来）
+  dmgReduction: number,  // 被ダメ軽減値（鉄壁トレイト由来）
+  atbGauge: number,      // 初期値が 0 でない場合あり（先制・疾走トレイト由来）
+}
 ```
 
 ---
@@ -203,11 +266,13 @@ export class BattleSystem {
 
 | イベント | タイミング | ペイロード |
 |---------|-----------|----------|
-| `battle:start`  | 戦闘開始時 | `{ areaId, adventurers, boss }` |
+| `battle:start`  | 戦闘開始時 | `BattleState` |
 | `battle:tick`   | 毎フレーム | `BattleState` |
-| `battle:action` | 攻撃/回復発生時 | `{ actor, action, target, value }` |
-| `battle:win`    | 勝利時 | `{ areaId, adventurers }` |
-| `battle:lose`   | 敗北時 | `{ areaId }` |
+| `battle:win`    | 勝利時 | `{ rankIndex }` |
+| `battle:lose`   | 敗北時 | `{ reason: 'wipeout' \| 'flee' }` |
+| `battle:command` | プレイヤー操作 | `{ action: 'useItem', uid } \| { action: 'flee' }` |
+| `battle:se:heal` / `:buff` / `:debuff` / `:revive` / `:damage` / `:stun` | SE発火用 | — |
+| `battle:requestStart` | UpgradeTabからボス挑戦開始要求 | `{ rankIndex, bossId }` |
 
 ### 4-2. main.js への統合（`src/game/main.js`）
 
@@ -328,7 +393,7 @@ case 4:  // v4 → v5
 ## 8. スコープ外（将来課題）
 
 - ボスの3Dモデル表示（`presets.md` / Boxel Voxel Engine 使用）
-- 攻撃アイテム（爆弾・魔法攻撃系）
+- ~~攻撃アイテム（爆弾・魔法攻撃系）~~ ✅ `damage` / `stun` エフェクトとして実装済み
 - ボス固有スキルの演出（フェーズ移行アニメーション）
 - 複数ウェーブ型ボス
 - バトルBGM / SE
