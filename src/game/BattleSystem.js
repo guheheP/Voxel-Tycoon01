@@ -170,8 +170,12 @@ export class BattleSystem {
     this._log(`プレイヤーが ${item.name} を使った！`);
     eventBus.emit('battle:se:itemUse');
 
-    const targets = this._resolveTargets(fx.target, targetAdvId);
-    
+    // revive は死亡者を対象にする
+    const resolveTarget = fx.type === 'revive'
+      ? (fx.target === 'ally' || fx.target === 'all' ? 'dead_ally' : fx.target)
+      : fx.target;
+    const targets = this._resolveTargets(resolveTarget, targetAdvId);
+
     // Apply effect
     for (const t of targets) {
       if (fx.type === 'heal') {
@@ -335,6 +339,9 @@ export class BattleSystem {
   _resolveTargets(targetType, singleId) {
     const s = this.state;
     if (targetType === 'all') return s.adventurers;
+    if (targetType === 'all_dead') {
+       return s.adventurers.filter(a => a.status === 'dead');
+    }
     if (targetType === 'enemy') return [s.boss];
     if (targetType === 'ally') {
        if (singleId) {
@@ -347,6 +354,14 @@ export class BattleSystem {
        // HPが減っている順にソートして一番低い対象にする
        alive.sort((a,b) => (a.hp/a.maxHp) - (b.hp/b.maxHp));
        return [alive[0]];
+    }
+    if (targetType === 'dead_ally') {
+       if (singleId) {
+         const found = s.adventurers.find(a => a.id === singleId && a.status === 'dead');
+         return found ? [found] : [];
+       }
+       const dead = s.adventurers.filter(a => a.status === 'dead');
+       return dead.length > 0 ? [dead[0]] : [];
     }
     return [];
   }

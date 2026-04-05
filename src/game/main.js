@@ -134,7 +134,25 @@ function _hideLoading(overlay) {
   setTimeout(() => overlay.remove(), 500);
 }
 
+// 初期のunlocked状態を記録（ニューゲーム時のリセット用）
+const _initialRecipeUnlocked = {};
+for (const [key, r] of Object.entries(Recipes)) {
+  _initialRecipeUnlocked[key] = !!r.unlocked;
+}
+const _initialAreaUnlocked = {};
+for (const [key, a] of Object.entries(AreaDefs)) {
+  _initialAreaUnlocked[key] = !!a.unlocked;
+}
+
 async function startGame(saveData) {
+  // グローバルデータのリセット（HMR・マルチセッション対策）
+  for (const key in Recipes) {
+    Recipes[key].unlocked = _initialRecipeUnlocked[key] || false;
+  }
+  for (const key in AreaDefs) {
+    AreaDefs[key].unlocked = _initialAreaUnlocked[key] || false;
+  }
+
   // データシステムの初期化
   inventorySystem = new InventorySystem();
   shopSystem = new ShopSystem(inventorySystem);

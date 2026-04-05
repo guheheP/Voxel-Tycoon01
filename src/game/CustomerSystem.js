@@ -104,7 +104,7 @@ export class CustomerSystem {
     if (matching.length === 0) return;
 
     // 最も高いアイテムを購入
-    const best = matching.sort((a, b) => (b.value || 0) - (a.value || 0))[0];
+    const best = matching.reduce((a, b) => ((b.value || 0) > (a.value || 0) ? b : a));
 
     // 評判ボーナスを売値に加算
     const priceBonus = this.reputation ? this.reputation.getPriceBonus() : 0;
