@@ -14,6 +14,9 @@ export class SceneManager {
     this.returningNpcs = []; // 帰還アニメーション中のNPC
     this.dayProgress = 0;
 
+    // JSON定義キャッシュ — 同じファイルを何度もfetch+parseしない
+    this._entityDefCache = new Map();
+
     // 日夜サイクルの色定義
     this._skyColors = {
       dawn:    new THREE.Color(0xffcc88),   // 暖かい朝焼け
@@ -220,8 +223,12 @@ export class SceneManager {
 
   async loadEntity(path, options = {}) {
     try {
-      const res = await fetch(assetPath(path));
-      const def = await res.json();
+      let def = this._entityDefCache.get(path);
+      if (!def) {
+        const res = await fetch(assetPath(path));
+        def = await res.json();
+        this._entityDefCache.set(path, def);
+      }
       const entity = new VoxelEntity(def, options);
       entity.addTo(this.scene);
       this.entities.push(entity);

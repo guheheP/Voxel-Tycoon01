@@ -54,6 +54,7 @@ let battleScreen = null;
 let battlePrepScreen = null;
 let collectionSystem = null;
 let gameStarted = false;
+let _gameEventUnsubs = null;
 
 // ============================================================
 //  Initialization
@@ -191,37 +192,35 @@ async function startGame(saveData) {
   battleScreen = new BattleScreen(inventorySystem);
   battlePrepScreen = new BattlePrepScreen(inventorySystem, adventurerSystem);
 
-  eventBus.on('battle:requestStart', (d) => {
-    let bossDef = null;
-    for (const key in AreaDefs) {
-      if (AreaDefs[key].boss && AreaDefs[key].boss.id === d.bossId) {
-        bossDef = AreaDefs[key].boss;
-        break;
+  // イベントリスナー（重複防止: 前回のリスナーを解除してから再登録）
+  if (_gameEventUnsubs) _gameEventUnsubs.forEach(u => u());
+  _gameEventUnsubs = [
+    eventBus.on('battle:requestStart', (d) => {
+      let bossDef = null;
+      for (const key in AreaDefs) {
+        if (AreaDefs[key].boss && AreaDefs[key].boss.id === d.bossId) {
+          bossDef = AreaDefs[key].boss;
+          break;
+        }
       }
-    }
-    if (bossDef) {
-      // 準備画面を先に表示
-      battlePrepScreen.show(d.rankIndex, bossDef);
-    } else {
-      eventBus.emit('toast', { message: 'ボスの情報が見つかりません', type: 'error' });
-    }
-  });
-
-  // 準備完了 → バトル開始
-  eventBus.on('battle:prepComplete', (d) => {
-    battleSystem.startBattle(d.rankIndex, d.bossDef, d.selectedItems);
-  });
-
-  eventBus.on('battle:command', (d) => {
-    if (d.action === 'flee') battleSystem.flee();
-    else if (d.action === 'useItem') battleSystem.useItem(d.uid);
-  });
+      if (bossDef) {
+        battlePrepScreen.show(d.rankIndex, bossDef);
+      } else {
+        eventBus.emit('toast', { message: 'ボスの情報が見つかりません', type: 'error' });
+      }
+    }),
+    eventBus.on('battle:prepComplete', (d) => {
+      battleSystem.startBattle(d.rankIndex, d.bossDef, d.selectedItems);
+    }),
+    eventBus.on('battle:command', (d) => {
+      if (d.action === 'flee') battleSystem.flee();
+      else if (d.action === 'useItem') battleSystem.useItem(d.uid);
+    }),
+    eventBus.on('game:pause', () => { gamePaused = true; }),
+    eventBus.on('game:resume', () => { gamePaused = false; }),
+  ];
 
   gameStarted = true;
-
-  // パズル中のゲーム一時停止
-  eventBus.on('game:pause', () => { gamePaused = true; });
-  eventBus.on('game:resume', () => { gamePaused = false; });
 
   // ゲームBGMへ移行（タイトル曲が終わったら切り替わる）
   SoundManager.startGameBGM();
