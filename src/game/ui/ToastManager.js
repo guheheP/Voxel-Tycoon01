@@ -24,17 +24,19 @@ export class ToastManager {
     eventBus.on('item:sold', (d) => {
       this._soldBatch.count++;
       this._soldBatch.totalPrice += d.price || d.item?.value || 0;
+      if (!this._soldBatch.lastName) this._soldBatch.lastName = d.item?.name || 'アイテム';
       if (!this._soldBatch.timer) {
         this._soldBatch.timer = setTimeout(() => {
           const b = this._soldBatch;
           if (b.count === 1) {
-            this.show(`${d.item.name} が ${d.price || d.item.value}G で売れました！`, 'gold');
+            this.show(`${b.lastName} が ${b.totalPrice}G で売れました！`, 'gold');
           } else {
             this.show(`${b.count}個のアイテムが売れました！ (+${b.totalPrice}G)`, 'gold');
           }
           b.count = 0;
           b.totalPrice = 0;
           b.timer = null;
+          b.lastName = null;
         }, 2000);
       }
     });
