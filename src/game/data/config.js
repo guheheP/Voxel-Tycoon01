@@ -10,8 +10,8 @@ export const GameConfig = {
 
   // --- 経済 ---
   initialGold: 250,
-  dailyRent: 25,
-  rentIncreasePerRank: 12,
+  dailyRent: 15,
+  rentIncreasePerRank: 10,
   bankruptcyThreshold: 0,
 
   // --- ショップ ---
@@ -80,7 +80,7 @@ export const GameConfig = {
       requiredBossId: 'boss_forest_treant',
       newRecipes: ['holy_sword', 'dragon_armor', 'phoenix_feather_acc', 'flame_lance',
                    'moonlight_staff', 'silver_mail', 'spirit_potion', 'thunder_hammer',
-                   'cursed_ring', 'lava_shield', 'fire_cloak', 'enchant_scroll'],
+                   'cursed_ring', 'lava_shield', 'fire_cloak', 'enchant_scroll', 'thunder_bomb'],
       newAreas: ['volcano'],
     },
     {
