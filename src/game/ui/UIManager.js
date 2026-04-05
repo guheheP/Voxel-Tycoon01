@@ -164,11 +164,13 @@ export class UIManager {
   }
 
   _initAmbientParticles() {
+    // モバイルではCSS環境パーティクルは _mobile.css で非表示にするため数を減らす
+    const count = window.innerWidth <= 768 ? 5 : AMBIENT_PARTICLE_COUNT;
     const container = document.createElement('div');
     container.className = 'ambient-particles';
     document.body.insertBefore(container, document.body.firstChild);
 
-    for (let i = 0; i < AMBIENT_PARTICLE_COUNT; i++) {
+    for (let i = 0; i < count; i++) {
       const p = document.createElement('div');
       p.className = 'ambient-particle';
       p.style.left = `${Math.random() * 100}%`;
@@ -484,10 +486,11 @@ export class UIManager {
     `;
     document.body.appendChild(overlay);
 
-    // CSS紙吹雪パーティクルを動的生成
+    // CSS紙吹雪パーティクルを動的生成（モバイルでは削減）
     const confettiLayer = overlay.querySelector('.rankup-confetti-layer');
     const colors = ['#e8b84b', '#7daa68', '#c47a5a', '#7ab0c4', '#f5e6c8', '#ff9955', '#fff'];
-    for (let i = 0; i < 60; i++) {
+    const confettiCount = window.innerWidth <= 768 ? 15 : 60;
+    for (let i = 0; i < confettiCount; i++) {
       const particle = document.createElement('div');
       particle.className = 'rankup-confetti-particle';
       particle.style.left = `${Math.random() * 100}%`;
