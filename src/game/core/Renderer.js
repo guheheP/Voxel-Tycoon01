@@ -77,15 +77,31 @@ export class Renderer {
 
   _onResize() {
     this._isMobile = window.innerWidth <= 768;
-    this.camera.aspect = window.innerWidth / window.innerHeight;
+    if (this._isMobile) return; // モバイルでは描画しないのでリサイズ不要
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    // シーンストリップの高さを取得（CSS と同期）
+    const stripEl = document.querySelector('.scene-strip');
+    const stripH = stripEl ? stripEl.offsetHeight : 120;
+
+    // カメラのアスペクト比はストリップ領域に合わせる
+    this.camera.aspect = w / stripH;
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    // モバイルでは pixelRatio を制限してGPU負荷を軽減
-    const maxDpr = this._isMobile ? 1.5 : 2;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxDpr));
+
+    this.renderer.setSize(w, h);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // 描画をストリップ領域（画面下部）のみに制限
+    // Three.js の座標系は左下原点なので、Y=0 が画面最下部
+    this.renderer.setScissorTest(true);
+    this.renderer.setScissor(0, 0, w, stripH);
+    this.renderer.setViewport(0, 0, w, stripH);
   }
 
   render() {
+    if (this._isMobile) return;
     this.renderer.render(this.scene, this.camera);
   }
 
