@@ -6,6 +6,14 @@
 /* ===== Phase 1: レイアウト基盤 ===== */
 
 @media (max-width: 768px) {
+  /* --- 3Dキャンバス・シーンストリップ非表示 --- */
+  #game-canvas {
+    display: none;
+  }
+  .scene-strip {
+    display: none;
+  }
+
   /* --- ボトムナビゲーション化 --- */
   .sidebar {
     position: fixed;

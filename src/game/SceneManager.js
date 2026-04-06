@@ -35,9 +35,9 @@ export class SceneManager {
   }
 
   async init() {
-    // カメラの固定値設定 (ジオラマ風の斜め見下ろし)
-    this.camera.position.set(20, 25, 25);
-    this.camera.lookAt(0, 0, 0);
+    // カメラの固定値設定 (パノラマストリップ向け: 低め・ワイドアングル)
+    this.camera.position.set(18, 10, 22);
+    this.camera.lookAt(0, 2, 0);
 
     // パーティクルシステム初期化
     this._isMobile = window.innerWidth <= 768;

@@ -362,13 +362,17 @@ function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.1); // タブ復帰時の巨大dt防止（最大100ms）
 
-  // Update all entity animations
-  for (const entity of entities) {
-    entity.update(dt);
+  const renderScene = renderer && !renderer._isMobile;
+
+  // Update all entity animations (3Dシーン用 — モバイルではスキップ)
+  if (renderScene) {
+    for (const entity of entities) {
+      entity.update(dt);
+    }
   }
 
   if (!gameStarted) {
-    if (renderer) renderer.render();
+    if (renderScene) renderer.render();
     return;
   }
 
@@ -378,7 +382,7 @@ function animate() {
 
   // Update game logic (paused during puzzle)
   if (!gamePaused && !(battleSystem && battleSystem.active)) {
-    if (sceneManager) sceneManager.update(dt);
+    if (renderScene && sceneManager) sceneManager.update(dt);
     if (dayCycleSystem) dayCycleSystem.update(dt);
     if (shopSystem) shopSystem.update(dt);
     if (adventurerSystem) adventurerSystem.update(dt);
@@ -386,13 +390,13 @@ function animate() {
     if (saveSystem) saveSystem.update(dt);
 
     // 日夜ライティング同期
-    if (sceneManager && dayCycleSystem) {
+    if (renderScene && sceneManager && dayCycleSystem) {
       sceneManager.setDayProgress(dayCycleSystem.dayProgress);
     }
   }
   if (uiManager) uiManager.update(dt);
 
-  if (renderer) renderer.render();
+  if (renderScene) renderer.render();
 }
 
 animate();
