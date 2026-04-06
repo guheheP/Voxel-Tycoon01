@@ -30,17 +30,17 @@
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
+    scroll-snap-type: x proximity; /* mandatory だと引っかかるので proximity に */
     gap: 0;
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .tab-btn {
-    flex: 0 0 auto;
+    flex: 1 0 0; /* 画面幅に均等配置 (7タブ × ~54px = 375px に収まる) */
     flex-direction: column;
     gap: 2px;
-    padding: 6px 10px;
-    min-width: 56px;
+    padding: 6px 4px;
+    min-width: 0;
     min-height: 48px;
     font-size: 9px;
     justify-content: center;
@@ -49,6 +49,8 @@
     border-left: none !important;
     border-bottom: 3px solid transparent;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .tab-btn.active {
     border-left: none !important;
@@ -66,8 +68,8 @@
   /* バッジ位置調整 */
   .tab-badge {
     position: absolute;
-    top: 2px;
-    right: 4px;
+    top: 0px;
+    right: 0px;
     min-width: 14px;
     height: 14px;
     font-size: 8px;
@@ -87,7 +89,8 @@
 
   .content-panel {
     padding: 8px;
-    padding-bottom: 68px; /* ボトムナビの高さ分 */
+    /* ボトムナビ(~56px) + safe-area + 余白 */
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px));
     border-radius: 0;
     max-height: none;
     overflow-y: auto;
@@ -102,37 +105,40 @@
 
   /* --- ステータスバーのコンパクト化 --- */
   .status-bar {
-    padding: 4px 8px;
-    flex-wrap: wrap;
-    gap: 4px;
+    padding: 6px 10px;
+    flex-wrap: nowrap;
+    gap: 0;
     border-radius: 0;
   }
 
   .game-title {
-    display: none; /* タイトルは非表示 */
+    display: none;
   }
 
   .status-info {
     width: 100%;
-    gap: 4px;
-    flex-wrap: wrap;
+    gap: 6px;
+    flex-wrap: nowrap;
     justify-content: space-between;
+    align-items: center;
   }
 
   .status-item {
     flex-direction: row;
     gap: 3px;
-    min-width: auto;
+    min-width: 0;
+    flex: 0 1 auto;
   }
 
   .status-label {
     font-size: 9px;
+    letter-spacing: -0.3px;
   }
   .status-value {
     font-size: 11px;
   }
 
-  /* ランクとレピュテーションは折りたたみ */
+  /* ランクとレピュテーションは非表示 */
   .rank-progress-container {
     display: none;
   }
@@ -143,19 +149,28 @@
   /* 日表示のコンパクト化 */
   .day-display {
     min-width: auto !important;
-    flex: 1;
+    flex: 1 1 auto;
+    gap: 4px !important;
+  }
+  .day-timer-label {
+    min-width: auto !important;
+    font-size: 10px;
+    padding: 0 3px;
   }
   .day-progress-bar {
-    max-width: 80px;
+    max-width: 60px;
+    flex: 1;
   }
   .skip-day-btn {
-    font-size: 10px;
-    padding: 2px 6px;
+    font-size: 9px;
+    padding: 2px 5px;
+    min-height: 24px;
   }
 
   /* ゴールド表示 */
   .gold-display {
     min-width: auto;
+    padding: 4px 8px !important;
   }
   .gold-amount {
     font-size: 14px;
@@ -207,16 +222,16 @@
 
   /* --- アイテムカードグリッド --- */
   .item-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)) !important;
     gap: 6px;
   }
 
   /* カード画像の縮小 */
   .item-card-image {
-    height: 60px;
+    height: 56px;
   }
   .item-card-image img {
-    height: 50px;
+    height: 46px;
   }
 
   /* カード内テキスト縮小 */
@@ -225,6 +240,9 @@
   }
   .item-name {
     font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .item-quality {
     font-size: 10px;
@@ -255,11 +273,10 @@
   }
 
   /* --- ショップタブ --- */
-  .shop-shelf-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  }
+  .shop-shelf-grid,
   .shop-inv-grid {
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 6px;
   }
 
   /* オートセルパネルのコンパクト化 */
@@ -269,18 +286,33 @@
   .autosell-rules {
     flex-direction: column;
   }
+  .autosell-range {
+    width: 80px;
+  }
+  .autosell-rule {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
 
   /* --- 調合タブ --- */
   .craft-recipe-grid {
     max-height: 200px;
     overflow-y: auto;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 4px;
   }
   .craft-rcard {
-    padding: 6px;
+    padding: 5px;
   }
   .craft-rcard-img {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
+  }
+  .craft-rcard-name {
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* --- 派遣タブ --- */
@@ -326,6 +358,7 @@
   }
   .battle-log {
     max-height: 15vh;
+    font-size: 11px;
   }
   .boss-icon {
     font-size: 2.5rem;
@@ -336,13 +369,16 @@
   .battle-inventory {
     display: flex;
     overflow-x: auto;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
   }
   .battle-item-btn {
-    min-width: 70px;
+    min-width: 60px;
     flex: 0 0 auto;
+    font-size: 10px;
+    padding: 6px;
   }
 
   /* --- バトル準備画面 --- */
@@ -371,10 +407,15 @@
   .puzzle-container {
     max-width: 100%;
     width: 100%;
+    padding: 8px;
   }
   .puzzle-body {
     flex-direction: column;
     align-items: center;
+  }
+  #puzzle-canvas {
+    max-width: 100%;
+    height: auto;
   }
   .puzzle-sidebar {
     flex-direction: row;
@@ -382,8 +423,9 @@
     min-width: auto;
     width: 100%;
     justify-content: center;
-    gap: 8px;
-    padding: 8px;
+    gap: 6px;
+    padding: 6px;
+    order: -1; /* スコア表示をキャンバスの上に */
   }
   .puzzle-score-box,
   .puzzle-combo-box,
@@ -391,6 +433,8 @@
   .puzzle-next-box {
     min-width: auto;
     flex: 0 0 auto;
+    padding: 4px 8px;
+    font-size: 11px;
   }
   .puzzle-skip-btn {
     width: auto;
@@ -492,24 +536,25 @@
 
   /* タブガイドの位置調整 */
   .tab-guide {
-    bottom: 70px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     right: 10px;
     left: 10px;
   }
   .tab-guide-card {
     max-width: none;
+    padding: 12px 14px;
   }
 
   /* セーブインジケーター */
   .save-indicator {
     top: auto;
-    bottom: 70px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     right: 10px;
   }
 
   /* トーストの位置調整 */
   .toast-container {
-    bottom: 70px;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     right: 8px;
     left: 8px;
     max-width: none;
@@ -519,15 +564,38 @@
     font-size: 12px;
   }
 
+  /* アイテム詳細モーダル */
+  .item-detail-modal {
+    max-height: 85vh;
+    padding: 16px;
+    max-width: calc(100vw - 32px);
+  }
+  .return-modal-items {
+    max-height: 40vh;
+  }
+
   /* ランクアップオーバーレイ */
   .rankup-content {
     padding: 20px;
+    max-width: calc(100vw - 32px);
   }
   .rankup-icon {
     font-size: 48px;
   }
   .rankup-name {
     font-size: 18px;
+  }
+
+  /* 調合結果オーバーレイ */
+  .craft-result-content {
+    max-width: calc(100vw - 32px);
+    padding: 20px;
+  }
+
+  /* ゲームオーバー */
+  .gameover-card {
+    max-width: calc(100vw - 32px);
+    padding: 20px;
   }
 }
 

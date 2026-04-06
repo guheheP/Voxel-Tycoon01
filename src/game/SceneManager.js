@@ -35,9 +35,9 @@ export class SceneManager {
   }
 
   async init() {
-    // カメラの固定値設定 (パノラマストリップ向け: 低め・ワイドアングル)
-    this.camera.position.set(16, 8, 20);
-    this.camera.lookAt(-2, 1.5, 0);
+    // カメラ設定 — 正面やや上からの対称パノラマ構図
+    this.camera.position.set(0, 12, 25);
+    this.camera.lookAt(0, 1, -2);
 
     // パーティクルシステム初期化
     this._isMobile = window.innerWidth <= 768;
@@ -63,7 +63,7 @@ export class SceneManager {
 
       // 売上時コインパーティクル（スロットリング: 2秒間隔）
       this._lastCoinBurstTime = 0;
-      this._coinBurstPos = new THREE.Vector3(-2, 2, 5);
+      this._coinBurstPos = new THREE.Vector3(0, 3, -3);
       eventBus.on('item:sold', () => {
         const now = performance.now();
         if (now - this._lastCoinBurstTime < 2000) return;
@@ -72,7 +72,7 @@ export class SceneManager {
       });
 
       // 調合時スターパーティクル
-      this._craftStarPos = new THREE.Vector3(6, 1, 0);
+      this._craftStarPos = new THREE.Vector3(7, 2, -3);
       eventBus.on('item:crafted', (d) => {
         const tier = d.item && d.item.quality >= 81 ? 'q-legendary'
                    : d.item && d.item.quality >= 61 ? 'q-excellent'
@@ -127,9 +127,9 @@ export class SceneManager {
     for (const w of this.wanderers) {
       w.timer -= dt;
       if (w.timer <= 0) {
-        // カメラ可視域（手前の開放エリア）に行動範囲を制限
-        w.targetX = -12 + Math.random() * 20; // -12 ~ 8
-        w.targetZ = 2 + Math.random() * 12;   //  2 ~ 14
+        // お店前の広場内を歩き回る
+        w.targetX = -6 + Math.random() * 12; // -6 ~ 6
+        w.targetZ = 1 + Math.random() * 7;   //  1 ~ 8
         w.timer = 5 + Math.random() * 8;
       }
       const entity = w.entity;
@@ -249,110 +249,113 @@ export class SceneManager {
   }
 
   async spawnEnvironment() {
-    // お店の建屋 (中央)
+    // ================================================================
+    // 「森の開けた広場にあるお店」ジオラマ
+    //
+    //  カメラ: [0, 12, 25] → lookAt [0, 1, -2]  (正面対称構図)
+    //
+    //  ワールド座標メモ:
+    //    Z 大 = カメラ手前 (画面下部)
+    //    Z 小 = カメラ奥   (画面上部)
+    //    X 正 = 画面右,  X 負 = 画面左
+    //
+    //  レイヤー:
+    //    遠景 (Z: -20~-12) — 大きめの木で森のスカイライン
+    //    中景 (Z: -12~-2)  — お店、設備、左右に木
+    //    前景 (Z: -2~10)   — 小物、NPC活動域、端に木
+    // ================================================================
+
+    // --- お店の建屋 (中央奥) ---
     await this.loadEntity('/presets/RPG_Props/House.json', {
       position: [0, 0, -5],
       scale: 1.0,
-      rotation: 0
     });
 
-    // お店のカウンター・陳列棚
-    await this.loadEntity('/presets/RPG_Props/Chest.json', {
-      position: [-2, 0, 5],
-      scale: 0.6,
-      rotation: Math.PI / 4,
-    });
+    // --- 店の周辺小物 (中景) ---
     await this.loadEntity('/presets/RPG_Props/Barrel.json', {
-      position: [2, 0, 5],
-      scale: 0.5,
+      position: [4, 0, -1],
+      scale: 0.45,
     });
-
-    // クラフト設備 (お店の横)
+    await this.loadEntity('/presets/RPG_Props/Chest.json', {
+      position: [-4, 0, -1],
+      scale: 0.5,
+      rotation: Math.PI / 6,
+    });
     await this.loadEntity('/presets/RPG_Props/Anvil.json', {
-      position: [6, 0, 0],
-      scale: 0.6,
+      position: [7, 0, -3],
+      scale: 0.5,
       rotation: -Math.PI / 4,
     });
     await this.loadEntity('/presets/RPG_Props/Campfire.json', {
-      position: [-6, 0, -2],
-      scale: 0.6,
+      position: [-3, 0, 3],
+      scale: 0.5,
     });
 
-    // 木と岩をパノラマ全体に散りばめる
-    // 中央のキャラクターエリア (X:-8~8, Z:0~10) は避ける
-    const decorations = [
-      // 左奥 — 森の奥行き感
-      { path: 'Pine Tree.json', pos: [-15, -15], scale: 1.0 },
-      { path: 'Pine Tree.json', pos: [-20, -10], scale: 0.8 },
-      { path: 'Pine Tree.json', pos: [-12, -18], scale: 0.9 },
-      // 右奥
-      { path: 'Pine Tree.json', pos: [12, -12], scale: 0.8 },
-      { path: 'Pine Tree.json', pos: [18, -14], scale: 0.7 },
-      { path: 'Pine Tree.json', pos: [22, -8], scale: 0.6 },
-      // 左手前 — パノラマ左端のフレーミング
-      { path: 'Pine Tree.json', pos: [-16, 6], scale: 0.9 },
-      { path: 'Pine Tree.json', pos: [-20, 12], scale: 1.0 },
-      { path: 'Pine Tree.json', pos: [-14, 14], scale: 0.7 },
-      // 右手前 — パノラマ右端のフレーミング
-      { path: 'Pine Tree.json', pos: [14, 8], scale: 0.8 },
-      { path: 'Pine Tree.json', pos: [18, 12], scale: 0.9 },
-      { path: 'Pine Tree.json', pos: [22, 6], scale: 0.6 },
-      // 遠景の追加木（奥行き感）
-      { path: 'Pine Tree.json', pos: [-8, -22], scale: 1.1 },
-      { path: 'Pine Tree.json', pos: [5, -20], scale: 1.0 },
-      { path: 'Pine Tree.json', pos: [-25, -5], scale: 0.8 },
-      { path: 'Pine Tree.json', pos: [25, -2], scale: 0.7 },
-      // 岩（アクセント）
-      { path: 'Rock.json', pos: [-10, -10], scale: 0.5 },
-      { path: 'Rock.json', pos: [15, -8], scale: 0.4 },
-      { path: 'Rock.json', pos: [-18, 10], scale: 0.4 },
-      { path: 'Rock.json', pos: [12, 10], scale: 0.3 },
+    // --- 木: 弧状に配置して「森の中の広場」感を出す ---
+    const trees = [
+      // 遠景 — 森のスカイライン (大きめ)
+      { pos: [-14, -18], scale: 1.1 },
+      { pos: [-6,  -20], scale: 1.0 },
+      { pos: [4,   -19], scale: 1.1 },
+      { pos: [13,  -17], scale: 0.9 },
+      // 中景左 — お店の左側
+      { pos: [-14, -10], scale: 0.9 },
+      { pos: [-18,  -5], scale: 1.0 },
+      { pos: [-12,  -3], scale: 0.7 },
+      // 中景右 — お店の右側
+      { pos: [14,  -10], scale: 0.9 },
+      { pos: [18,   -6], scale: 0.8 },
+      { pos: [12,   -2], scale: 0.7 },
+      // 前景左端 — パノラマ左のフレーミング
+      { pos: [-17,   4], scale: 0.9 },
+      { pos: [-14,   9], scale: 0.8 },
+      // 前景右端 — パノラマ右のフレーミング
+      { pos: [16,    3], scale: 0.8 },
+      { pos: [14,    8], scale: 0.9 },
+      // 遠景端 — パノラマの左右を埋めて途切れ感を消す
+      { pos: [-22, -12], scale: 0.8 },
+      { pos: [22,  -13], scale: 0.7 },
     ];
-
-    for (const dec of decorations) {
-      await this.loadEntity(`/presets/RPG_Props/${dec.path}`, {
-        position: [dec.pos[0], 0, dec.pos[1]],
-        scale: dec.scale,
+    for (const t of trees) {
+      await this.loadEntity('/presets/RPG_Props/Pine Tree.json', {
+        position: [t.pos[0], 0, t.pos[1]],
+        scale: t.scale,
       });
     }
 
-    // 店主NPC（人型キャラは小さめに統一）
-    const shopkeeper = await this.loadEntity('/presets/RPG_Characters/King.json', {
-      position: [-1, 0, 6],
-      scale: 0.32,
-    });
-    if (shopkeeper) {
-      shopkeeper.playAnimation('idle');
+    // --- 岩: アクセント (小さめ、地面に自然に散らす) ---
+    const rocks = [
+      { pos: [-9,  -8], scale: 0.35 },
+      { pos: [10,  -7], scale: 0.3 },
+      { pos: [-6,   6], scale: 0.25 },
+      { pos: [8,    5], scale: 0.3 },
+    ];
+    for (const r of rocks) {
+      await this.loadEntity('/presets/RPG_Props/Rock.json', {
+        position: [r.pos[0], 0, r.pos[1]],
+        scale: r.scale,
+      });
     }
   }
 
   async _spawnWanderers() {
-    // カメラ手前（Z>0 側）に配置し、ストリップから見えやすくする
-    // 人型(12.5v)→scale 0.32≈高さ4.0, 動物(7.5-8v)→scale 0.38≈高さ3.0
-    const wandererDefs = [
-      { path: 'Chibi Human.json', x: -6, z: 8, scale: 0.32 },
-      { path: 'Cat.json', x: 5, z: 7, scale: 0.38 },
-      { path: 'Dog.json', x: -10, z: 4, scale: 0.38 },
-    ];
-
-    for (const def of wandererDefs) {
-      try {
-        const entity = await this.loadEntity(`/presets/RPG_Characters/${def.path}`, {
-          position: [def.x, 0, def.z],
-          scale: def.scale,
+    // 広場を歩く村人 1体のみ（シーンをすっきり保つ）
+    try {
+      const entity = await this.loadEntity('/presets/RPG_Characters/Chibi Human.json', {
+        position: [2, 0, 3],
+        scale: 0.3,
+      });
+      if (entity) {
+        entity.playAnimation('walk');
+        this.wanderers.push({
+          entity,
+          targetX: 2,
+          targetZ: 3,
+          timer: Math.random() * 3,
         });
-        if (entity) {
-          entity.playAnimation('walk');
-          this.wanderers.push({
-            entity,
-            targetX: def.x,
-            targetZ: def.z,
-            timer: Math.random() * 3,
-          });
-        }
-      } catch (e) {
-        console.warn('[SceneManager] Wanderer load failed:', e);
       }
+    } catch (e) {
+      console.warn('[SceneManager] Wanderer load failed:', e);
     }
   }
 
@@ -363,8 +366,8 @@ export class SceneManager {
 
     try {
       const npc = await this.loadEntity('/presets/RPG_Characters/Knight.json', {
-        position: [18, 0, 5],
-        scale: 0.31, // Knight(13v) → 高さ≈4.0 で他の人型と統一
+        position: [20, 0, 2],
+        scale: 0.3,
       });
       if (!npc) { this._returnNpcCount--; return; }
       
@@ -386,40 +389,37 @@ export class SceneManager {
     const rankIndex = rankData?.index;
     if (rankIndex === undefined) return;
 
-    // ランク別の装飾定義
+    // ランク別の装飾定義 — お店 [0,0,-5] の周囲に配置
+    // 広場 (X:-6~6, Z:1~8) は NPC 動線なので避ける
     const decorationsByRank = {
       1: [
-        // バナー（看板）を店の両脇に
-        { path: 'Banner.json', pos: [-4, 0, 3], scale: 0.6, rot: 0 },
-        { path: 'Banner.json', pos: [4, 0, 3], scale: 0.6, rot: 0 },
-        // フェンスでお店の前を整備
-        { path: 'Fence.json', pos: [-5, 0, 7], scale: 0.5, rot: 0 },
-        { path: 'Fence.json', pos: [5, 0, 7], scale: 0.5, rot: 0 },
+        // バナー（看板）を店の入口脇に
+        { path: 'Banner.json', pos: [-3, 0, -2], scale: 0.5, rot: 0 },
+        { path: 'Banner.json', pos: [3, 0, -2], scale: 0.5, rot: 0 },
+        // フェンスで広場を囲む
+        { path: 'Fence.json', pos: [-7, 0, 2], scale: 0.4, rot: Math.PI / 2 },
+        { path: 'Fence.json', pos: [7, 0, 2], scale: 0.4, rot: Math.PI / 2 },
       ],
       2: [
-        // 街灯を設置
-        { path: 'Street Light.json', pos: [-7, 0, 5], scale: 0.7, rot: 0 },
-        { path: 'Street Light.json', pos: [7, 0, 5], scale: 0.7, rot: 0 },
-        // 井戸を設置
-        { path: 'Well.json', pos: [-8, 0, -3], scale: 0.5, rot: Math.PI / 4 },
+        // 街灯を対称配置
+        { path: 'Street Light.json', pos: [-8, 0, -1], scale: 0.5, rot: 0 },
+        { path: 'Street Light.json', pos: [8, 0, -1], scale: 0.5, rot: 0 },
+        // 井戸
+        { path: 'Well.json', pos: [-8, 0, -6], scale: 0.4, rot: Math.PI / 4 },
       ],
       3: [
-        // 木を追加して庭を整える
-        { path: 'Tree.json', pos: [-5, 0, -8], scale: 0.7, rot: 0 },
-        { path: 'Tree.json', pos: [5, 0, -8], scale: 0.6, rot: 0 },
-        // 追加の宝箱（在庫力UP演出）
-        { path: 'Chest.json', pos: [4, 0, 5], scale: 0.5, rot: -Math.PI / 6 },
-        // 街灯追加
-        { path: 'Street Light.json', pos: [0, 0, 8], scale: 0.7, rot: 0 },
+        // 庭木を店の裏手に
+        { path: 'Tree.json', pos: [-6, 0, -9], scale: 0.6, rot: 0 },
+        { path: 'Tree.json', pos: [6, 0, -9], scale: 0.5, rot: 0 },
+        // 前方の街灯
+        { path: 'Street Light.json', pos: [0, 0, 8], scale: 0.5, rot: 0 },
       ],
       4: [
-        // テント（VIP向け特設コーナー）
-        { path: 'Tent.json', pos: [10, 0, 4], scale: 0.5, rot: -Math.PI / 4 },
-        // 追加のバナーと装飾
-        { path: 'Banner.json', pos: [-3, 0, 8], scale: 0.5, rot: Math.PI / 4 },
-        { path: 'Banner.json', pos: [3, 0, 8], scale: 0.5, rot: -Math.PI / 4 },
-        { path: 'Street Light.json', pos: [-10, 0, 0], scale: 0.7, rot: 0 },
-        { path: 'Street Light.json', pos: [10, 0, 0], scale: 0.7, rot: 0 },
+        // テント（お店横の特設コーナー）
+        { path: 'Tent.json', pos: [10, 0, -3], scale: 0.4, rot: -Math.PI / 4 },
+        // 装飾バナー
+        { path: 'Banner.json', pos: [-6, 0, 5], scale: 0.4, rot: Math.PI / 4 },
+        { path: 'Banner.json', pos: [6, 0, 5], scale: 0.4, rot: -Math.PI / 4 },
       ],
     };
 
