@@ -89,6 +89,7 @@ export class BattleSystem {
         id: bossDef.id,
         name: bossDef.name,
         icon: bossDef.icon,
+        preset: bossDef.preset || null,
         hp: scaledMaxHp,
         maxHp: scaledMaxHp,
         baseAtk: scaledAtk,
@@ -100,10 +101,14 @@ export class BattleSystem {
         phases: bossDef.phases || [],
         triggeredPhases: [],
         currentPhaseName: null,
+        skills: bossDef.skills || [],
+        healCooldownTimer: 0,
       },
       adventurers: participants,
       log: [],
       itemCooldown: 0,
+      chainCount: 0,
+      chainTimer: 0,
       selectedItems: selectedItems,
       itemUses: {}, // uid → { remaining, max }
     };
@@ -138,6 +143,15 @@ export class BattleSystem {
 
     const s = this.state;
     const fillRate = GameConfig.bossBattle.atbFillRate || 1.0;
+
+    // チェインタイマー更新
+    if (s.chainTimer > 0) {
+      s.chainTimer -= dt;
+      if (s.chainTimer <= 0) {
+        s.chainTimer = 0;
+        s.chainCount = 0;
+      }
+    }
 
     // クールダウン更新
     if (s.itemCooldown > 0) {
@@ -364,44 +378,153 @@ export class BattleSystem {
     const s = this.state;
     s.boss.atbGauge = 0;
 
+    // ヒールクールダウンをデクリメント
+    if (s.boss.healCooldownTimer > 0) {
+      s.boss.healCooldownTimer--;
+    }
+
     // 生存者からランダムにターゲット
     const aliveTargets = s.adventurers.filter(a => a.status === 'active');
     if (aliveTargets.length === 0) return;
 
-    const target = aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
-    
-    // ダメージ計算（鉄壁特性によるダメージ軽減を考慮）
-    const atk = this._getAtk(s.boss);
-    const def = this._getDef(target);
-    const dmgReduction = target.dmgReduction || 0;
-    const damage = Math.max(1, Math.floor(atk * (1 + Math.random() * 0.2) - def) - dmgReduction);
+    // スキル選択
+    const skill = this._selectBossSkill(s.boss);
 
-    target.hp -= damage;
-    this._log(`ボスの攻撃！ ${target.name}に ${damage} のダメージ！`);
-    eventBus.emit('battle:se:bossAttack');
-
-    if (target.hp <= 0) {
-      target.hp = 0;
-      target.status = 'dead';
-      target.atbGauge = 0;
-      target.activeBuffs = [];
-      this._log(`${target.name}は倒れた！`);
-      eventBus.emit('battle:se:ko');
+    if (skill && skill.type === 'aoe') {
+      // --- AoE: 全冒険者に減衰ダメージ ---
+      const atk = this._getAtk(s.boss);
+      const mult = skill.damageMult || 0.6;
+      this._log(`ボスの${skill.name}！ 全体攻撃！`);
+      eventBus.emit('battle:se:bossAoe');
+      for (const target of aliveTargets) {
+        const def = this._getDef(target);
+        const dmgReduction = target.dmgReduction || 0;
+        const damage = Math.max(1, Math.floor(atk * mult * (1 + Math.random() * 0.2) - def) - dmgReduction);
+        target.hp -= damage;
+        this._log(`${target.name}に ${damage} のダメージ！`);
+        if (target.hp <= 0) {
+          target.hp = 0;
+          target.status = 'dead';
+          target.atbGauge = 0;
+          target.activeBuffs = [];
+          this._log(`${target.name}は倒れた！`);
+          eventBus.emit('battle:se:ko');
+        }
+      }
       this._checkLose();
+
+    } else if (skill && skill.type === 'heavy') {
+      // --- Heavy: 高倍率単体攻撃、次ターンATBペナルティ ---
+      const target = aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
+      const atk = this._getAtk(s.boss);
+      const def = this._getDef(target);
+      const mult = skill.damageMult || 1.5;
+      const dmgReduction = target.dmgReduction || 0;
+      const damage = Math.max(1, Math.floor(atk * mult * (1 + Math.random() * 0.2) - def) - dmgReduction);
+      target.hp -= damage;
+      this._log(`ボスの${skill.name}！ ${target.name}に ${damage} の大ダメージ！`);
+      eventBus.emit('battle:se:bossHeavy');
+      // ATBペナルティ: 次ターンが遅くなる
+      s.boss.atbGauge = -30;
+      if (target.hp <= 0) {
+        target.hp = 0;
+        target.status = 'dead';
+        target.atbGauge = 0;
+        target.activeBuffs = [];
+        this._log(`${target.name}は倒れた！`);
+        eventBus.emit('battle:se:ko');
+        this._checkLose();
+      }
+
+    } else if (skill && skill.type === 'heal') {
+      // --- Heal: ボス自身のHP回復 ---
+      const healPercent = skill.healPercent || 10;
+      const healAmount = Math.floor(s.boss.maxHp * healPercent / 100);
+      s.boss.hp = Math.min(s.boss.maxHp, s.boss.hp + healAmount);
+      s.boss.healCooldownTimer = 3;
+      this._log(`ボスの${skill.name}！ HPが ${healAmount} 回復した！`);
+      eventBus.emit('battle:se:bossHeal');
+
+    } else {
+      // --- 通常攻撃 (デフォルト / attack タイプ) ---
+      const target = aliveTargets[Math.floor(Math.random() * aliveTargets.length)];
+      const atk = this._getAtk(s.boss);
+      const def = this._getDef(target);
+      const dmgReduction = target.dmgReduction || 0;
+      const damage = Math.max(1, Math.floor(atk * (1 + Math.random() * 0.2) - def) - dmgReduction);
+      target.hp -= damage;
+      const skillName = skill ? skill.name : '攻撃';
+      this._log(`ボスの${skillName}！ ${target.name}に ${damage} のダメージ！`);
+      eventBus.emit('battle:se:bossAttack');
+      if (target.hp <= 0) {
+        target.hp = 0;
+        target.status = 'dead';
+        target.atbGauge = 0;
+        target.activeBuffs = [];
+        this._log(`${target.name}は倒れた！`);
+        eventBus.emit('battle:se:ko');
+        this._checkLose();
+      }
     }
+  }
+
+  /** ボスのスキルを重み付きランダムで選択。条件を満たさないスキルは除外。 */
+  _selectBossSkill(boss) {
+    const skills = boss.skills;
+    if (!skills || skills.length === 0) return null;
+
+    // 使用可能なスキルをフィルタリング
+    const available = skills.filter(sk => {
+      if (sk.type === 'heal') {
+        // HP50%以下かつクールダウン0のときだけ使用可能
+        if (boss.hp / boss.maxHp > 0.5) return false;
+        if (boss.healCooldownTimer > 0) return false;
+      }
+      return true;
+    });
+
+    if (available.length === 0) return null;
+
+    // 重み付きランダム選択
+    const totalWeight = available.reduce((sum, sk) => sum + sk.chance, 0);
+    let roll = Math.random() * totalWeight;
+    for (const sk of available) {
+      roll -= sk.chance;
+      if (roll <= 0) return sk;
+    }
+    return available[available.length - 1];
   }
 
   _executeAdvAction(adv) {
     const s = this.state;
     adv.atbGauge = 0;
 
+    // B8: チェインカウント更新
+    if (s.chainTimer > 0) {
+      s.chainCount++;
+    } else {
+      s.chainCount = 1;
+    }
+    s.chainTimer = 2.0;
+
+    // チェインボーナス倍率 (2-chain=1.1x, ..., 6+chain=1.5x cap)
+    const chainMult = Math.min(1.5, 1 + (s.chainCount - 1) * 0.1);
+
     const atk = this._getAtk(adv);
     const def = this._getDef(s.boss);
-    const damage = Math.max(1, Math.floor(atk * (1 + Math.random() * 0.2) - def));
+    const baseDamage = Math.max(1, Math.floor(atk * (1 + Math.random() * 0.2) - def));
+    const damage = Math.max(1, Math.floor(baseDamage * chainMult));
 
     s.boss.hp -= damage;
     this._log(`${adv.name}の攻撃！ ボスに ${damage} のダメージ！`);
     eventBus.emit('battle:se:advAttack');
+
+    // チェインログ・効果音
+    if (s.chainCount >= 2) {
+      const bonusPct = Math.round((chainMult - 1) * 100);
+      this._log(`🔗 ${s.chainCount} Chain! ダメージ+${bonusPct}%`);
+      eventBus.emit('battle:se:chain');
+    }
 
     // フェーズシフトチェック
     this._checkPhaseShift();

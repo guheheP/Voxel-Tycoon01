@@ -42,6 +42,10 @@ export const AreaDefs = {
         { hpThreshold: 0.4, name: '粘液暴走', effect: { stat: 'spd', amount: 15 }, message: 'スライムが震え始めた！' },
         { hpThreshold: 0.4, name: '粘液硬化', effect: { stat: 'atk', amount: 6 }, message: 'スライムの体が硬く膨らんだ！' },
       ],
+      skills: [
+        { id: 'slime_attack', name: '体当たり', type: 'attack', chance: 70 },
+        { id: 'slime_aoe', name: '粘液散布', type: 'aoe', chance: 30, damageMult: 0.6 },
+      ],
     },
   },
 
@@ -81,6 +85,11 @@ export const AreaDefs = {
       phases: [
         { hpThreshold: 0.5, name: '岩石強化', effect: { stat: 'atk', amount: 10 }, message: 'ゴーレムの拳が赤熱した！' },
         { hpThreshold: 0.25, name: '崩壊の一撃', effect: { stat: 'atk', amount: 8 }, message: 'ゴーレムが地面を叩き割った！' },
+      ],
+      skills: [
+        { id: 'golem_attack', name: '岩拳', type: 'attack', chance: 50 },
+        { id: 'golem_heavy', name: '粉砕撃', type: 'heavy', chance: 35, damageMult: 1.5 },
+        { id: 'golem_aoe', name: '地震', type: 'aoe', chance: 15, damageMult: 0.6 },
       ],
     },
   },
@@ -123,6 +132,11 @@ export const AreaDefs = {
         { hpThreshold: 0.6, name: '怒りの覚醒', effect: { stat: 'atk', amount: 8 }, message: 'ツリーアントの枝が鋭く輝き始めた！' },
         { hpThreshold: 0.3, name: '森の怒り', effect: { stat: 'spd', amount: 15 }, message: 'ツリーアントが咆哮を上げ、動きが速くなった！' },
       ],
+      skills: [
+        { id: 'treant_attack', name: '枝打ち', type: 'attack', chance: 40 },
+        { id: 'treant_aoe', name: '根の波動', type: 'aoe', chance: 30, damageMult: 0.6 },
+        { id: 'treant_heal', name: '森の恵み', type: 'heal', chance: 30, healPercent: 12 },
+      ],
     },
   },
 
@@ -163,6 +177,11 @@ export const AreaDefs = {
         { hpThreshold: 0.5, name: '灼熱の怒り', effect: { stat: 'atk', amount: 13 }, message: 'イフリートが炎に包まれた！' },
         { hpThreshold: 0.2, name: '炎帝覚醒', effect: { stat: 'spd', amount: 20 }, message: 'イフリートの怒りが頂点に達した！' },
       ],
+      skills: [
+        { id: 'ifrit_attack', name: '炎拳', type: 'attack', chance: 30 },
+        { id: 'ifrit_aoe', name: '業火', type: 'aoe', chance: 40, damageMult: 0.6 },
+        { id: 'ifrit_heavy', name: '灼熱の一撃', type: 'heavy', chance: 30, damageMult: 1.5 },
+      ],
     },
   },
 
@@ -202,6 +221,12 @@ export const AreaDefs = {
       phases: [
         { hpThreshold: 0.6, name: '深海の速流', effect: { stat: 'spd', amount: 12 }, message: 'クラーケンの触手が高速で振り回された！' },
         { hpThreshold: 0.3, name: '触手乱舞', effect: { stat: 'atk', amount: 14 }, message: 'クラーケンが怒りに満ちた叫びを上げた！' },
+      ],
+      skills: [
+        { id: 'kraken_attack', name: '触手打撃', type: 'attack', chance: 30 },
+        { id: 'kraken_aoe', name: '大渦', type: 'aoe', chance: 35, damageMult: 0.6 },
+        { id: 'kraken_heavy', name: '触手締め', type: 'heavy', chance: 20, damageMult: 1.5 },
+        { id: 'kraken_heal', name: '深海の再生', type: 'heal', chance: 15, healPercent: 10 },
       ],
     },
   },
@@ -244,6 +269,12 @@ export const AreaDefs = {
         { hpThreshold: 0.4, name: '古竜覚醒', effect: { stat: 'spd', amount: 18 }, message: '古竜の瞳が赤く燃え始めた！' },
         { hpThreshold: 0.15, name: '最後の抵抗', effect: { stat: 'atk', amount: 10 }, message: '古竜が最後の力を振り絞った！' },
       ],
+      skills: [
+        { id: 'dragon_attack', name: '竜爪撃', type: 'attack', chance: 25 },
+        { id: 'dragon_aoe', name: 'ブレス', type: 'aoe', chance: 30, damageMult: 0.6 },
+        { id: 'dragon_heavy', name: '尾撃', type: 'heavy', chance: 30, damageMult: 1.5 },
+        { id: 'dragon_heal', name: '竜の再生', type: 'heal', chance: 15, healPercent: 10 },
+      ],
     },
   },
 
@@ -283,6 +314,12 @@ export const AreaDefs = {
       phases: [
         { hpThreshold: 0.6, name: '雷神降臨', effect: { stat: 'spd', amount: 18 }, message: 'タイタンの体に雷が纏い始めた！' },
         { hpThreshold: 0.3, name: '天空の裁き', effect: { stat: 'atk', amount: 15 }, message: 'タイタンが天の力を解放した！' },
+      ],
+      skills: [
+        { id: 'titan_attack', name: '雷拳', type: 'attack', chance: 20 },
+        { id: 'titan_aoe', name: '雷嵐', type: 'aoe', chance: 35, damageMult: 0.6 },
+        { id: 'titan_heavy', name: '天罰', type: 'heavy', chance: 30, damageMult: 1.5 },
+        { id: 'titan_heal', name: '天空の恩恵', type: 'heal', chance: 15, healPercent: 10 },
       ],
     },
   },
@@ -324,6 +361,12 @@ export const AreaDefs = {
         { hpThreshold: 0.7, name: '時間加速', effect: { stat: 'spd', amount: 18 }, message: '時の支配者が時の流れを加速させた！' },
         { hpThreshold: 0.4, name: '因果崩壊', effect: { stat: 'atk', amount: 19 }, message: '因果律が乱れ、攻撃力が増した！' },
         { hpThreshold: 0.15, name: '時の終焉', effect: { stat: 'spd', amount: 15 }, message: '時の支配者が最後の力を解き放った！' },
+      ],
+      skills: [
+        { id: 'time_attack', name: '時空斬', type: 'attack', chance: 15 },
+        { id: 'time_aoe', name: '時空崩壊', type: 'aoe', chance: 30, damageMult: 0.6 },
+        { id: 'time_heavy', name: '因果断絶', type: 'heavy', chance: 30, damageMult: 1.5 },
+        { id: 'time_heal', name: '時間逆行', type: 'heal', chance: 25, healPercent: 15 },
       ],
     },
   },

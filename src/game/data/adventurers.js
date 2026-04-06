@@ -9,6 +9,7 @@ export const AdventurerDefs = [
     name: '新人騎士アーサー',
     icon: '🛡️',
     exploreTimeMultiplier: 1.0,
+    preset: '/presets/RPG_Characters/Knight.json',
     battle: { maxHp: 120, atk: 22, def: 15, spd: 70 },
   },
   {
@@ -16,6 +17,7 @@ export const AdventurerDefs = [
     name: '狩人ロビン',
     icon: '🏹',
     exploreTimeMultiplier: 0.85,
+    preset: '/presets/RPG_Characters/Archer.json',
     battle: { maxHp: 90, atk: 28, def: 8, spd: 90 },
   },
 ];
@@ -28,6 +30,7 @@ export const UnlockableAdventurers = [
     icon: '🧙‍♀️',
     exploreTimeMultiplier: 1.1,
     unlockRank: 2,
+    preset: '/presets/RPG_Characters/Mage.json',
     battle: { maxHp: 80, atk: 35, def: 5, spd: 75 },
   },
   {
@@ -36,6 +39,7 @@ export const UnlockableAdventurers = [
     icon: '🐱',
     exploreTimeMultiplier: 0.7,
     unlockRank: 3,
+    preset: '/presets/RPG_Characters/Cat.json',
     battle: { maxHp: 100, atk: 25, def: 10, spd: 100 },
   },
   {
@@ -44,6 +48,7 @@ export const UnlockableAdventurers = [
     icon: '⚜️',
     exploreTimeMultiplier: 1.2,
     unlockRank: 4,
+    preset: '/presets/RPG_Characters/King.json',
     battle: { maxHp: 140, atk: 18, def: 20, spd: 60 },
   },
 ];

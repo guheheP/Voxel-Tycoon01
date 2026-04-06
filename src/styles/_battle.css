@@ -30,6 +30,21 @@
   justify-content: center;
   align-items: center;
   border-bottom: 2px solid #4a4e69;
+  position: relative;
+  overflow: hidden;
+}
+
+/* C9: 3D Battle Scene Canvas */
+.battle-3d-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 0;
+  pointer-events: none;
+}
+.battle-header .boss-info {
+  z-index: 1;
 }
 
 .boss-info {
@@ -422,6 +437,245 @@
 .boss-icon, .party-member {
   position: relative;
 }
+/* ── A1: Hit Animations ── */
+.boss-hit {
+  animation: bossHitShake 0.4s ease-out;
+}
+@keyframes bossHitShake {
+  0%   { transform: translateX(0); }
+  15%  { transform: translateX(-6px); }
+  30%  { transform: translateX(6px); }
+  45%  { transform: translateX(-4px); }
+  60%  { transform: translateX(4px); }
+  80%  { transform: translateX(-2px); }
+  100% { transform: translateX(0); }
+}
+
+.adv-hit {
+  animation: advHitFlash 0.35s ease-out;
+}
+@keyframes advHitFlash {
+  0%   { background-color: rgba(230, 57, 70, 0.6); transform: scale(0.97); }
+  100% { background-color: rgba(74, 78, 105, 1); transform: scale(1); }
+}
+
+.boss-aoe-hit {
+  animation: bossAoeFlash 0.5s ease-out;
+}
+@keyframes bossAoeFlash {
+  0%   { box-shadow: inset 0 0 20px rgba(255, 80, 30, 0.7); }
+  100% { box-shadow: none; }
+}
+
+/* ── A2: HP Bar Color Stages ── */
+.hp-fill { background-color: #4caf50; transition: width 0.2s ease-out, background-color 0.5s; }
+.hp-fill.hp-mid { background-color: #ff9800; }
+.hp-fill.hp-low { background-color: #e63946; animation: hpLowPulse 1s ease-in-out infinite; }
+.boss-hp { transition: width 0.2s ease-out, background-color 0.5s; }
+.boss-hp.hp-mid { background-color: #ff9800; }
+.boss-hp.hp-low { background-color: #e63946; animation: hpLowPulse 1s ease-in-out infinite; }
+@keyframes hpLowPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.6; }
+}
+
+/* ── A3: ATB Gauge Full Highlight ── */
+.atb-fill.atb-full {
+  background-color: #ffd700;
+  animation: atbFullPulse 0.6s ease-in-out infinite alternate;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
+}
+.boss-atb.atb-full {
+  background-color: #ff4500;
+  animation: atbFullPulse 0.6s ease-in-out infinite alternate;
+  box-shadow: 0 0 6px rgba(255, 69, 0, 0.5);
+}
+@keyframes atbFullPulse {
+  from { opacity: 0.8; }
+  to   { opacity: 1; }
+}
+
+/* ── A4: Win/Lose Screen Enhancement ── */
+.result-win {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: #fca311;
+  text-shadow: 0 0 20px rgba(252, 163, 17, 0.6), 0 0 40px rgba(252, 163, 17, 0.3);
+  animation: winBounce 0.6s ease-out;
+}
+@keyframes winBounce {
+  0%   { transform: scale(0.3); opacity: 0; }
+  50%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.result-lose {
+  font-size: 1.8rem;
+  color: #888;
+  animation: loseFade 0.8s ease-out;
+}
+@keyframes loseFade {
+  0%   { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.battle-confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+.confetti-piece {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(400px) rotate(720deg); opacity: 0; }
+}
+
+.battle-result-rewards {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.9rem;
+  color: #ccc;
+}
+.battle-result-rewards .reward-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.reward-line .reward-icon { font-size: 1.1rem; }
+.reward-line .reward-text { color: #7ddd88; font-weight: 600; }
+
+/* ── A5: Item Use Effects ── */
+.item-fx-heal {
+  animation: fxHeal 0.6s ease-out;
+}
+@keyframes fxHeal {
+  0%   { box-shadow: inset 0 0 0 rgba(125, 221, 136, 0); }
+  30%  { box-shadow: inset 0 0 30px rgba(125, 221, 136, 0.5); }
+  100% { box-shadow: inset 0 0 0 rgba(125, 221, 136, 0); }
+}
+
+.item-fx-damage {
+  animation: fxDamage 0.5s ease-out;
+}
+@keyframes fxDamage {
+  0%   { box-shadow: 0 0 0 rgba(255, 80, 30, 0); }
+  30%  { box-shadow: 0 0 30px rgba(255, 80, 30, 0.7); }
+  100% { box-shadow: 0 0 0 rgba(255, 80, 30, 0); }
+}
+
+.item-fx-buff {
+  animation: fxBuff 0.6s ease-out;
+}
+@keyframes fxBuff {
+  0%   { box-shadow: inset 0 0 0 rgba(100, 200, 255, 0); }
+  30%  { box-shadow: inset 0 0 20px rgba(100, 200, 255, 0.4); }
+  100% { box-shadow: inset 0 0 0 rgba(100, 200, 255, 0); }
+}
+
+.item-fx-stun {
+  animation: fxStun 0.5s ease-out;
+}
+@keyframes fxStun {
+  0%   { filter: brightness(1); }
+  20%  { filter: brightness(2.5); }
+  100% { filter: brightness(1); }
+}
+
+.item-fx-revive {
+  animation: fxRevive 0.8s ease-out;
+}
+@keyframes fxRevive {
+  0%   { box-shadow: inset 0 0 0 rgba(255, 215, 0, 0); opacity: 0.3; }
+  40%  { box-shadow: inset 0 0 30px rgba(255, 215, 0, 0.5); opacity: 1; }
+  100% { box-shadow: inset 0 0 0 rgba(255, 215, 0, 0); }
+}
+
+/* ── B8: Chain Indicator ── */
+.chain-indicator {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, #fca311, #ff6b35);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 10px;
+  z-index: 10;
+  animation: chainPop 0.3s ease-out;
+  box-shadow: 0 0 8px rgba(252, 163, 17, 0.5);
+}
+@keyframes chainPop {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* ── B7: Target Selection ── */
+.target-select-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+  animation: fadeIn 0.2s ease-out;
+}
+.target-select-title {
+  color: #7ddd88;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.target-select-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.target-select-btn {
+  background: rgba(74, 78, 105, 0.8);
+  border: 2px solid #457b9d;
+  border-radius: 10px;
+  padding: 8px 16px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+.target-select-btn:hover {
+  border-color: #7ddd88;
+  background: rgba(125, 221, 136, 0.15);
+}
+.target-select-btn.target-dead {
+  border-color: #e63946;
+}
+.target-select-btn.target-dead:hover {
+  border-color: #fca311;
+  background: rgba(252, 163, 17, 0.15);
+}
+.target-select-cancel {
+  margin-top: 12px;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.target-select-cancel:hover { color: #ccc; }
+
 /* ── Boss Phase Shift ── */
 .boss-phase-badge {
   font-size: 0.8rem;
