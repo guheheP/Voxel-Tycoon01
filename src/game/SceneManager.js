@@ -36,8 +36,8 @@ export class SceneManager {
 
   async init() {
     // カメラの固定値設定 (パノラマストリップ向け: 低め・ワイドアングル)
-    this.camera.position.set(18, 10, 22);
-    this.camera.lookAt(0, 2, 0);
+    this.camera.position.set(16, 8, 20);
+    this.camera.lookAt(-2, 1.5, 0);
 
     // パーティクルシステム初期化
     this._isMobile = window.innerWidth <= 768;
@@ -103,7 +103,7 @@ export class SceneManager {
         // 歩行中 (約 4.5 units / sec = 往時の 0.15 / 33ms に相当)
         npc.root.position.x -= 4.5 * dt;
         npc.root.rotation.y = Math.PI / 2;
-        if (npc.root.position.x <= 4) {
+        if (npc.root.position.x <= 2) {
           npcState.state = 'idle';
           npcState.timer = 3.0; // 3秒待機
           npc.playAnimation('idle');
@@ -127,8 +127,9 @@ export class SceneManager {
     for (const w of this.wanderers) {
       w.timer -= dt;
       if (w.timer <= 0) {
-        w.targetX = (Math.random() - 0.5) * 30;
-        w.targetZ = (Math.random() - 0.5) * 30;
+        // カメラ可視域（手前の開放エリア）に行動範囲を制限
+        w.targetX = -12 + Math.random() * 20; // -12 ~ 8
+        w.targetZ = 2 + Math.random() * 12;   //  2 ~ 14
         w.timer = 5 + Math.random() * 8;
       }
       const entity = w.entity;
@@ -277,15 +278,16 @@ export class SceneManager {
       scale: 0.6,
     });
 
-    // 背景の木・岩等の装飾
+    // 背景の木・岩等の装飾（カメラ背面＝奥側に配置し、手前を開放）
     const decorations = [
       { path: 'Pine Tree.json', pos: [-15, -15], scale: 1.0 },
-      { path: 'Pine Tree.json', pos: [12, -10], scale: 0.8 },
-      { path: 'Pine Tree.json', pos: [10, 15], scale: 0.9 },
-      { path: 'Pine Tree.json', pos: [-18, 8], scale: 0.7 },
-      { path: 'Rock.json', pos: [8, 12], scale: 0.6 },
-      { path: 'Rock.json', pos: [-10, 10], scale: 0.5 },
-      { path: 'Rock.json', pos: [15, -5], scale: 0.4 },
+      { path: 'Pine Tree.json', pos: [12, -12], scale: 0.8 },
+      { path: 'Pine Tree.json', pos: [-18, -8], scale: 0.7 },
+      { path: 'Pine Tree.json', pos: [-12, -18], scale: 0.9 },
+      { path: 'Pine Tree.json', pos: [18, -14], scale: 0.6 },
+      { path: 'Rock.json', pos: [-10, -10], scale: 0.5 },
+      { path: 'Rock.json', pos: [15, -8], scale: 0.4 },
+      { path: 'Rock.json', pos: [-6, 10], scale: 0.3 },
     ];
 
     for (const dec of decorations) {
@@ -295,10 +297,10 @@ export class SceneManager {
       });
     }
 
-    // 店主NPC
+    // 店主NPC（パノラマストリップで目立つよう手前・大きめに）
     const shopkeeper = await this.loadEntity('/presets/RPG_Characters/King.json', {
-      position: [0, 0, 3],
-      scale: 0.5,
+      position: [-1, 0, 6],
+      scale: 0.65,
     });
     if (shopkeeper) {
       shopkeeper.playAnimation('idle');
@@ -306,10 +308,11 @@ export class SceneManager {
   }
 
   async _spawnWanderers() {
+    // カメラ手前（Z>0 側）に配置し、ストリップから見えやすくする
     const wandererDefs = [
-      { path: 'Chibi Human.json', x: -8, z: 8 },
-      { path: 'Cat.json', x: 10, z: 10 },
-      { path: 'Dog.json', x: -12, z: -8 },
+      { path: 'Chibi Human.json', x: -6, z: 8 },
+      { path: 'Cat.json', x: 5, z: 7 },
+      { path: 'Dog.json', x: -10, z: 4 },
     ];
 
     for (const def of wandererDefs) {
@@ -340,8 +343,8 @@ export class SceneManager {
 
     try {
       const npc = await this.loadEntity('/presets/RPG_Characters/Knight.json', {
-        position: [18, 0, 0],
-        scale: 0.5,
+        position: [18, 0, 5],
+        scale: 0.55,
       });
       if (!npc) { this._returnNpcCount--; return; }
       
