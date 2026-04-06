@@ -459,7 +459,13 @@ export class CraftingTab {
     for (const slot of requiredSlots) {
       const uid = this.selectedMaterials[slot.slotKey];
       if (uid) {
-        const item = this.inventory.getItemsByBlueprint(slot.matId).find(i => i.uid === uid);
+        let candidates;
+        if (isCategorySlot(slot.matId)) {
+          candidates = this.inventory.getItemsByCategory(getCategoryId(slot.matId));
+        } else {
+          candidates = this.inventory.getItemsByBlueprint(slot.matId);
+        }
+        const item = candidates.find(i => i.uid === uid);
         if (item) {
           materialInstances.push(item);
           usedUids.add(uid);
