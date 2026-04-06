@@ -350,7 +350,7 @@ export class SceneManager {
       { pos: [-14,  -8], scale: 0.7, type: 'P' },
       { pos: [14,   -9], scale: 0.7, type: 'P' },
 
-      // ── 左の森 (X: -12~-30) — 左サイドを密に ──
+      // ── 左の森 (X: -12~-35) — 左サイドを広く密に ──
       { pos: [-16,  -5], scale: 1.0, type: 'P' },
       { pos: [-20,  -2], scale: 0.9, type: 'T' },
       { pos: [-14,   0], scale: 0.8, type: 'P' },
@@ -362,8 +362,17 @@ export class SceneManager {
       { pos: [-17,  11], scale: 0.9, type: 'P' },
       { pos: [-24,   5], scale: 0.8, type: 'P' },
       { pos: [-26,  -3], scale: 1.0, type: 'T' },
+      // 左の奥行き追加
+      { pos: [-28,  -8], scale: 0.9, type: 'P' },
+      { pos: [-30,   0], scale: 1.0, type: 'P' },
+      { pos: [-27,   4], scale: 0.8, type: 'T' },
+      { pos: [-32,  -4], scale: 0.9, type: 'T' },
+      { pos: [-25,   9], scale: 0.8, type: 'P' },
+      { pos: [-30,   7], scale: 1.0, type: 'P' },
+      { pos: [-22,  12], scale: 0.7, type: 'T' },
+      { pos: [-28,  11], scale: 0.9, type: 'P' },
 
-      // ── 右の森 (X: 12~30) — 右サイドを密に ──
+      // ── 右の森 (X: 12~35) — 右サイドを広く密に ──
       { pos: [16,   -5], scale: 0.9, type: 'P' },
       { pos: [20,   -2], scale: 1.0, type: 'T' },
       { pos: [14,    0], scale: 0.8, type: 'P' },
@@ -375,18 +384,21 @@ export class SceneManager {
       { pos: [17,   11], scale: 0.9, type: 'T' },
       { pos: [24,    4], scale: 0.8, type: 'P' },
       { pos: [26,   -4], scale: 1.0, type: 'P' },
+      // 右の奥行き追加
+      { pos: [28,   -8], scale: 0.9, type: 'P' },
+      { pos: [30,    0], scale: 1.0, type: 'T' },
+      { pos: [27,    4], scale: 0.8, type: 'P' },
+      { pos: [32,   -4], scale: 0.9, type: 'T' },
+      { pos: [25,    9], scale: 0.8, type: 'P' },
+      { pos: [30,    7], scale: 1.0, type: 'P' },
+      { pos: [22,   12], scale: 0.7, type: 'T' },
+      { pos: [28,   11], scale: 0.9, type: 'P' },
 
-      // ── 手前の森 (Z: 10~18) — カメラ手前側も木で埋める ──
-      { pos: [-20,  13], scale: 0.9, type: 'P' },
-      { pos: [-14,  15], scale: 1.0, type: 'T' },
-      { pos: [-8,   14], scale: 0.8, type: 'P' },
-      { pos: [8,    14], scale: 0.8, type: 'P' },
-      { pos: [14,   15], scale: 1.0, type: 'T' },
-      { pos: [20,   13], scale: 0.9, type: 'P' },
-      { pos: [-24,  16], scale: 0.8, type: 'P' },
-      { pos: [-4,   16], scale: 0.7, type: 'T' },
-      { pos: [4,    16], scale: 0.7, type: 'T' },
-      { pos: [24,   16], scale: 0.8, type: 'P' },
+      // ── 手前 — 左右端だけ軽く (中央は開けたまま) ──
+      { pos: [-22,  14], scale: 0.8, type: 'P' },
+      { pos: [-28,  13], scale: 0.9, type: 'T' },
+      { pos: [22,   14], scale: 0.8, type: 'P' },
+      { pos: [28,   13], scale: 0.9, type: 'T' },
     ];
 
     for (const t of trees) {
