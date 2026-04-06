@@ -97,7 +97,6 @@ export function craftItem(recipeId, materialInstances, selectedTraits = [], qual
   const finalTraits = [];
   const usedFusions = new Set();
   for (const t of selectedTraits) {
-    if (finalTraits.length >= GameConfig.maxTraitSlots) break;
     // 融合が適用できる場合は昇格版を使用
     if (fusionMap[t] && !usedFusions.has(t)) {
       finalTraits.push(fusionMap[t]);
@@ -109,6 +108,15 @@ export function craftItem(recipeId, materialInstances, selectedTraits = [], qual
       }
     }
   }
+
+  // レア度が高いものを優先して maxTraitSlots 個に絞る
+  const rarityOrder = { legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
+  finalTraits.sort((a, b) => {
+    const ra = rarityOrder[TraitDefs[a]?.rarity] ?? 5;
+    const rb = rarityOrder[TraitDefs[b]?.rarity] ?? 5;
+    return ra - rb;
+  });
+  finalTraits.length = Math.min(finalTraits.length, GameConfig.maxTraitSlots);
 
   // パズルボーナス + 素材特性の調合品質ボーナスを適用
   let craftTraitBonus = 0;

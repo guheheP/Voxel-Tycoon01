@@ -311,6 +311,13 @@ export class CraftingTab {
           previewTraits.push(t);
         }
       }
+      // レア度が高いものを優先
+      const rarityOrder = { legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
+      previewTraits.sort((a, b) => {
+        const ra = rarityOrder[TraitDefs[a]?.rarity] ?? 5;
+        const rb = rarityOrder[TraitDefs[b]?.rarity] ?? 5;
+        return ra - rb;
+      });
       const finalPreview = previewTraits.slice(0, GameConfig.maxTraitSlots);
 
       const estimatedValue = ShopSystem.calcValue({ blueprintId: this.selectedRecipeId ? Recipes[this.selectedRecipeId].targetId : '', quality: avgQ, traits: finalPreview });
