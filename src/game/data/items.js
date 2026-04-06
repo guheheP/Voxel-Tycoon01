@@ -308,6 +308,8 @@ export const TraitDefs = {
 
   // ── Common (コモン) ── 新規
   '幸運':     { name: '幸運',     rarity: 'common',    color: 'gray',   description: '特性付与率+8%',              effects: { traitChanceBonus: 8 } },
+  '薬草の香り': { name: '薬草の香り', rarity: 'common', color: 'gray',   description: 'アイテム回復量が少しUP',    effects: { battleHealBonus: 10 } },
+  '滋養':     { name: '滋養',     rarity: 'common',    color: 'gray',   description: 'アイテム使用時に味方を微回復', effects: { battleHealFlat: 8 } },
 
   // ── Uncommon (アンコモン) ── 一部バトル対応に変更 + 2種新規
   '攻撃力+':  { name: '攻撃力+',  rarity: 'uncommon',  color: 'green',  description: 'バトル攻撃力UP',             effects: { battleAtk: 8 } },
@@ -320,7 +322,8 @@ export const TraitDefs = {
   '練磨':     { name: '練磨',     rarity: 'uncommon',  color: 'green',  description: '調合品質+3',                 effects: { craftQualityBonus: 3 } },
   '先制':     { name: '先制',     rarity: 'uncommon',  color: 'green',  description: 'バトル開始時ATB+25',         effects: { startAtb: 25 } },
   '体力強化': { name: '体力強化', rarity: 'uncommon',  color: 'green',  description: 'バトル最大HP UP, 防御力UP',  effects: { battleHp: 30, battleDef: 3 } },
-  '癒しの力': { name: '癒しの力', rarity: 'uncommon',  color: 'green',  description: 'アイテム使用時の回復量UP',   effects: { battleHealBonus: 20 } },
+  '癒しの力': { name: '癒しの力', rarity: 'uncommon',  color: 'green',  description: 'アイテム回復量UP',           effects: { battleHealBonus: 20 } },
+  '命の露':   { name: '命の露',   rarity: 'uncommon',  color: 'green',  description: 'アイテム使用時に味方全体を微回復', effects: { battleHealFlat: 12 } },
 
   // ── Uncommon (アンコモン) ── 新規
   '強運':     { name: '強運',     rarity: 'uncommon',  color: 'green',  description: '特性付与率+15%, はみ出し率UP', effects: { traitChanceBonus: 15 } },
