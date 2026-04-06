@@ -3,6 +3,7 @@
  * 倉庫容量制限付き
  */
 import { createItemInstance } from './ItemSystem.js';
+import { ItemBlueprints } from './data/items.js';
 import { GameConfig } from './data/config.js';
 import { eventBus } from './core/EventBus.js';
 
@@ -91,6 +92,14 @@ export class InventorySystem {
 
   getItemsByBlueprint(blueprintId) {
     return this.items.filter(i => i.blueprintId === blueprintId);
+  }
+
+  /** カテゴリに属するアイテムを返す */
+  getItemsByCategory(categoryId) {
+    return this.items.filter(i => {
+      const bp = ItemBlueprints[i.blueprintId];
+      return bp && bp.category === categoryId;
+    });
   }
 
   /** 容量拡張 (アップグレード購入時) */

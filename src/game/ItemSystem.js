@@ -1,22 +1,33 @@
-/**
- * ItemSystem — アイテム生成とクラフト（調合）ロジック
- * データ定義は data/items.js に分離済み。
- */
-import { ItemBlueprints, Recipes, TraitDefs, TraitFusionTable } from './data/items.js';
+import { ItemBlueprints, Recipes, TraitDefs, TraitFusionTable, MaterialCategories } from './data/items.js';
 import { GameConfig } from './data/config.js';
 import { ShopSystem } from './ShopSystem.js';
 
 // Re-export for backward compatibility
 export { ItemBlueprints, Recipes };
 
+/** カテゴリスロットかどうか判定 */
+export function isCategorySlot(slot) {
+  return typeof slot === 'string' && slot.startsWith('@');
+}
+
+/** カテゴリIDを取得 ('@wood_type' → 'wood_type') */
+export function getCategoryId(slot) {
+  return slot.slice(1);
+}
+
+/** 素材がスロット要件を満たすか判定 */
+export function materialMatchesSlot(blueprintId, slot) {
+  if (isCategorySlot(slot)) {
+    const catId = getCategoryId(slot);
+    const bp = ItemBlueprints[blueprintId];
+    return bp && bp.category === catId;
+  }
+  return blueprintId === slot;
+}
 
 
 /**
  * 個別のアイテムインスタンスを生成する
- * @param {string} blueprintId
- * @param {number} quality
- * @param {string[]} traits
- * @returns {object} アイテムインスタンス
  */
 export function createItemInstance(blueprintId, quality, traits = []) {
   const bp = ItemBlueprints[blueprintId];
@@ -36,26 +47,30 @@ export function createItemInstance(blueprintId, quality, traits = []) {
 }
 
 /**
- * クラフト（調合）ロジック
- * @param {string} recipeId
- * @param {Array} materialInstances 使用する具体的なアイテムインスタンスの配列
- * @param {string[]} selectedTraits 引き継ぎたい特性の配列
- * @returns {object} 完成したアイテムインスタンス
+ * クラフト（調合）ロジック — カテゴリスロット対応
  */
 export function craftItem(recipeId, materialInstances, selectedTraits = [], qualityBonus = 0) {
   const recipe = Recipes[recipeId];
   if (!recipe) throw new Error(`Unknown recipe: ${recipeId}`);
 
-  // 1. レシピ条件チェック
-  const requiredBps = [...recipe.materials].sort();
-  const providedBps = materialInstances.map(m => m.blueprintId).sort();
-
-  if (requiredBps.length !== providedBps.length) {
+  // 1. レシピ条件チェック（カテゴリ対応）
+  if (recipe.materials.length !== materialInstances.length) {
     throw new Error('素材の数が合いません');
   }
-  for (let i = 0; i < requiredBps.length; i++) {
-    if (requiredBps[i] !== providedBps[i]) {
-      throw new Error(`素材が異なります: expected ${requiredBps[i]}, got ${providedBps[i]}`);
+  // スロットごとにマッチング検証
+  const usedIndices = new Set();
+  for (const slot of recipe.materials) {
+    let matched = false;
+    for (let i = 0; i < materialInstances.length; i++) {
+      if (usedIndices.has(i)) continue;
+      if (materialMatchesSlot(materialInstances[i].blueprintId, slot)) {
+        usedIndices.add(i);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      throw new Error(`素材が条件を満たしていません: ${slot}`);
     }
   }
 

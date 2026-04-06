@@ -11,8 +11,9 @@
   <link
     href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Outfit:wght@400;600;700&display=swap"
     rel="stylesheet" />
-  <script type="module" crossorigin src="/Voxel-Tycoon01/assets/main-CJoSVfzw.js"></script>
-  <link rel="stylesheet" crossorigin href="/Voxel-Tycoon01/assets/main-W403Bcsw.css">
+  <script type="module" crossorigin src="/Voxel-Tycoon01/assets/main-BxXRgJot.js"></script>
+  <link rel="modulepreload" crossorigin href="/Voxel-Tycoon01/assets/adventurers-B7YHXoWE.js">
+  <link rel="stylesheet" crossorigin href="/Voxel-Tycoon01/assets/main-mMM-rVEO.css">
 </head>
 
 <body>
@@ -83,6 +84,12 @@
           <button class="btn tab-btn" data-target="tab-upgrade">
             <span class="tab-icon">🏗️</span> 設備
           </button>
+          <button class="btn tab-btn" data-target="tab-quest">
+            <span class="tab-icon">📜</span> クエスト
+          </button>
+          <button class="btn tab-btn" data-target="tab-collection">
+            <span class="tab-icon">📖</span> 図鑑
+          </button>
           <button class="btn tab-btn" data-target="tab-stats">
             <span class="tab-icon">📊</span> 統計
           </button>
@@ -116,11 +123,22 @@
           </div>
 
           <div id="tab-upgrade" class="content-section">
-            <h3>🏗️ 設備・クエスト</h3>
+            <h3>🏗️ 設備</h3>
             <div id="section-upgrade"></div>
+          </div>
+
+          <div id="tab-quest" class="content-section">
+            <h3>📜 クエスト</h3>
+            <div id="section-quest"></div>
+          </div>
+
+          <div id="tab-collection" class="content-section">
+            <h3>📖 図鑑</h3>
           </div>
         </div>
       </div>
+      <!-- 3D Scene Strip (desktop only, hidden on mobile via CSS) -->
+      <div class="scene-strip"></div>
     </div>
   </div>
 </body>

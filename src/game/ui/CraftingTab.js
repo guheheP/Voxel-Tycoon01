@@ -2,8 +2,8 @@
  * CraftingTab — 調合タブ（2カラム分割レイアウト版）
  * 左: レシピカードグリッド / 右: 調合ワークスペース
  */
-import { ItemBlueprints, Recipes, TraitDefs, TraitFusionTable } from '../data/items.js';
-import { craftItem } from '../ItemSystem.js';
+import { ItemBlueprints, Recipes, TraitDefs, TraitFusionTable, MaterialCategories } from '../data/items.js';
+import { craftItem, isCategorySlot, getCategoryId, materialMatchesSlot } from '../ItemSystem.js';
 import { eventBus } from '../core/EventBus.js';
 import { GameConfig } from '../data/config.js';
 import { ShopSystem } from '../ShopSystem.js';
@@ -34,20 +34,26 @@ export class CraftingTab {
 
     // ── 左パネル: レシピ一覧 ──
     // フィルターカウント
-    const counts = { all: 0, equipment: 0, consumable: 0, accessory: 0 };
+    const counts = { all: 0, equipment: 0, consumable: 0, accessory: 0, material: 0 };
     unlockedRecipes.forEach(([, r]) => {
       const bp = ItemBlueprints[r.targetId];
       if (bp) {
         counts.all++;
-        if (counts[bp.type] !== undefined) counts[bp.type]++;
+        if (r.isMaterialRecipe) {
+          counts.material++;
+        } else if (counts[bp.type] !== undefined) {
+          counts[bp.type]++;
+        }
       }
     });
 
     let filteredRecipes = unlockedRecipes;
-    if (this.recipeFilter !== 'all') {
+    if (this.recipeFilter === 'material') {
+      filteredRecipes = filteredRecipes.filter(([, r]) => r.isMaterialRecipe);
+    } else if (this.recipeFilter !== 'all') {
       filteredRecipes = filteredRecipes.filter(([, r]) => {
         const bp = ItemBlueprints[r.targetId];
-        return bp && bp.type === this.recipeFilter;
+        return bp && bp.type === this.recipeFilter && !r.isMaterialRecipe;
       });
     }
     if (this.craftableOnly) {
@@ -68,9 +74,17 @@ export class CraftingTab {
       const needed = {};
       r.materials.forEach(m => { needed[m] = (needed[m] || 0) + 1; });
       const matBadges = Object.entries(needed).map(([matId, cnt]) => {
-        const owned = this.inventory.getItemsByBlueprint(matId).length;
+        let owned, name;
+        if (isCategorySlot(matId)) {
+          const catId = getCategoryId(matId);
+          const cat = MaterialCategories[catId];
+          owned = this.inventory.getItemsByCategory(catId).length;
+          name = cat ? `${cat.icon} ${cat.name}` : matId;
+        } else {
+          owned = this.inventory.getItemsByBlueprint(matId).length;
+          name = ItemBlueprints[matId]?.name ?? matId;
+        }
         const ok = owned >= cnt;
-        const name = ItemBlueprints[matId]?.name ?? matId;
         return `<span class="craft-mat-badge ${ok ? 'ok' : 'ng'}">${name} ${owned}/${cnt}</span>`;
       }).join('');
 
@@ -97,6 +111,7 @@ export class CraftingTab {
           <button class="shop-filter-btn ${this.recipeFilter === 'equipment' ? 'active' : ''}" data-craft-filter="equipment">⚔️ 武具 <span class="shop-filter-count">${counts.equipment}</span></button>
           <button class="shop-filter-btn ${this.recipeFilter === 'consumable' ? 'active' : ''}" data-craft-filter="consumable">🧪 消耗品 <span class="shop-filter-count">${counts.consumable}</span></button>
           <button class="shop-filter-btn ${this.recipeFilter === 'accessory' ? 'active' : ''}" data-craft-filter="accessory">💎 アクセ <span class="shop-filter-count">${counts.accessory}</span></button>
+          <button class="shop-filter-btn ${this.recipeFilter === 'material' ? 'active' : ''}" data-craft-filter="material">🧱 素材 <span class="shop-filter-count">${counts.material}</span></button>
           <button class="shop-filter-btn craft-craftable-toggle ${this.craftableOnly ? 'active' : ''}" id="craft-toggle-craftable">✅ 作成可能のみ</button>
         </div>
         <div class="craft-recipe-grid">${recipeCards}</div>
@@ -130,7 +145,13 @@ export class CraftingTab {
     const needed = {};
     recipe.materials.forEach(m => { needed[m] = (needed[m] || 0) + 1; });
     for (const [matId, count] of Object.entries(needed)) {
-      if (this.inventory.getItemsByBlueprint(matId).length < count) return false;
+      let owned;
+      if (isCategorySlot(matId)) {
+        owned = this.inventory.getItemsByCategory(getCategoryId(matId)).length;
+      } else {
+        owned = this.inventory.getItemsByBlueprint(matId).length;
+      }
+      if (owned < count) return false;
     }
     return true;
   }
@@ -176,10 +197,20 @@ export class CraftingTab {
     let allSlotsFilled = true;
 
     for (const slot of requiredSlots) {
-      const allOwned = this.inventory.getItemsByBlueprint(slot.matId)
-        .sort((a, b) => b.quality - a.quality);
+      let allOwned;
+      let matName;
+      if (isCategorySlot(slot.matId)) {
+        const catId = getCategoryId(slot.matId);
+        const cat = MaterialCategories[catId];
+        allOwned = this.inventory.getItemsByCategory(catId)
+          .sort((a, b) => b.quality - a.quality);
+        matName = cat ? `${cat.icon} ${cat.name}` : slot.matId;
+      } else {
+        allOwned = this.inventory.getItemsByBlueprint(slot.matId)
+          .sort((a, b) => b.quality - a.quality);
+        matName = ItemBlueprints[slot.matId]?.name ?? slot.matId;
+      }
       const available = allOwned.filter(i => !usedUids.has(i.uid) || this.selectedMaterials[slot.slotKey] === i.uid);
-      const matName = ItemBlueprints[slot.matId].name;
       const hasAny = available.length > 0;
 
       let selectedUid = this.selectedMaterials[slot.slotKey];
