@@ -2,6 +2,7 @@ import { eventBus } from '../core/EventBus.js';
 import { ItemBlueprints } from '../data/items.js';
 import { GameConfig } from '../data/config.js';
 import { assetPath } from '../core/assetPath.js';
+import { BattleScene3D } from './BattleScene3D.js';
 
 export class BattleScreen {
   constructor(inventorySystem) {
@@ -18,6 +19,8 @@ export class BattleScreen {
 
     this._resultShown = false;
     this._pendingTimers = [];  // 全 setTimeout を追跡
+    this._pendingTargetSelect = null; // B7: ターゲット選択待ち { uid }
+    this._scene3d = null; // C9: 3Dバトルシーン
 
     this._unsubs = [
       eventBus.on('battle:start', (state) => this.show(state)),
@@ -25,6 +28,17 @@ export class BattleScreen {
       eventBus.on('battle:win', () => this.showResult('win')),
       eventBus.on('battle:lose', (data) => this.showResult(data.reason)),
       eventBus.on('battle:phaseShift', (d) => this._onPhaseShift(d)),
+      // A1: Hit animations
+      eventBus.on('battle:se:advAttack', () => this._animateBossHit()),
+      eventBus.on('battle:se:bossAttack', () => this._animateAdvHit()),
+      eventBus.on('battle:se:bossAoe', () => this._animateAoeHit()),
+      // A5: Item effect animations
+      eventBus.on('battle:se:heal', () => this._animateItemFx('heal')),
+      eventBus.on('battle:se:revive', () => this._animateItemFx('revive')),
+      eventBus.on('battle:se:damage', () => this._animateItemFx('damage')),
+      eventBus.on('battle:se:stun', () => this._animateItemFx('stun')),
+      eventBus.on('battle:se:buff', () => this._animateItemFx('buff')),
+      eventBus.on('battle:se:debuff', () => this._animateItemFx('debuff')),
     ];
   }
 
@@ -114,6 +128,11 @@ export class BattleScreen {
 
     document.body.appendChild(this.overlay);
 
+    // C9: 3Dバトルシーン初期化（モバイルでは省略）
+    if (window.innerWidth > 768 && state.boss.preset) {
+      this._init3DScene(state);
+    }
+
     // Cache DOM elements to avoid querySelectorAll every frame
     this._els = {
       bossHpFill: this.overlay.querySelector('#boss-hp-fill'),
@@ -150,6 +169,20 @@ export class BattleScreen {
       if (!btn) return;
       if (this.state && this.state.itemCooldown > 0) return;
       const uid = btn.dataset.uid;
+      // B7: 回復/蘇生アイテムの場合はターゲット選択UIを表示
+      const item = this.inventory.items.find(i => i.uid === uid);
+      if (item) {
+        const bp = ItemBlueprints[item.blueprintId];
+        const fx = bp?.battleEffect;
+        if (fx && (fx.type === 'heal' || fx.type === 'healfull') && fx.target === 'ally') {
+          this.showTargetSelection(uid, 'ally');
+          return;
+        }
+        if (fx && fx.type === 'revive') {
+          this.showTargetSelection(uid, 'dead_ally');
+          return;
+        }
+      }
       eventBus.emit('battle:command', { action: 'useItem', uid: uid });
     });
 
@@ -212,9 +245,20 @@ export class BattleScreen {
 
     // Boss updates (cached elements, no querySelector per frame)
     const bossHpPct = Math.max(0, (state.boss.hp / state.boss.maxHp) * 100);
-    if (els.bossHpFill) els.bossHpFill.style.width = `${bossHpPct}%`;
+    if (els.bossHpFill) {
+      els.bossHpFill.style.width = `${bossHpPct}%`;
+      // A2: HP bar color stages
+      els.bossHpFill.classList.remove('hp-mid', 'hp-low');
+      if (bossHpPct <= 20) els.bossHpFill.classList.add('hp-low');
+      else if (bossHpPct <= 50) els.bossHpFill.classList.add('hp-mid');
+    }
     if (els.bossHpText) els.bossHpText.textContent = `${Math.floor(state.boss.hp)}/${state.boss.maxHp}`;
-    if (els.bossAtbFill) els.bossAtbFill.style.width = `${Math.min(100, state.boss.atbGauge)}%`;
+    if (els.bossAtbFill) {
+      const bossAtb = Math.min(100, state.boss.atbGauge);
+      els.bossAtbFill.style.width = `${bossAtb}%`;
+      // A3: ATB full highlight
+      els.bossAtbFill.classList.toggle('atb-full', bossAtb >= 95);
+    }
     if (els.bossIcon) {
       if (state.boss.stunTimer > 0) els.bossIcon.classList.add('boss-stunned');
       else els.bossIcon.classList.remove('boss-stunned');
@@ -229,8 +273,15 @@ export class BattleScreen {
 
       const hpPct = Math.max(0, (a.hp / a.maxHp) * 100);
       ae.hpFill.style.width = `${hpPct}%`;
+      // A2: HP bar color stages
+      ae.hpFill.classList.remove('hp-mid', 'hp-low');
+      if (hpPct <= 20) ae.hpFill.classList.add('hp-low');
+      else if (hpPct <= 50) ae.hpFill.classList.add('hp-mid');
       ae.hpText.textContent = `${Math.floor(a.hp)}/${a.maxHp}`;
-      ae.atbFill.style.width = `${Math.min(100, a.atbGauge)}%`;
+      const advAtb = Math.min(100, a.atbGauge);
+      ae.atbFill.style.width = `${advAtb}%`;
+      // A3: ATB full highlight
+      ae.atbFill.classList.toggle('atb-full', advAtb >= 95);
 
       if (ae.buffs) {
         const buffKey = a.activeBuffs ? a.activeBuffs.map(b => `${b.stat}${b.amount > 0 ? '+' : '-'}`).join(',') : '';
@@ -298,28 +349,56 @@ export class BattleScreen {
     this._clearAllTimers();
 
     let msg = '';
+    let rewardsHtml = '';
+    let confettiHtml = '';
     let btnText = '戻る';
 
     if (result === 'win') {
-      msg = '<div class="result-win">WIN! ボスを撃破した！</div>';
+      msg = '<div class="result-win">VICTORY!</div>';
+      // A4: 紙吹雪パーティクル
+      const colors = ['#fca311', '#e63946', '#457b9d', '#7ddd88', '#ff6b35', '#a855f7'];
+      let confettiPieces = '';
+      for (let i = 0; i < 40; i++) {
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const left = Math.random() * 100;
+        const delay = Math.random() * 0.8;
+        const duration = 1.5 + Math.random() * 1.5;
+        const size = 5 + Math.random() * 6;
+        confettiPieces += `<div class="confetti-piece" style="left:${left}%;background:${color};width:${size}px;height:${size}px;animation-delay:${delay}s;animation-duration:${duration}s"></div>`;
+      }
+      confettiHtml = `<div class="battle-confetti">${confettiPieces}</div>`;
+
+      // 報酬プレビュー
+      const survivors = this.state?.adventurers.filter(a => a.status === 'active').length || 0;
+      const total = this.state?.adventurers.length || 0;
+      const chainMax = this.state?.chainMax || 0;
+      rewardsHtml = `
+        <div class="battle-result-rewards">
+          <div class="reward-line"><span class="reward-icon">⚔️</span> ボス撃破！ランクアップ条件クリア</div>
+          <div class="reward-line"><span class="reward-icon">👥</span> 生存者: <span class="reward-text">${survivors}/${total}</span></div>
+          ${chainMax >= 2 ? `<div class="reward-line"><span class="reward-icon">🔗</span> 最大チェイン: <span class="reward-text">${chainMax}</span></div>` : ''}
+        </div>`;
     } else if (result === 'wipeout') {
-      msg = '<div class="result-lose">LOSE... 全滅してしまった。</div>';
+      msg = '<div class="result-lose">DEFEAT...</div><div style="color:#888;font-size:0.9rem;margin-top:8px">全滅してしまった。装備を強化して再挑戦しよう。</div>';
     } else {
-      msg = '<div class="result-lose">逃走した。</div>';
+      msg = '<div class="result-lose">逃走した。</div><div style="color:#888;font-size:0.9rem;margin-top:8px">態勢を整えてから再挑戦しよう。</div>';
     }
 
     const resultOverlay = document.createElement('div');
     resultOverlay.className = 'battle-result-overlay';
     resultOverlay.innerHTML = `
+      ${confettiHtml}
       <div class="battle-result-box">
          ${msg}
-         <button class="btn btn-primary mt-4 w-full" id="btn-close-result">${btnText}</button>
+         ${rewardsHtml}
+         <button class="btn btn-primary mt-4 w-full" id="btn-close-result" style="margin-top:16px">${btnText}</button>
       </div>
     `;
 
     this.overlay.appendChild(resultOverlay);
 
     resultOverlay.querySelector('#btn-close-result').addEventListener('click', () => {
+      this._dispose3DScene();
       eventBus.emit('game:resume');
       this.overlay.remove();
       this.overlay = null;
@@ -435,8 +514,139 @@ export class BattleScreen {
     this._trackedTimeout(() => popup.remove(), 900);
   }
 
+  // ── C9: 3D Battle Scene ──
+
+  async _init3DScene(state) {
+    if (this._scene3d) this._scene3d.dispose();
+    this._scene3d = new BattleScene3D();
+    const container = this.overlay?.querySelector('.battle-header');
+    if (!container) return;
+    await this._scene3d.init(container, state.boss, state.adventurers);
+  }
+
+  _dispose3DScene() {
+    if (this._scene3d) {
+      this._scene3d.dispose();
+      this._scene3d = null;
+    }
+  }
+
+  // ── A1: Hit Animations ──
+
+  _animateBossHit() {
+    const el = this._els.bossIcon;
+    if (!el) return;
+    el.classList.remove('boss-hit');
+    void el.offsetWidth; // force reflow
+    el.classList.add('boss-hit');
+    this._trackedTimeout(() => el.classList.remove('boss-hit'), 400);
+    // C9: 3Dシーン連動
+    if (this._scene3d) this._scene3d.animateBossHit();
+  }
+
+  _animateAdvHit() {
+    // Find the last adventurer that took damage (most recent log entry)
+    if (!this.state) return;
+    const lastLog = this.state.log[0]?.msg || '';
+    const match = lastLog.match(/(.+?)に \d+ のダメージ/);
+    if (!match) return;
+    const targetName = match[1].replace(/^.*?！ /, '');
+    const adv = this.state.adventurers.find(a => a.name === targetName);
+    if (!adv) return;
+    const card = this._els.advEls[adv.id]?.card;
+    if (!card) return;
+    card.classList.remove('adv-hit');
+    void card.offsetWidth;
+    card.classList.add('adv-hit');
+    this._trackedTimeout(() => card.classList.remove('adv-hit'), 350);
+    // C9: 3Dシーン連動
+    if (this._scene3d) this._scene3d.animateAdvHit(adv.id);
+  }
+
+  _animateAoeHit() {
+    // Flash all alive adventurer cards
+    if (!this.state) return;
+    for (const a of this.state.adventurers) {
+      if (a.status === 'dead') continue;
+      const card = this._els.advEls[a.id]?.card;
+      if (!card) continue;
+      card.classList.remove('boss-aoe-hit');
+      void card.offsetWidth;
+      card.classList.add('boss-aoe-hit');
+      this._trackedTimeout(() => card.classList.remove('boss-aoe-hit'), 500);
+    }
+  }
+
+  // ── A5: Item Effect Animations ──
+
+  _animateItemFx(type) {
+    if (!this.overlay) return;
+    const cls = `item-fx-${type}`;
+    const container = this.overlay.querySelector('.battle-container');
+    if (!container) return;
+    container.classList.remove(cls);
+    void container.offsetWidth;
+    container.classList.add(cls);
+    this._trackedTimeout(() => container.classList.remove(cls), 800);
+  }
+
+  // ── B7: Target Selection UI ──
+
+  showTargetSelection(uid, targetType) {
+    if (!this.overlay || !this.state) return;
+    const container = this.overlay.querySelector('.battle-container');
+    if (!container) return;
+
+    const isRevive = targetType === 'dead_ally';
+    const candidates = this.state.adventurers.filter(a =>
+      isRevive ? a.status === 'dead' : a.status === 'active'
+    );
+
+    if (candidates.length === 0) {
+      // 対象がいない
+      eventBus.emit('toast', { message: isRevive ? '蘇生対象がいません' : '回復対象がいません', type: 'warning' });
+      return;
+    }
+    if (candidates.length === 1) {
+      // Only one valid target — auto-select
+      eventBus.emit('battle:command', { action: 'useItem', uid });
+      return;
+    }
+
+    const title = isRevive ? '蘇生対象を選択' : '回復対象を選択';
+    const selectOverlay = document.createElement('div');
+    selectOverlay.className = 'target-select-overlay';
+    selectOverlay.innerHTML = `
+      <div class="target-select-title">💚 ${title}</div>
+      <div class="target-select-list">
+        ${candidates.map(a => {
+          const hpPct = Math.floor((a.hp / a.maxHp) * 100);
+          return `<button class="target-select-btn ${isRevive ? 'target-dead' : ''}" data-adv-id="${a.id}">
+            <span>${a.icon}</span>
+            <span>${a.name}</span>
+            <span style="font-size:0.8rem;color:#aaa">${isRevive ? '💀' : `HP ${hpPct}%`}</span>
+          </button>`;
+        }).join('')}
+      </div>
+      <div class="target-select-cancel">キャンセル</div>
+    `;
+
+    container.appendChild(selectOverlay);
+
+    selectOverlay.querySelectorAll('.target-select-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectOverlay.remove();
+        eventBus.emit('battle:command', { action: 'useItem', uid, targetAdvId: btn.dataset.advId });
+      });
+    });
+    selectOverlay.querySelector('.target-select-cancel').addEventListener('click', () => {
+      selectOverlay.remove();
+    });
+  }
+
   dispose() {
     this._clearAllTimers();
+    this._dispose3DScene();
     this._unsubs.forEach(u => u());
   }
 }

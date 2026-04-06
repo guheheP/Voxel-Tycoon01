@@ -214,7 +214,7 @@ async function startGame(saveData) {
     }),
     eventBus.on('battle:command', (d) => {
       if (d.action === 'flee') battleSystem.flee();
-      else if (d.action === 'useItem') battleSystem.useItem(d.uid);
+      else if (d.action === 'useItem') battleSystem.useItem(d.uid, d.targetAdvId || null);
     }),
     eventBus.on('game:pause', () => { gamePaused = true; }),
     eventBus.on('game:resume', () => { gamePaused = false; }),

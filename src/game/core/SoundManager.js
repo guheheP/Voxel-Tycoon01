@@ -158,6 +158,12 @@ class SoundManagerClass {
     eventBus.on('battle:se:ko', () => this.playBattleKO());
     eventBus.on('battle:se:revive', () => this.playBattleRevive());
     eventBus.on('battle:se:phaseShift', () => this.playBattlePhaseShift());
+    // B6: ボススキルSE
+    eventBus.on('battle:se:bossAoe', () => this.playBattleBossAttack());
+    eventBus.on('battle:se:bossHeavy', () => this.playBattleBossAttack());
+    eventBus.on('battle:se:bossHeal', () => this.playBattleHeal());
+    // B8: チェインSE
+    eventBus.on('battle:se:chain', () => this.playBattleBuff());
   }
 
   // ===== 音量制御 =====
