@@ -74,6 +74,14 @@ export class BattleSystem {
       return false;
     }
 
+    // パーティ平均レベルに応じたボスステータスのスケーリング
+    const avgLevel = participants.reduce((sum, a) => sum + a.level, 0) / participants.length;
+    const levelScale = 1 + (avgLevel - 1) * 0.08; // Lv1=1.0, Lv7=1.48, Lv10=1.72
+    const scaledMaxHp = Math.floor(bossDef.maxHp * levelScale);
+    const scaledAtk = Math.floor(bossDef.atk * levelScale);
+    const scaledDef = Math.floor(bossDef.def * levelScale);
+    const scaledSpd = Math.floor(bossDef.spd * (1 + (avgLevel - 1) * 0.04)); // SPDは控えめにスケール
+
     this.state = {
       rankIndex: rankIndex,
       phase: 'fighting',
@@ -81,11 +89,11 @@ export class BattleSystem {
         id: bossDef.id,
         name: bossDef.name,
         icon: bossDef.icon,
-        hp: bossDef.maxHp,
-        maxHp: bossDef.maxHp,
-        baseAtk: bossDef.atk,
-        baseDef: bossDef.def,
-        baseSpd: bossDef.spd,
+        hp: scaledMaxHp,
+        maxHp: scaledMaxHp,
+        baseAtk: scaledAtk,
+        baseDef: scaledDef,
+        baseSpd: scaledSpd,
         atbGauge: 0,
         activeBuffs: [],
         stunTimer: 0,
