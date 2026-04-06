@@ -68,11 +68,7 @@ export class Renderer {
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    const grid = new THREE.GridHelper(40, 40, 0x7db892, 0x6aad80);
-    grid.position.y = 0.01;
-    grid.material.transparent = true;
-    grid.material.opacity = 0.3;
-    this.scene.add(grid);
+    // グリッドはパノラマストリップでは不自然なので削除
   }
 
   _onResize() {
