@@ -88,7 +88,7 @@ export class Renderer {
 
     // カメラのアスペクト比: ストリップのワイド比をFOV調整で自然に見せる
     this.camera.aspect = w / this._stripH;
-    this.camera.fov = 20; // ワイドアスペクトに合わせて狭FOVで歪み軽減
+    this.camera.fov = 25; // ワイドストリップ用: 垂直方向の視野を適度に確保
     this.camera.updateProjectionMatrix();
   }
 
