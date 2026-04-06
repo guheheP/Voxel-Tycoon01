@@ -310,8 +310,8 @@ export const TraitDefs = {
   '幸運':     { name: '幸運',     rarity: 'common',    color: 'gray',   description: '特性付与率+8%',              effects: { traitChanceBonus: 8 } },
 
   // ── Uncommon (アンコモン) ── 一部バトル対応に変更 + 2種新規
-  '攻撃力+1': { name: '攻撃力+1', rarity: 'uncommon',  color: 'green',  description: 'バトル攻撃力+8',             effects: { battleAtk: 8 } },
-  '防御力+1': { name: '防御力+1', rarity: 'uncommon',  color: 'green',  description: 'バトル防御力+5',             effects: { battleDef: 5 } },
+  '攻撃力+':  { name: '攻撃力+',  rarity: 'uncommon',  color: 'green',  description: 'バトル攻撃力UP',             effects: { battleAtk: 8 } },
+  '防御力+':  { name: '防御力+',  rarity: 'uncommon',  color: 'green',  description: 'バトル防御力UP',             effects: { battleDef: 5 } },
   'HP回復+':  { name: 'HP回復+',  rarity: 'uncommon',  color: 'green',  description: 'バトル最大HP+20',            effects: { battleHp: 20 } },
   '売値UP':   { name: '売値UP',   rarity: 'uncommon',  color: 'green',  description: '売値+20%',                   effects: { sellBonus: 20 } },
   '採取量UP': { name: '採取量UP', rarity: 'uncommon',  color: 'green',  description: 'ドロップ+1',                 effects: { dropBonus: 1 } },
@@ -319,14 +319,14 @@ export const TraitDefs = {
   '猛毒':     { name: '猛毒',     rarity: 'uncommon',  color: 'green',  description: '探索成功率+6%',              effects: { exploreSuccess: 6 } },
   '練磨':     { name: '練磨',     rarity: 'uncommon',  color: 'green',  description: '調合品質+3',                 effects: { craftQualityBonus: 3 } },
   '先制':     { name: '先制',     rarity: 'uncommon',  color: 'green',  description: 'バトル開始時ATB+25',         effects: { startAtb: 25 } },
-  '体力強化': { name: '体力強化', rarity: 'uncommon',  color: 'green',  description: 'バトル最大HP+30, 防御力+3',  effects: { battleHp: 30, battleDef: 3 } },
+  '体力強化': { name: '体力強化', rarity: 'uncommon',  color: 'green',  description: 'バトル最大HP UP, 防御力UP',  effects: { battleHp: 30, battleDef: 3 } },
 
   // ── Uncommon (アンコモン) ── 新規
   '強運':     { name: '強運',     rarity: 'uncommon',  color: 'green',  description: '特性付与率+15%, はみ出し率UP', effects: { traitChanceBonus: 15 } },
 
   // ── Rare (レア) ── 一部バトル対応に変更 + 2種新規
-  '攻撃力+2': { name: '攻撃力+2', rarity: 'rare',      color: 'blue',   description: 'バトル攻撃力+16',            effects: { battleAtk: 16 } },
-  '防御力+2': { name: '防御力+2', rarity: 'rare',      color: 'blue',   description: 'バトル防御力+10',            effects: { battleDef: 10 } },
+  '攻撃力++': { name: '攻撃力++', rarity: 'rare',      color: 'blue',   description: 'バトル攻撃力大UP',           effects: { battleAtk: 16 } },
+  '防御力++': { name: '防御力++', rarity: 'rare',      color: 'blue',   description: 'バトル防御力大UP',           effects: { battleDef: 10 } },
   'HP回復++': { name: 'HP回復++', rarity: 'rare',      color: 'blue',   description: 'バトル最大HP+40',            effects: { battleHp: 40 } },
   '売値UP+':  { name: '売値UP+',  rarity: 'rare',      color: 'blue',   description: '売値+40%',                   effects: { sellBonus: 40 } },
   '風の加護': { name: '風の加護', rarity: 'rare',      color: 'blue',   description: '速度+12%, 成功率+5%',        effects: { speedBonus: 12, exploreSuccess: 5 } },
@@ -337,8 +337,8 @@ export const TraitDefs = {
   '疾走':     { name: '疾走',     rarity: 'rare',      color: 'blue',   description: 'バトル素早さ+18, ATB+15',   effects: { battleSpd: 18, startAtb: 15 } },
 
   // ── Epic (エピック) ── 一部バトル対応に変更 + 1種新規
-  '攻撃力+3': { name: '攻撃力+3', rarity: 'epic',      color: 'purple', description: 'バトル攻撃力+28',            effects: { battleAtk: 28 } },
-  '防御力+3': { name: '防御力+3', rarity: 'epic',      color: 'purple', description: 'バトル防御力+18',            effects: { battleDef: 18 } },
+  '攻撃力+++': { name: '攻撃力+++', rarity: 'epic',    color: 'purple', description: 'バトル攻撃力超UP',           effects: { battleAtk: 28 } },
+  '防御力+++': { name: '防御力+++', rarity: 'epic',    color: 'purple', description: 'バトル防御力超UP',           effects: { battleDef: 18 } },
   '混沌':     { name: '混沌',     rarity: 'epic',      color: 'purple', description: '成功率+15%, 売値-10%',       effects: { exploreSuccess: 15, sellBonus: -10 } },
   '名匠の技': { name: '名匠の技', rarity: 'epic',      color: 'purple', description: '調合品質+8',                 effects: { craftQualityBonus: 8 } },
   '再生':     { name: '再生',     rarity: 'epic',      color: 'purple', description: 'バトル中HP2/秒回復',         effects: { battleRegen: 2 } },
@@ -346,6 +346,6 @@ export const TraitDefs = {
   // ── Legendary (レジェンダリー) ── 変更なし + 2種新規
   '時の祝福': { name: '時の祝福', rarity: 'legendary', color: 'gold',   description: '速度+15%, 調合+5',           effects: { speedBonus: 15, craftQualityBonus: 5 } },
   '星の輝き': { name: '星の輝き', rarity: 'legendary', color: 'gold',   description: '売値+25%, 調合+3',           effects: { sellBonus: 25, craftQualityBonus: 3 } },
-  '武神':     { name: '武神',     rarity: 'legendary', color: 'gold',   description: 'バトル攻撃力+15, 素早さ+15, ATB+20', effects: { battleAtk: 15, battleSpd: 15, startAtb: 20 } },
-  '不死鳥':   { name: '不死鳥',   rarity: 'legendary', color: 'gold',   description: 'HP4/秒回復, 防御力+12, HP+30', effects: { battleRegen: 4, battleDef: 12, battleHp: 30 } },
+  '武神':     { name: '武神',     rarity: 'legendary', color: 'gold',   description: '攻撃力・素早さ・先制 大UP', effects: { battleAtk: 15, battleSpd: 15, startAtb: 20 } },
+  '不死鳥':   { name: '不死鳥',   rarity: 'legendary', color: 'gold',   description: 'HP自動回復・防御力・HP 大UP', effects: { battleRegen: 4, battleDef: 12, battleHp: 30 } },
 };
