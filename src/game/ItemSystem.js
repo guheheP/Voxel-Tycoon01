@@ -2,7 +2,7 @@
  * ItemSystem — アイテム生成とクラフト（調合）ロジック
  * データ定義は data/items.js に分離済み。
  */
-import { ItemBlueprints, Recipes, TraitDefs } from './data/items.js';
+import { ItemBlueprints, Recipes, TraitDefs, TraitFusionTable } from './data/items.js';
 import { GameConfig } from './data/config.js';
 import { ShopSystem } from './ShopSystem.js';
 
@@ -63,16 +63,50 @@ export function craftItem(recipeId, materialInstances, selectedTraits = [], qual
   const totalQuality = materialInstances.reduce((sum, item) => sum + item.quality, 0);
   const avgQuality = materialInstances.length > 0 ? (totalQuality / materialInstances.length) : 50;
 
-  // 3. 特性引き継ぎ制限のバリデーション
+  // 3. 特性引き継ぎ + 融合
+  // 3a. 素材間で重複するトレイトを検出し融合判定
+  const traitCounts = {};  // トレイト名 → 持っている素材の数
+  materialInstances.forEach(item => {
+    const seen = new Set(); // 同一素材内の重複は1回とカウント
+    item.traits.forEach(t => {
+      if (!seen.has(t)) {
+        traitCounts[t] = (traitCounts[t] || 0) + 1;
+        seen.add(t);
+      }
+    });
+  });
+
+  // 3b. 融合マップを構築 (元トレイト → 昇格先トレイト)
+  const fusionMap = {};  // 元のトレイト名 → 昇格後のトレイト名
+  for (const [trait, count] of Object.entries(traitCounts)) {
+    if (count >= 2 && TraitFusionTable[trait] && TraitDefs[TraitFusionTable[trait]]) {
+      fusionMap[trait] = TraitFusionTable[trait];
+    }
+  }
+
+  // 3c. 選択されたトレイトを処理（融合適用 → 最終リストに追加）
   const allAvailableTraits = new Set();
   materialInstances.forEach(item => {
     item.traits.forEach(t => allAvailableTraits.add(t));
   });
+  // 融合後のトレイトも選択可能にする
+  for (const upgraded of Object.values(fusionMap)) {
+    allAvailableTraits.add(upgraded);
+  }
 
   const finalTraits = [];
+  const usedFusions = new Set();
   for (const t of selectedTraits) {
-    if (allAvailableTraits.has(t) && finalTraits.length < GameConfig.maxTraitSlots) {
-      finalTraits.push(t);
+    if (finalTraits.length >= GameConfig.maxTraitSlots) break;
+    // 融合が適用できる場合は昇格版を使用
+    if (fusionMap[t] && !usedFusions.has(t)) {
+      finalTraits.push(fusionMap[t]);
+      usedFusions.add(t);
+    } else if (allAvailableTraits.has(t)) {
+      // 融合済みの元トレイトは重複追加しない
+      if (!usedFusions.has(t)) {
+        finalTraits.push(t);
+      }
     }
   }
 

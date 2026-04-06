@@ -429,9 +429,10 @@ export class CraftingTab {
   // =============================================
 
   async _executeCrafting(recipeId, materials, qualityBonus = 0) {
+    // 全素材のトレイトを収集（融合判定は craftItem 内で実行）
     const allTraitsSet = new Set();
     materials.forEach(i => i.traits.forEach(t => allTraitsSet.add(t)));
-    const selectedTraits = Array.from(allTraitsSet).slice(0, GameConfig.maxTraitSlots);
+    const selectedTraits = Array.from(allTraitsSet);
 
     const ws = document.getElementById('craft-workspace');
     if (ws) {
@@ -448,6 +449,14 @@ export class CraftingTab {
     try {
       const newItem = craftItem(recipeId, materials, selectedTraits, qualityBonus);
       materials.forEach(m => this.inventory.removeItem(m.uid));
+
+      // 融合が起きたかチェック（元のトレイトにない特性が結果に含まれている）
+      for (const t of newItem.traits) {
+        if (!allTraitsSet.has(t)) {
+          eventBus.emit('toast', { message: `✨ 特性融合！ → ${t}`, type: 'success' });
+          break;
+        }
+      }
       // 調合品は必ず獲得（素材を消費しているため）
       this.inventory.forceAddItem(newItem);
 
