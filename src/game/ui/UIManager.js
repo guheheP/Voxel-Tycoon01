@@ -70,7 +70,7 @@ export class UIManager {
       'tab-dispatch':  new DispatchTab(adventurerSystem, inventorySystem),
       'tab-stats':     new StatsTab(dayCycleSystem, reputationSystem),
       'tab-upgrade':   new UpgradeTab(inventorySystem, shopSystem, dayCycleSystem),
-      'tab-quest':     new QuestTab(dayCycleSystem, questSystem),
+      'tab-quest':     new QuestTab(dayCycleSystem, questSystem, adventurerSystem),
       'tab-collection': collectionSystem ? new CollectionTab(collectionSystem) : null,
     };
 
