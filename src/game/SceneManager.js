@@ -51,6 +51,20 @@ export class SceneManager {
 
     // NPC演出・パーティクルエフェクト（デスクトップのみ — モバイルではスキップ）
     if (!this._isMobile) {
+      // お客さんNPC: 来店/退店の3D演出
+      this._customerNpcs = [];     // { id, entity, state, timer, targetZ }
+      this._customerNpcCount = 0;
+      this._customerModels = [
+        '/presets/RPG_Characters/Chibi Human.json',
+        '/presets/RPG_Characters/Archer.json',
+        '/presets/RPG_Characters/Knight.json',
+        '/presets/RPG_Characters/Mage.json',
+      ];
+
+      eventBus.on('customer:arrived', (d) => this._onCustomerArrived(d));
+      eventBus.on('customer:bought', (d) => this._onCustomerLeft(d.customer.id));
+      eventBus.on('customer:left', (d) => this._onCustomerLeft(d.customer.id));
+
       // NPC演出: 冒険者派遣/帰還
       eventBus.on('adventurer:return', (d) => this._onAdventurerReturn(d));
 
@@ -82,8 +96,6 @@ export class SceneManager {
         this.particles.spawnCraftStars(this._craftStarPos, count, tier);
       });
 
-      // 背景NPC (お客さんが歩き回る)
-      await this._spawnWanderers();
     } // end: デスクトップのみのビジュアル演出
   }
 
@@ -123,25 +135,36 @@ export class SceneManager {
       }
     }
 
-    // 背景NPC の動き
-    for (const w of this.wanderers) {
-      w.timer -= dt;
-      if (w.timer <= 0) {
-        // お店前の広場内を歩き回る
-        w.targetX = -6 + Math.random() * 12; // -6 ~ 6
-        w.targetZ = 1 + Math.random() * 7;   //  1 ~ 8
-        w.timer = 5 + Math.random() * 8;
+    // 来客NPC の動き
+    for (let i = this._customerNpcs.length - 1; i >= 0; i--) {
+      const cn = this._customerNpcs[i];
+      const npc = cn.entity;
+      if (!npc || !npc.root) {
+        this._customerNpcs.splice(i, 1);
+        this._customerNpcCount--;
+        continue;
       }
-      const entity = w.entity;
-      if (entity && entity.root) {
-        const speed = 1.5 * dt;
-        const dx = w.targetX - entity.root.position.x;
-        const dz = w.targetZ - entity.root.position.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist > 0.5) {
-          entity.root.position.x += (dx / dist) * speed;
-          entity.root.position.z += (dz / dist) * speed;
-          entity.root.rotation.y = Math.atan2(dx, dz);
+
+      if (cn.state === 'arriving') {
+        // 手前 (Z大) から店の前 (targetZ) に向かって歩く
+        const speed = 3.0 * dt;
+        const dz = cn.targetZ - npc.root.position.z;
+        if (Math.abs(dz) > 0.3) {
+          npc.root.position.z += Math.sign(dz) * speed;
+          npc.root.rotation.y = Math.PI; // カメラに背を向けて (奥へ歩く)
+        } else {
+          cn.state = 'browsing';
+          npc.playAnimation('idle');
+          // 店の方を向く
+          npc.root.rotation.y = 0;
+        }
+      } else if (cn.state === 'leaving') {
+        // 手前 (Z大) に向かって歩いて退場
+        const speed = 4.0 * dt;
+        npc.root.position.z += speed;
+        npc.root.rotation.y = 0; // カメラの方を向いて歩く
+        if (npc.root.position.z > 18) {
+          this._removeCustomerNpc(i);
         }
       }
     }
@@ -338,25 +361,57 @@ export class SceneManager {
     }
   }
 
-  async _spawnWanderers() {
-    // 広場を歩く村人 1体のみ（シーンをすっきり保つ）
+  /** お客さん来店 — 手前からお店に向かって歩く */
+  async _onCustomerArrived(data) {
+    if (this._customerNpcCount >= 2) return; // 同時最大2体
+    this._customerNpcCount++;
+
     try {
-      const entity = await this.loadEntity('/presets/RPG_Characters/Chibi Human.json', {
-        position: [2, 0, 3],
+      const modelPath = this._customerModels[
+        Math.floor(Math.random() * this._customerModels.length)
+      ];
+      // ランダムな X 位置 (-5 ~ 5) から登場、Z=16 (カメラ手前の画面外) から歩く
+      const spawnX = -5 + Math.random() * 10;
+      const npc = await this.loadEntity(modelPath, {
+        position: [spawnX, 0, 16],
         scale: 0.3,
       });
-      if (entity) {
-        entity.playAnimation('walk');
-        this.wanderers.push({
-          entity,
-          targetX: 2,
-          targetZ: 3,
-          timer: Math.random() * 3,
-        });
-      }
+      if (!npc) { this._customerNpcCount--; return; }
+
+      npc.playAnimation('walk');
+      this._customerNpcs.push({
+        id: data.customer.id,
+        entity: npc,
+        state: 'arriving',       // arriving → browsing → leaving
+        targetZ: 2 + Math.random() * 4, // お店の前 Z:2~6 に到着
+        timer: 0,
+      });
     } catch (e) {
-      console.warn('[SceneManager] Wanderer load failed:', e);
+      this._customerNpcCount--;
     }
+  }
+
+  /** お客さん退店 — 購入/タイムアウトで手前に歩いて去る */
+  _onCustomerLeft(customerId) {
+    const cn = this._customerNpcs.find(c => c.id === customerId);
+    if (cn && cn.state !== 'leaving') {
+      cn.state = 'leaving';
+      if (cn.entity) cn.entity.playAnimation('walk');
+    }
+  }
+
+  /** 来客NPCのクリーンアップ */
+  _removeCustomerNpc(index) {
+    const cn = this._customerNpcs[index];
+    if (cn.entity) {
+      cn.entity.root.visible = false;
+      const idx = this.entities.indexOf(cn.entity);
+      if (idx !== -1) this.entities.splice(idx, 1);
+      cn.entity.removeFrom(this.scene);
+      cn.entity.dispose();
+    }
+    this._customerNpcs.splice(index, 1);
+    this._customerNpcCount--;
   }
 
   async _onAdventurerReturn(data) {
