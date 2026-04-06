@@ -188,6 +188,19 @@ export class BattleScene3D {
     this.advEntities = [];
     this.bossEntity = null;
 
+    // Three.js リソース解放
+    if (this.scene) {
+      this.scene.traverse(obj => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+          else obj.material.dispose();
+        }
+      });
+      this.scene = null;
+    }
+    this.camera = null;
+
     if (this.renderer) {
       this.renderer.dispose();
       this.renderer = null;

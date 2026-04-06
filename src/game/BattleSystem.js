@@ -109,6 +109,7 @@ export class BattleSystem {
       itemCooldown: 0,
       chainCount: 0,
       chainTimer: 0,
+      chainMax: 0,
       selectedItems: selectedItems,
       itemUses: {}, // uid → { remaining, max }
     };
@@ -518,6 +519,9 @@ export class BattleSystem {
     s.boss.hp -= damage;
     this._log(`${adv.name}の攻撃！ ボスに ${damage} のダメージ！`);
     eventBus.emit('battle:se:advAttack');
+
+    // チェイン最大値を記録
+    if (s.chainCount > s.chainMax) s.chainMax = s.chainCount;
 
     // チェインログ・効果音
     if (s.chainCount >= 2) {

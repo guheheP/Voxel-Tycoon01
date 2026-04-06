@@ -38,7 +38,7 @@ export class BattleScreen {
       eventBus.on('battle:se:damage', () => this._animateItemFx('damage')),
       eventBus.on('battle:se:stun', () => this._animateItemFx('stun')),
       eventBus.on('battle:se:buff', () => this._animateItemFx('buff')),
-      eventBus.on('battle:se:debuff', () => this._animateItemFx('buff')),
+      eventBus.on('battle:se:debuff', () => this._animateItemFx('debuff')),
     ];
   }
 
@@ -248,8 +248,9 @@ export class BattleScreen {
     if (els.bossHpFill) {
       els.bossHpFill.style.width = `${bossHpPct}%`;
       // A2: HP bar color stages
-      els.bossHpFill.classList.toggle('hp-mid', bossHpPct <= 50 && bossHpPct > 20);
-      els.bossHpFill.classList.toggle('hp-low', bossHpPct <= 20);
+      els.bossHpFill.classList.remove('hp-mid', 'hp-low');
+      if (bossHpPct <= 20) els.bossHpFill.classList.add('hp-low');
+      else if (bossHpPct <= 50) els.bossHpFill.classList.add('hp-mid');
     }
     if (els.bossHpText) els.bossHpText.textContent = `${Math.floor(state.boss.hp)}/${state.boss.maxHp}`;
     if (els.bossAtbFill) {
@@ -273,8 +274,9 @@ export class BattleScreen {
       const hpPct = Math.max(0, (a.hp / a.maxHp) * 100);
       ae.hpFill.style.width = `${hpPct}%`;
       // A2: HP bar color stages
-      ae.hpFill.classList.toggle('hp-mid', hpPct <= 50 && hpPct > 20);
-      ae.hpFill.classList.toggle('hp-low', hpPct <= 20);
+      ae.hpFill.classList.remove('hp-mid', 'hp-low');
+      if (hpPct <= 20) ae.hpFill.classList.add('hp-low');
+      else if (hpPct <= 50) ae.hpFill.classList.add('hp-mid');
       ae.hpText.textContent = `${Math.floor(a.hp)}/${a.maxHp}`;
       const advAtb = Math.min(100, a.atbGauge);
       ae.atbFill.style.width = `${advAtb}%`;
@@ -369,7 +371,7 @@ export class BattleScreen {
       // 報酬プレビュー
       const survivors = this.state?.adventurers.filter(a => a.status === 'active').length || 0;
       const total = this.state?.adventurers.length || 0;
-      const chainMax = this.state?.chainCount || 0;
+      const chainMax = this.state?.chainMax || 0;
       rewardsHtml = `
         <div class="battle-result-rewards">
           <div class="reward-line"><span class="reward-icon">⚔️</span> ボス撃破！ランクアップ条件クリア</div>
@@ -600,7 +602,12 @@ export class BattleScreen {
       isRevive ? a.status === 'dead' : a.status === 'active'
     );
 
-    if (candidates.length <= 1) {
+    if (candidates.length === 0) {
+      // 対象がいない
+      eventBus.emit('toast', { message: isRevive ? '蘇生対象がいません' : '回復対象がいません', type: 'warning' });
+      return;
+    }
+    if (candidates.length === 1) {
       // Only one valid target — auto-select
       eventBus.emit('battle:command', { action: 'useItem', uid });
       return;

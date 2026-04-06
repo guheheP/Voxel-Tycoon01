@@ -39,8 +39,8 @@ export const AreaDefs = {
       spd: 62,
       preset: '/presets/RPG_Characters/Slime.json',
       phases: [
-        { hpThreshold: 0.4, name: '粘液暴走', effect: { stat: 'spd', amount: 15 }, message: 'スライムが震え始めた！' },
-        { hpThreshold: 0.4, name: '粘液硬化', effect: { stat: 'atk', amount: 6 }, message: 'スライムの体が硬く膨らんだ！' },
+        { hpThreshold: 0.5, name: '粘液暴走', effect: { stat: 'spd', amount: 15 }, message: 'スライムが震え始めた！' },
+        { hpThreshold: 0.2, name: '粘液硬化', effect: { stat: 'atk', amount: 6 }, message: 'スライムの体が硬く膨らんだ！' },
       ],
       skills: [
         { id: 'slime_attack', name: '体当たり', type: 'attack', chance: 70 },
