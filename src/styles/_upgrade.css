@@ -207,6 +207,196 @@
   cursor: not-allowed;
 }
 
+/* ===== Quest Tab ===== */
+
+/* ── ランク進捗 ── */
+.quest-rank-progress {
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+}
+.quest-rank-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 8px;
+}
+.quest-rank-arrow { color: var(--gold); font-size: 12px; }
+.quest-rank-next { color: var(--gold); }
+.quest-rank-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: rgba(232, 184, 75, 0.2);
+  border-radius: 10px;
+  color: var(--gold);
+}
+.quest-progress-bar-wrap {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.quest-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--gold));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+.quest-progress-text {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: right;
+}
+
+/* ── ボス挑戦 ── */
+.quest-boss-panel {
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(200, 60, 60, 0.12), rgba(232, 184, 75, 0.08));
+  border: 1px solid rgba(200, 60, 60, 0.25);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  text-align: center;
+}
+.quest-boss-header {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffcccc;
+  margin-bottom: 6px;
+}
+.quest-boss-info {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: var(--text-bright);
+}
+
+/* ── セクション ── */
+.quest-section {
+  margin-bottom: 14px;
+}
+.quest-section-title {
+  font-family: var(--font-title);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── クエスト一覧 ── */
+.quest-item-bar-wrap {
+  height: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+.quest-item-bar-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ── 報酬プレビュー ── */
+.quest-reward-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.quest-reward-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+.quest-reward-area {
+  background: rgba(125, 170, 104, 0.15);
+  border: 1px solid rgba(125, 170, 104, 0.25);
+}
+.quest-reward-adventurer {
+  background: rgba(122, 176, 196, 0.15);
+  border: 1px solid rgba(122, 176, 196, 0.25);
+}
+.quest-reward-recipe {
+  background: rgba(232, 184, 75, 0.12);
+  border: 1px solid rgba(232, 184, 75, 0.2);
+}
+.quest-reward-icon { font-size: 16px; }
+
+/* ── チェックリスト (エリア) ── */
+.quest-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quest-check-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  border: 1px solid rgba(160, 132, 92, 0.12);
+  background: rgba(255, 240, 210, 0.03);
+}
+.quest-unlocked .quest-check-label { color: var(--text-bright); }
+.quest-locked .quest-check-label { color: var(--text-muted); font-style: italic; }
+.quest-locked .quest-check-icon { opacity: 0.4; }
+
+/* ── 冒険者カード ── */
+.quest-adv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.quest-adv-card {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(160, 132, 92, 0.12);
+  background: rgba(255, 240, 210, 0.03);
+}
+.quest-adv-card.quest-locked {
+  opacity: 0.5;
+}
+.quest-adv-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quest-adv-icon { font-size: 18px; }
+.quest-adv-name { font-size: 13px; font-weight: 600; color: var(--text-bright); flex: 1; }
+.quest-adv-lv {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+  padding: 1px 6px;
+  background: rgba(232, 184, 75, 0.15);
+  border-radius: 8px;
+}
+.quest-adv-req {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.quest-adv-stats {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+  padding-left: 28px;
+}
+
 .upgrade-expensive .upgrade-card-price {
   color: var(--red-soft);
 }

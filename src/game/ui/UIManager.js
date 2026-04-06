@@ -11,6 +11,7 @@ import { ShopTab } from './ShopTab.js';
 import { DispatchTab } from './DispatchTab.js';
 import { StatsTab } from './StatsTab.js';
 import { UpgradeTab } from './UpgradeTab.js';
+import { QuestTab } from './QuestTab.js';
 import { CollectionTab } from './CollectionTab.js';
 
 import { SettingsPanel } from './SettingsPanel.js';
@@ -68,7 +69,8 @@ export class UIManager {
       'tab-shop':      new ShopTab(inventorySystem, shopSystem, customerSystem),
       'tab-dispatch':  new DispatchTab(adventurerSystem, inventorySystem),
       'tab-stats':     new StatsTab(dayCycleSystem, reputationSystem),
-      'tab-upgrade':   new UpgradeTab(inventorySystem, shopSystem, dayCycleSystem, questSystem),
+      'tab-upgrade':   new UpgradeTab(inventorySystem, shopSystem, dayCycleSystem),
+      'tab-quest':     new QuestTab(dayCycleSystem, questSystem, adventurerSystem),
       'tab-collection': collectionSystem ? new CollectionTab(collectionSystem) : null,
     };
 
@@ -589,8 +591,9 @@ export class UIManager {
       '3': 'tab-shop',
       '4': 'tab-dispatch',
       '5': 'tab-upgrade',
-      '6': 'tab-collection',
-      '7': 'tab-stats',
+      '6': 'tab-quest',
+      '7': 'tab-collection',
+      '8': 'tab-stats',
     };
 
     this._keyHandler = (e) => {
