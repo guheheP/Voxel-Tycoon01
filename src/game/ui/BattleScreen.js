@@ -16,6 +16,7 @@ export class BattleScreen {
     this._lastBuffKeys = {};  // advId -> serialized buff string
 
     this._resultShown = false;
+    this._pendingTimers = [];  // 全 setTimeout を追跡
 
     this._unsubs = [
       eventBus.on('battle:start', (state) => this.show(state)),
@@ -26,10 +27,29 @@ export class BattleScreen {
     ];
   }
 
+  /** setTimeout をトラッキングして後でまとめてクリアできるようにする */
+  _trackedTimeout(fn, ms) {
+    const id = setTimeout(() => {
+      fn();
+      // 完了後にリストから除去
+      const idx = this._pendingTimers.indexOf(id);
+      if (idx !== -1) this._pendingTimers.splice(idx, 1);
+    }, ms);
+    this._pendingTimers.push(id);
+    return id;
+  }
+
+  /** 全 pending タイマーをクリア */
+  _clearAllTimers() {
+    for (const id of this._pendingTimers) clearTimeout(id);
+    this._pendingTimers.length = 0;
+  }
+
   show(state) {
     this.state = state;
     this._lastLogLength = 0;
     this._lastItemCount = -1;
+    this._clearAllTimers();
     eventBus.emit('game:pause');
 
     // Filter available items — 持ち込みアイテムが選択されていればそれだけ表示
@@ -47,7 +67,7 @@ export class BattleScreen {
 
     this.overlay = document.createElement('div');
     this.overlay.className = 'battle-overlay';
-    
+
     this.overlay.innerHTML = `
       <div class="battle-container">
         <!-- HEADER / BOSS -->
@@ -65,7 +85,7 @@ export class BattleScreen {
              </div>
            </div>
         </div>
-        
+
         <div class="battle-main">
            <!-- PARTY -->
            <div class="party-container" id="party-container">
@@ -123,19 +143,16 @@ export class BattleScreen {
        });
     });
 
-    this._bindItemClicks();
-    this.update(state);
-  }
-
-  _bindItemClicks() {
-    if (!this.overlay) return;
-    this.overlay.querySelectorAll('.battle-item-btn').forEach(btn => {
-       btn.addEventListener('click', () => {
-         if (this.state && this.state.itemCooldown > 0) return;
-         const uid = btn.dataset.uid;
-         eventBus.emit('battle:command', { action: 'useItem', uid: uid });
-       });
+    // アイテムクリック — イベント委譲で重複リスナー問題を解消
+    this._els.inventory.addEventListener('click', (e) => {
+      const btn = e.target.closest('.battle-item-btn');
+      if (!btn) return;
+      if (this.state && this.state.itemCooldown > 0) return;
+      const uid = btn.dataset.uid;
+      eventBus.emit('battle:command', { action: 'useItem', uid: uid });
     });
+
+    this.update(state);
   }
 
   _renderParty(state) {
@@ -250,7 +267,7 @@ export class BattleScreen {
          if (els.inventory) els.inventory.classList.remove('cooldown-active');
        }
 
-       // アイテムリストの同期（クールダウン中も使用済みアイテムを反映）
+       // アイテムリストの同期（使用済みアイテムを反映）
        const currentCount = this.inventory.items.filter(i => ItemBlueprints[i.blueprintId]?.battleEffect).length;
        if (currentCount !== this._lastItemCount) {
           this._lastItemCount = currentCount;
@@ -264,7 +281,7 @@ export class BattleScreen {
           }
           if (els.inventory) {
             els.inventory.innerHTML = this._renderItems();
-            this._bindItemClicks();
+            // イベント委譲なので再バインド不要
           }
        }
     }
@@ -274,9 +291,12 @@ export class BattleScreen {
     if (!this.overlay || this._resultShown) return;
     this._resultShown = true;
 
+    // バトル終了 — 全 pending タイマーをクリア
+    this._clearAllTimers();
+
     let msg = '';
     let btnText = '戻る';
-    
+
     if (result === 'win') {
       msg = '<div class="result-win">WIN! ボスを撃破した！</div>';
     } else if (result === 'wipeout') {
@@ -314,7 +334,7 @@ export class BattleScreen {
     const bossIcon = this._els.bossIcon;
     if (bossIcon) {
       bossIcon.classList.add('boss-phase-shake');
-      setTimeout(() => bossIcon.classList.remove('boss-phase-shake'), 1000);
+      this._trackedTimeout(() => bossIcon.classList.remove('boss-phase-shake'), 1000);
     }
 
     // フェーズ名バッジを表示
@@ -328,7 +348,7 @@ export class BattleScreen {
     const flash = document.createElement('div');
     flash.className = 'battle-phase-flash';
     this.overlay.appendChild(flash);
-    setTimeout(() => flash.remove(), 800);
+    this._trackedTimeout(() => flash.remove(), 800);
   }
 
   _showConfirmModal(message, onConfirm) {
@@ -395,6 +415,8 @@ export class BattleScreen {
    * 指定要素上にダメージ/回復テキストをフロートするポップアップを生成
    */
   _spawnDamagePopup(text, targetEl, cssClass) {
+    if (!targetEl || !targetEl.parentNode) return;
+
     const popup = document.createElement('div');
     popup.className = `dmg-popup ${cssClass}`;
     popup.textContent = text;
@@ -404,14 +426,14 @@ export class BattleScreen {
     popup.style.top = '10%';
 
     // 親に position:relative が必要
-    const prevPosition = targetEl.style.position;
-    if (!prevPosition) targetEl.style.position = 'relative';
+    if (!targetEl.style.position) targetEl.style.position = 'relative';
 
     targetEl.appendChild(popup);
-    setTimeout(() => popup.remove(), 900);
+    this._trackedTimeout(() => popup.remove(), 900);
   }
 
   dispose() {
+    this._clearAllTimers();
     this._unsubs.forEach(u => u());
   }
 }
