@@ -49,39 +49,42 @@ export class SceneManager {
     // 背景・お店のロード
     await this.spawnEnvironment();
 
-    // NPC演出: 冒険者派遣/帰還
-    eventBus.on('adventurer:return', (d) => this._onAdventurerReturn(d));
+    // NPC演出・パーティクルエフェクト（デスクトップのみ — モバイルではスキップ）
+    if (!this._isMobile) {
+      // NPC演出: 冒険者派遣/帰還
+      eventBus.on('adventurer:return', (d) => this._onAdventurerReturn(d));
 
-    // ショップ外装進化: ランクアップ
-    eventBus.on('rank:up', (d) => {
-      this._evolveShopExterior(d.rank);
-      // 紙吹雪パーティクル
-      this.particles.spawnConfetti(50);
-    });
+      // ショップ外装進化: ランクアップ
+      eventBus.on('rank:up', (d) => {
+        this._evolveShopExterior(d.rank);
+        // 紙吹雪パーティクル
+        this.particles.spawnConfetti(50);
+      });
 
-    // 売上時コインパーティクル（スロットリング: 2秒間隔）
-    this._lastCoinBurstTime = 0;
-    this._coinBurstPos = new THREE.Vector3(-2, 2, 5);
-    eventBus.on('item:sold', () => {
-      const now = performance.now();
-      if (now - this._lastCoinBurstTime < 2000) return;
-      this._lastCoinBurstTime = now;
-      this.particles.spawnCoinBurst(this._coinBurstPos, 8);
-    });
+      // 売上時コインパーティクル（スロットリング: 2秒間隔）
+      this._lastCoinBurstTime = 0;
+      this._coinBurstPos = new THREE.Vector3(-2, 2, 5);
+      eventBus.on('item:sold', () => {
+        const now = performance.now();
+        if (now - this._lastCoinBurstTime < 2000) return;
+        this._lastCoinBurstTime = now;
+        this.particles.spawnCoinBurst(this._coinBurstPos, 8);
+      });
 
-    // 調合時スターパーティクル
-    this._craftStarPos = new THREE.Vector3(6, 1, 0);
-    eventBus.on('item:crafted', (d) => {
-      const tier = d.item && d.item.quality >= 81 ? 'q-legendary'
-                 : d.item && d.item.quality >= 61 ? 'q-excellent'
-                 : d.item && d.item.quality >= 41 ? 'q-fine'
-                 : 'q-common';
-      const count = tier === 'q-legendary' ? 15 : tier === 'q-excellent' ? 10 : 8;
-      this.particles.spawnCraftStars(this._craftStarPos, count, tier);
-    });
+      // 調合時スターパーティクル
+      this._craftStarPos = new THREE.Vector3(6, 1, 0);
+      eventBus.on('item:crafted', (d) => {
+        const tier = d.item && d.item.quality >= 81 ? 'q-legendary'
+                   : d.item && d.item.quality >= 61 ? 'q-excellent'
+                   : d.item && d.item.quality >= 41 ? 'q-fine'
+                   : 'q-common';
+        const count = tier === 'q-legendary' ? 15 : tier === 'q-excellent' ? 10 : 8;
+        this.particles.spawnCraftStars(this._craftStarPos, count, tier);
+      });
 
-    // 背景NPC (お客さんが歩き回る)
-    await this._spawnWanderers();
+      // 背景NPC (お客さんが歩き回る)
+      await this._spawnWanderers();
+    } // end: デスクトップのみのビジュアル演出
   }
 
   update(dt) {

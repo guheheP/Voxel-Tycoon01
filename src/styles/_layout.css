@@ -77,12 +77,12 @@
   display: none;
 }
 @media (min-width: 769px) {
-  .scene-strip {
+  .ui-container > .scene-strip {
     display: block;
     height: 120px;
     flex-shrink: 0;
     position: relative;
-    pointer-events: none;
+    pointer-events: none; /* キャンバスへのクリックスルーを許可 */
     border-top: 1px solid rgba(160, 132, 92, 0.25);
     background: linear-gradient(
       to bottom,
