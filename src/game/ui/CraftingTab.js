@@ -2,7 +2,7 @@
  * CraftingTab — 調合タブ（2カラム分割レイアウト版）
  * 左: レシピカードグリッド / 右: 調合ワークスペース
  */
-import { ItemBlueprints, Recipes, TraitDefs } from '../data/items.js';
+import { ItemBlueprints, Recipes, TraitDefs, TraitFusionTable } from '../data/items.js';
 import { craftItem } from '../ItemSystem.js';
 import { eventBus } from '../core/EventBus.js';
 import { GameConfig } from '../data/config.js';
@@ -282,16 +282,58 @@ export class CraftingTab {
     // 完成予測プレビュー
     if (allSlotsFilled && materialInstances.length === requiredSlots.length) {
       const avgQ = Math.floor(materialInstances.reduce((s, i) => s + i.quality, 0) / materialInstances.length);
+
+      // 融合判定プレビュー
+      const traitCounts = {};
+      materialInstances.forEach(item => {
+        const seen = new Set();
+        item.traits.forEach(t => { if (!seen.has(t)) { traitCounts[t] = (traitCounts[t] || 0) + 1; seen.add(t); } });
+      });
+      const fusionPreviews = []; // { from, to }
+      const fusedSet = new Set();
+      for (const [trait, count] of Object.entries(traitCounts)) {
+        if (count >= 2 && TraitFusionTable[trait] && TraitDefs[TraitFusionTable[trait]]) {
+          fusionPreviews.push({ from: trait, to: TraitFusionTable[trait] });
+          fusedSet.add(trait);
+        }
+      }
+
+      // プレビュー用トレイトリスト（融合適用後）
       const allTraitsSet = new Set();
       materialInstances.forEach(i => i.traits.forEach(t => allTraitsSet.add(t)));
-      const previewTraits = Array.from(allTraitsSet).slice(0, GameConfig.maxTraitSlots);
-      const estimatedValue = ShopSystem.calcValue({ blueprintId: this.selectedRecipeId ? Recipes[this.selectedRecipeId].targetId : '', quality: avgQ, traits: previewTraits });
+      const previewTraits = [];
+      const addedFusions = new Set();
+      for (const t of allTraitsSet) {
+        if (fusedSet.has(t) && !addedFusions.has(t)) {
+          previewTraits.push(TraitFusionTable[t]);
+          addedFusions.add(t);
+        } else if (!fusedSet.has(t)) {
+          previewTraits.push(t);
+        }
+      }
+      const finalPreview = previewTraits.slice(0, GameConfig.maxTraitSlots);
+
+      const estimatedValue = ShopSystem.calcValue({ blueprintId: this.selectedRecipeId ? Recipes[this.selectedRecipeId].targetId : '', quality: avgQ, traits: finalPreview });
       const previewTier = getQualityTier(avgQ);
       const previewType = getTypeInfo(targetBp.type);
+
+      // 融合プレビューHTML
+      const fusionHtml = fusionPreviews.length > 0
+        ? `<div class="craft-fusion-preview">${fusionPreviews.map(f => {
+            const fromDef = TraitDefs[f.from];
+            const toDef = TraitDefs[f.to];
+            return `<div class="craft-fusion-row">
+              <span class="trait-badge trait-${fromDef?.color || 'gray'}">${f.from}</span>
+              <span class="craft-fusion-arrow">×2 → </span>
+              <span class="trait-badge trait-${toDef?.color || 'purple'} trait-fused">✨ ${f.to}</span>
+            </div>`;
+          }).join('')}</div>`
+        : '';
 
       html += `
         <div class="crafting-preview">
           <div class="crafting-section-label">完成予測</div>
+          ${fusionHtml}
           <div class="crafting-preview-card ${previewTier.css}">
             <div class="craft-preview-icon">${previewType.emoji}</div>
             <div class="craft-preview-info">
@@ -299,10 +341,11 @@ export class CraftingTab {
               <div class="craft-preview-quality">${previewTier.icon} Q ≈ ${avgQ} <span class="craft-slot-tier">${previewTier.name}</span></div>
               <div class="item-quality-bar"><div class="item-quality-fill" style="width:${avgQ}%"></div></div>
               <div class="craft-preview-traits">
-                ${previewTraits.map(t => {
+                ${finalPreview.map(t => {
                   const def = TraitDefs[t];
                   const colorCls = def ? `trait-${def.color}` : '';
-                  return `<span class="trait-badge ${colorCls}">${t}</span>`;
+                  const isFused = fusionPreviews.some(f => f.to === t);
+                  return `<span class="trait-badge ${colorCls} ${isFused ? 'trait-fused' : ''}">${isFused ? '✨ ' : ''}${t}</span>`;
                 }).join('') || '<span class="text-dim">特性なし</span>'}
               </div>
               <div class="craft-preview-value">💰 推定売値: ${estimatedValue}G</div>
@@ -473,16 +516,37 @@ export class CraftingTab {
       requestAnimationFrame(() => flash.classList.add('fade-out'));
       setTimeout(() => flash.remove(), 550);
 
-      this._showCraftResult(newItem);
+      this._showCraftResult(newItem, allTraitsSet);
     } catch (e) {
       console.error('[CraftingTab]', e);
     }
   }
 
-  _showCraftResult(item) {
+  _showCraftResult(item, originalTraits) {
     const tier = getQualityTier(item.quality);
     const bp = ItemBlueprints[item.blueprintId];
     const value = item.value || ShopSystem.calcValue(item);
+
+    // 融合で生まれたトレイトを検出
+    const fusedTraits = new Set();
+    if (originalTraits) {
+      for (const t of item.traits) {
+        if (!originalTraits.has(t)) fusedTraits.add(t);
+      }
+    }
+
+    // 融合トレイトを強調表示するカスタムトレイトHTML
+    const traitsHtml = item.traits.length > 0
+      ? item.traits.map(t => {
+          const def = TraitDefs[t];
+          const colorCls = def ? `trait-${def.color}` : '';
+          const isFused = fusedTraits.has(t);
+          return `<span class="trait-badge ${colorCls} ${isFused ? 'trait-fused' : ''}">${isFused ? '✨ ' : ''}${t}</span>`;
+        }).join('')
+      : '';
+    const fusionNotice = fusedTraits.size > 0
+      ? `<div class="craft-result-fusion">✨ 特性融合が発生！</div>`
+      : '';
 
     const overlay = document.createElement('div');
     overlay.className = 'craft-result-overlay';
@@ -490,9 +554,11 @@ export class CraftingTab {
       <div class="craft-result-modal">
         <div class="craft-result-sparkle">✨</div>
         <h3 class="craft-result-title">調合成功！</h3>
+        ${fusionNotice}
         <div class="craft-result-card">
           ${createItemCardHTML(item)}
         </div>
+        ${traitsHtml ? `<div class="craft-result-traits">${traitsHtml}</div>` : ''}
         <div class="craft-result-stats">
           <span class="craft-result-quality ${tier.css}">品質: ${tier.icon} ${item.quality}</span>
           <span class="craft-result-value">💰 ${value.toLocaleString('ja-JP')}G</span>
