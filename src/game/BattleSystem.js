@@ -172,6 +172,24 @@ export class BattleSystem {
 
     const fx = bp.battleEffect;
 
+    // 品質補正: quality 0~100 → 0.7x ~ 1.5x (50で1.0x)
+    const quality = item.quality ?? 50;
+    const qualityMult = 0.7 + (quality / 100) * 0.8;
+
+    // 特性ボーナス: アイテムのトレイトにバトル系効果があれば加算
+    let traitBonus = 0;
+    for (const traitName of (item.traits || [])) {
+      const td = TraitDefs[traitName];
+      if (!td?.effects) continue;
+      // heal/damage 系には battleAtk を、buff 系には直接加算
+      traitBonus += (td.effects.battleAtk || 0) + (td.effects.battleDef || 0);
+    }
+    // トレイトボーナスを割合に変換 (0~56 → 0~0.5x)
+    const traitMult = 1 + Math.min(traitBonus / 100, 0.5);
+
+    // 統合倍率
+    const totalMult = qualityMult * traitMult;
+
     // Remove from inventory
     this.inventory.removeItem(itemUid);
 
@@ -184,11 +202,12 @@ export class BattleSystem {
       : fx.target;
     const targets = this._resolveTargets(resolveTarget, targetAdvId);
 
-    // Apply effect
+    // Apply effect (基礎効果 × 品質補正 × 特性ボーナス)
     for (const t of targets) {
       if (fx.type === 'heal') {
         if (t.status === 'dead') continue;
-        const amount = typeof fx.value === 'number' ? fx.value : 50;
+        const base = typeof fx.value === 'number' ? fx.value : 50;
+        const amount = Math.floor(base * totalMult);
         t.hp = Math.min(t.maxHp, t.hp + amount);
         this._log(`${t.name}のHPが ${amount} 回復！`);
         eventBus.emit('battle:se:heal');
@@ -200,28 +219,33 @@ export class BattleSystem {
       } else if (fx.type === 'revive') {
         if (t.status === 'dead') {
            t.status = 'active';
-           t.hp = typeof fx.value === 'number' ? fx.value : Math.floor(t.maxHp / 2);
+           const base = typeof fx.value === 'number' ? fx.value : Math.floor(t.maxHp / 2);
+           t.hp = Math.floor(base * qualityMult); // 蘇生は品質のみ（トレイト効果なし）
            t.atbGauge = 0;
            this._log(`${t.name}が復活した！`);
            eventBus.emit('battle:se:revive');
         }
       } else if (fx.type === 'damage') {
-        const dmg = fx.value ?? 30;
+        const base = fx.value ?? 30;
+        const dmg = Math.floor(base * totalMult);
         this.state.boss.hp = Math.max(0, this.state.boss.hp - dmg);
         this._log(`${item.name} がボスに ${dmg} ダメージ！`);
         eventBus.emit('battle:se:damage');
         if (this.state.boss.hp <= 0) { this._doWin(); break; }
       } else if (fx.type === 'stun') {
         this.state.boss.atbGauge = 0;
-        this.state.boss.stunTimer = fx.duration ?? 8;
+        const baseDur = fx.duration ?? 8;
+        this.state.boss.stunTimer = Math.floor(baseDur * qualityMult); // スタンは品質のみ
         this._log(`${item.name} がボスをスタンさせた！`);
         eventBus.emit('battle:se:stun');
       } else if (fx.type === 'buff' || fx.type === 'debuff') {
         if (t.status === 'dead') continue;
+        const baseAmount = fx.amount;
+        const amount = Math.floor(baseAmount * totalMult);
         t.activeBuffs.push({
           stat: fx.stat,
-          amount: fx.amount,
-          timer: fx.duration
+          amount: amount,
+          timer: Math.floor((fx.duration || 10) * qualityMult) // 持続時間も品質で変動
         });
         const statName = fx.stat === 'atk' ? '攻撃力' : fx.stat === 'def' ? '防御力' : '素早さ';
         const updown = fx.type === 'buff' ? 'アップ' : 'ダウン';
