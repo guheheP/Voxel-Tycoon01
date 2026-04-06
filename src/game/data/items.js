@@ -320,6 +320,7 @@ export const TraitDefs = {
   '練磨':     { name: '練磨',     rarity: 'uncommon',  color: 'green',  description: '調合品質+3',                 effects: { craftQualityBonus: 3 } },
   '先制':     { name: '先制',     rarity: 'uncommon',  color: 'green',  description: 'バトル開始時ATB+25',         effects: { startAtb: 25 } },
   '体力強化': { name: '体力強化', rarity: 'uncommon',  color: 'green',  description: 'バトル最大HP UP, 防御力UP',  effects: { battleHp: 30, battleDef: 3 } },
+  '癒しの力': { name: '癒しの力', rarity: 'uncommon',  color: 'green',  description: 'アイテム使用時の回復量UP',   effects: { battleHealBonus: 20 } },
 
   // ── Uncommon (アンコモン) ── 新規
   '強運':     { name: '強運',     rarity: 'uncommon',  color: 'green',  description: '特性付与率+15%, はみ出し率UP', effects: { traitChanceBonus: 15 } },
@@ -335,6 +336,8 @@ export const TraitDefs = {
   '聖なる力': { name: '聖なる力', rarity: 'rare',      color: 'blue',   description: '成功率+8%, 調合+3',          effects: { exploreSuccess: 8, craftQualityBonus: 3 } },
   '鉄壁':     { name: '鉄壁',     rarity: 'rare',      color: 'blue',   description: 'バトルダメージ軽減+4',       effects: { battleDmgReduction: 4 } },
   '疾走':     { name: '疾走',     rarity: 'rare',      color: 'blue',   description: 'バトル素早さ+18, ATB+15',   effects: { battleSpd: 18, startAtb: 15 } },
+  '慈愛':     { name: '慈愛',     rarity: 'rare',      color: 'blue',   description: 'アイテム使用時の回復量大UP', effects: { battleHealBonus: 40 } },
+  '生命の雫': { name: '生命の雫', rarity: 'rare',      color: 'blue',   description: 'アイテム使用時に味方全体を小回復', effects: { battleHealFlat: 15 } },
 
   // ── Epic (エピック) ── 一部バトル対応に変更 + 1種新規
   '攻撃力+++': { name: '攻撃力+++', rarity: 'epic',    color: 'purple', description: 'バトル攻撃力超UP',           effects: { battleAtk: 28 } },
@@ -342,6 +345,7 @@ export const TraitDefs = {
   '混沌':     { name: '混沌',     rarity: 'epic',      color: 'purple', description: '成功率+15%, 売値-10%',       effects: { exploreSuccess: 15, sellBonus: -10 } },
   '名匠の技': { name: '名匠の技', rarity: 'epic',      color: 'purple', description: '調合品質+8',                 effects: { craftQualityBonus: 8 } },
   '再生':     { name: '再生',     rarity: 'epic',      color: 'purple', description: 'バトル中HP2/秒回復',         effects: { battleRegen: 2 } },
+  '聖癒':     { name: '聖癒',     rarity: 'epic',      color: 'purple', description: '回復量超UP + 使用時全体回復',effects: { battleHealBonus: 60, battleHealFlat: 25 } },
 
   // ── Legendary (レジェンダリー) ── 変更なし + 2種新規
   '時の祝福': { name: '時の祝福', rarity: 'legendary', color: 'gold',   description: '速度+15%, 調合+5',           effects: { speedBonus: 15, craftQualityBonus: 5 } },

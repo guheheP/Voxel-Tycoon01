@@ -178,14 +178,19 @@ export class BattleSystem {
 
     // 特性ボーナス: アイテムのトレイトにバトル系効果があれば加算
     let traitBonus = 0;
+    let healBonus = 0;   // battleHealBonus: 回復量の割合増加 (%)
+    let healFlat = 0;    // battleHealFlat: アイテム使用時の味方全体固定値回復
     for (const traitName of (item.traits || [])) {
       const td = TraitDefs[traitName];
       if (!td?.effects) continue;
-      // heal/damage 系には battleAtk を、buff 系には直接加算
       traitBonus += (td.effects.battleAtk || 0) + (td.effects.battleDef || 0);
+      healBonus  += td.effects.battleHealBonus || 0;
+      healFlat   += td.effects.battleHealFlat  || 0;
     }
     // トレイトボーナスを割合に変換 (0~56 → 0~0.5x)
     const traitMult = 1 + Math.min(traitBonus / 100, 0.5);
+    // 回復量割合ボーナス (0~100% → 1.0x ~ 2.0x)
+    const healMult = 1 + healBonus / 100;
 
     // 統合倍率
     const totalMult = qualityMult * traitMult;
@@ -207,7 +212,7 @@ export class BattleSystem {
       if (fx.type === 'heal') {
         if (t.status === 'dead') continue;
         const base = typeof fx.value === 'number' ? fx.value : 50;
-        const amount = Math.floor(base * totalMult);
+        const amount = Math.floor(base * totalMult * healMult);
         t.hp = Math.min(t.maxHp, t.hp + amount);
         this._log(`${t.name}のHPが ${amount} 回復！`);
         eventBus.emit('battle:se:heal');
@@ -220,7 +225,7 @@ export class BattleSystem {
         if (t.status === 'dead') {
            t.status = 'active';
            const base = typeof fx.value === 'number' ? fx.value : Math.floor(t.maxHp / 2);
-           t.hp = Math.floor(base * qualityMult); // 蘇生は品質のみ（トレイト効果なし）
+           t.hp = Math.floor(base * qualityMult * healMult);
            t.atbGauge = 0;
            this._log(`${t.name}が復活した！`);
            eventBus.emit('battle:se:revive');
@@ -252,6 +257,21 @@ export class BattleSystem {
         this._log(`${t.name}の${statName}が${updown}！`);
         if (fx.type === 'buff') eventBus.emit('battle:se:buff');
         else eventBus.emit('battle:se:debuff');
+      }
+    }
+
+    // battleHealFlat: アイテム使用時に味方全体を固定値回復（攻撃アイテムにも乗る）
+    if (healFlat > 0 && this.state.phase === 'fighting') {
+      const flatAmount = Math.floor(healFlat * qualityMult);
+      let healed = false;
+      for (const a of this.state.adventurers) {
+        if (a.status === 'dead' || a.hp >= a.maxHp) continue;
+        a.hp = Math.min(a.maxHp, a.hp + flatAmount);
+        healed = true;
+      }
+      if (healed) {
+        this._log(`生命の力で味方全体が ${flatAmount} HP回復！`);
+        eventBus.emit('battle:se:heal');
       }
     }
 
