@@ -31,6 +31,7 @@ import { BattleSystem } from './BattleSystem.js';
 import { BattleScreen } from './ui/BattleScreen.js';
 import { BattlePrepScreen } from './ui/BattlePrepScreen.js';
 import { CollectionSystem } from './CollectionSystem.js';
+import { GameTooltip } from './ui/GameTooltip.js';
 
 // ============================================================
 //  Systems
@@ -68,6 +69,7 @@ async function initRenderer() {
 
 async function boot() {
   try {
+    GameTooltip.init();
     await initRenderer();
 
     // 「Click to Start」スプラッシュ画面 (ブラウザのオーディオポリシー対応)

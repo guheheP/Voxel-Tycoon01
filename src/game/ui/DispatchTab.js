@@ -6,7 +6,7 @@ import { LevelExpTable, LevelBonuses } from '../data/adventurers.js';
 import { AreaDefs } from '../data/areas.js';
 import { ItemBlueprints, TraitDefs } from '../data/items.js';
 import { eventBus } from '../core/EventBus.js';
-import { getQualityTier } from './UIHelpers.js';
+import { getQualityTier, createTraitBadgeHTML } from './UIHelpers.js';
 import { assetPath } from '../core/assetPath.js';
 
 export class DispatchTab {
@@ -197,7 +197,7 @@ export class DispatchTab {
       const def = TraitDefs[t];
       if (!def) return '';
       const rarityClass = `trait-rarity-${def.rarity || 'common'}`;
-      return `<span class="trait-badge ${rarityClass}" title="${def.description}">${t}</span>`;
+      return createTraitBadgeHTML(t);
     }).join('');
     return `<div class="disp-trait-row">${badges}</div>`;
   }
@@ -245,7 +245,13 @@ export class DispatchTab {
     const adv = this.adventurers.getAdventurers().find(a => a.id === advId);
     if (!adv) return;
     const weapons = this.inventory.getItems().filter(i => i.type === 'equipment')
-      .sort((a, b) => b.quality - a.quality);
+      .sort((a, b) => {
+        // 装備可能なものを先に、その中で品質降順
+        const aOk = this.adventurers.canEquip(advId, a) ? 0 : 1;
+        const bOk = this.adventurers.canEquip(advId, b) ? 0 : 1;
+        if (aOk !== bOk) return aOk - bOk;
+        return b.quality - a.quality;
+      });
 
     let itemsHtml = '';
     if (adv.equipment.weapon) {
@@ -257,17 +263,19 @@ export class DispatchTab {
       weapons.forEach(w => {
         const bp = ItemBlueprints[w.blueprintId];
         const tier = getQualityTier(w.quality);
+        const canEquip = this.adventurers.canEquip(advId, w);
         const imgUrl = bp && bp.image ? assetPath(bp.image) : null;
         const imgHtml = imgUrl
           ? `<img class="disp-equip-opt-img" src="${imgUrl}" alt="${w.name}" />`
           : `<span class="disp-equip-opt-emoji">⚔️</span>`;
 
         itemsHtml += `
-          <button class="disp-equip-option ${tier.css}" data-adv-id="${advId}" data-uid="${w.uid}">
+          <button class="disp-equip-option ${tier.css} ${canEquip ? '' : 'disp-equip-incompatible'}" data-adv-id="${advId}" data-uid="${w.uid}" ${canEquip ? '' : 'disabled'}>
             ${imgHtml}
             <div class="disp-equip-opt-info">
               <span class="disp-equip-opt-name">${w.name}</span>
               <span class="disp-equip-opt-quality" style="color:${tier.color}">${tier.icon} Q${w.quality}</span>
+              ${canEquip ? '' : '<span class="disp-equip-lock">装備不可</span>'}
             </div>
           </button>
         `;

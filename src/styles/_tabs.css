@@ -1102,6 +1102,17 @@
   font-weight: 600;
 }
 
+.disp-equip-incompatible {
+  opacity: 0.35;
+  pointer-events: none;
+  filter: grayscale(60%);
+}
+.disp-equip-lock {
+  font-size: 9px;
+  color: #e63946;
+  font-weight: 600;
+}
+
 /* ── Success Rate Bar ── */
 .disp-success-bar-wrap {
   position: relative;

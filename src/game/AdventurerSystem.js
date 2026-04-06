@@ -284,10 +284,23 @@ export class AdventurerSystem {
     }
   }
 
+  /** 冒険者がアイテムを装備可能か判定 */
+  canEquip(advId, item) {
+    const adv = this.adventurers.find(a => a.id === advId);
+    if (!adv) return false;
+    if (!adv.allowedEquipTypes || adv.allowedEquipTypes.length === 0) return true;
+    const bp = ItemBlueprints[item.blueprintId];
+    if (!bp || !bp.equipType) return true; // equipType未定義のアイテムは誰でも装備可
+    return adv.allowedEquipTypes.includes(bp.equipType);
+  }
+
   /** 装備 */
   equipWeapon(advId, itemUid) {
     const adv = this.adventurers.find(a => a.id === advId);
     if (!adv) return false;
+    // 装備タイプ制限チェック
+    const candidate = this.inventory.items.find(i => i.uid === itemUid);
+    if (candidate && !this.canEquip(advId, candidate)) return false;
     const item = this.inventory.removeItem(itemUid);
     if (!item) return false;
 
