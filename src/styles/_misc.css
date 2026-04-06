@@ -62,39 +62,9 @@
   font-weight: 600;
 }
 
-/* ===== Event Banner ===== */
+/* ===== Event Banner (非表示 — UIに被って邪魔なため) ===== */
 .event-banner {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 50;
-  display: flex;
-  gap: 8px;
-  padding: 4px 16px;
-  flex-wrap: wrap;
-  justify-content: center;
-  pointer-events: none;
-}
-.event-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-bright);
-  background: linear-gradient(135deg, rgba(232,184,75,0.15) 0%, rgba(196,122,90,0.15) 100%);
-  border: 1px solid rgba(232, 184, 75, 0.25);
-  border-radius: 12px;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  animation: subtlePulse 2s ease-in-out infinite;
-  pointer-events: auto;
-}
-@keyframes subtlePulse {
-  0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-  50% { box-shadow: 0 2px 12px rgba(232,184,75,0.2); }
+  display: none !important;
 }
 
 /* ===== Tab Guide (Tutorial) ===== */

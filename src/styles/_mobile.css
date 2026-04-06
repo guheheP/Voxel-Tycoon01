@@ -161,13 +161,7 @@
     display: none;
   }
 
-  /* --- イベントバナー --- */
-  .event-banner {
-    position: relative;
-    left: 0;
-    transform: none;
-    padding: 2px 8px;
-  }
+  /* イベントバナーはベースCSSで非表示済み */
 }
 
 /* ===== Phase 2: タブコンテンツのレスポンシブ化 ===== */
