@@ -55,11 +55,15 @@ export class RandomEventSystem {
         // ランダムな素材を2つ無料で獲得
         const unlockedAreas = Object.values(AreaDefs).filter(a => a.unlocked);
         const area = unlockedAreas[Math.floor(Math.random() * unlockedAreas.length)];
-        if (area) {
+        if (area && area.dropTable && area.dropTable.length > 0) {
           for (let i = 0; i < 2; i++) {
             const entry = area.dropTable[Math.floor(Math.random() * area.dropTable.length)];
-            const item = createItemInstance(entry.blueprintId, 30 + Math.floor(Math.random() * 30), []);
-            this.inventory.addItem(item);
+            try {
+              const item = createItemInstance(entry.blueprintId, 30 + Math.floor(Math.random() * 30), []);
+              this.inventory.addItem(item);
+            } catch (e) {
+              console.warn('[RandomEvent] 素材生成失敗:', entry.blueprintId);
+            }
           }
         }
         eventBus.emit('inventory:changed');
