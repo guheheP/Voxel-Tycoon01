@@ -53,7 +53,6 @@ export class BattlePrepScreen {
           <div class="prep-boss-info">
             <span class="prep-boss-icon">${bossDef.icon}</span>
             <span class="prep-boss-name">${bossDef.name}</span>
-            <span class="prep-boss-hp">HP: ${bossDef.maxHp}</span>
           </div>
         </div>
 
