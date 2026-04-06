@@ -167,22 +167,10 @@ export class BattleScreen {
     this._els.inventory.addEventListener('click', (e) => {
       const btn = e.target.closest('.battle-item-btn');
       if (!btn) return;
-      if (this.state && this.state.itemCooldown > 0) return;
       const uid = btn.dataset.uid;
-      // B7: 回復/蘇生アイテムの場合はターゲット選択UIを表示
-      const item = this.inventory.items.find(i => i.uid === uid);
-      if (item) {
-        const bp = ItemBlueprints[item.blueprintId];
-        const fx = bp?.battleEffect;
-        if (fx && (fx.type === 'heal' || fx.type === 'healfull') && fx.target === 'ally') {
-          this.showTargetSelection(uid, 'ally');
-          return;
-        }
-        if (fx && fx.type === 'revive') {
-          this.showTargetSelection(uid, 'dead_ally');
-          return;
-        }
-      }
+      // アイテム個別クールダウンチェック
+      if (this.state && (this.state.itemCooldowns?.[uid] || 0) > 0) return;
+      // 回復系アイテムはHP最低キャラに自動使用（対象選択不要）
       eventBus.emit('battle:command', { action: 'useItem', uid: uid });
     });
 
@@ -218,21 +206,25 @@ export class BattleScreen {
       return '<div class="no-items">使えるアイテムがありません</div>';
     }
     const itemUses = this.state?.itemUses || {};
+    const itemCooldowns = this.state?.itemCooldowns || {};
     return this.itemsWithEffects.map(item => {
       const bp = ItemBlueprints[item.blueprintId];
       const uses = itemUses[item.uid];
       const remaining = uses ? uses.remaining : 0;
       const max = uses ? uses.max : 0;
       const exhausted = remaining <= 0;
+      const cd = itemCooldowns[item.uid] || 0;
+      const onCooldown = cd > 0;
       const imgUrl = bp.image ? assetPath(bp.image) : null;
       const imgHtml = imgUrl
         ? `<img src="${imgUrl}" alt="${item.name}" />`
         : `<span class="battle-item-emoji">💊</span>`;
       return `
-        <div class="battle-item-btn ${exhausted ? 'disabled' : ''}" data-uid="${item.uid}">
+        <div class="battle-item-btn ${exhausted ? 'disabled' : ''} ${onCooldown ? 'on-cooldown' : ''}" data-uid="${item.uid}">
           ${imgHtml}
           <div class="item-name">${item.name}</div>
           <div class="item-uses-badge">${remaining}/${max}</div>
+          ${onCooldown ? `<div class="item-cd-overlay">${Math.ceil(cd)}s</div>` : ''}
         </div>
       `;
     }).join('');
@@ -314,26 +306,20 @@ export class BattleScreen {
 
     // Cooldown + inventory update
     if (els.cdBar) {
-       if (state.itemCooldown > 0) {
-         const cdMax = GameConfig.bossBattle.itemCooldownSeconds;
-         const pct = (state.itemCooldown / cdMax) * 100;
-         els.cdBar.style.width = `${Math.min(100, pct)}%`;
-         els.cdBar.style.display = 'block';
+       // グローバルクールダウンバーは非表示（個別CDに移行済み）
+       els.cdBar.style.display = 'none';
+       if (els.inventory) els.inventory.classList.remove('cooldown-active');
 
-         // Disable item buttons via CSS class on container (single operation, not per-button)
-         if (els.inventory) els.inventory.classList.add('cooldown-active');
-       } else {
-         els.cdBar.style.width = '0%';
-         els.cdBar.style.display = 'none';
-         if (els.inventory) els.inventory.classList.remove('cooldown-active');
-       }
-
-       // アイテムリストの同期（使用回数の変化を検知して再描画）
+       // アイテムリストの同期（使用回数+クールダウンの変化を検知して再描画）
+       const cooldownKey = state.itemCooldowns
+         ? Object.entries(state.itemCooldowns).map(([k, v]) => `${k}:${Math.ceil(v)}`).join(',')
+         : '';
        const usesKey = state.itemUses
          ? Object.entries(state.itemUses).map(([k, v]) => `${k}:${v.remaining}`).join(',')
          : '';
-       if (usesKey !== this._lastUsesKey) {
-          this._lastUsesKey = usesKey;
+       const combinedKey = usesKey + '|' + cooldownKey;
+       if (combinedKey !== this._lastUsesKey) {
+          this._lastUsesKey = combinedKey;
           if (els.inventory) {
             els.inventory.innerHTML = this._renderItems();
           }
@@ -372,16 +358,22 @@ export class BattleScreen {
       const survivors = this.state?.adventurers.filter(a => a.status === 'active').length || 0;
       const total = this.state?.adventurers.length || 0;
       const chainMax = this.state?.chainMax || 0;
+      const usedItemCount = this.state?.selectedItems?.length || 0;
       rewardsHtml = `
         <div class="battle-result-rewards">
           <div class="reward-line"><span class="reward-icon">⚔️</span> ボス撃破！ランクアップ条件クリア</div>
           <div class="reward-line"><span class="reward-icon">👥</span> 生存者: <span class="reward-text">${survivors}/${total}</span></div>
           ${chainMax >= 2 ? `<div class="reward-line"><span class="reward-icon">🔗</span> 最大チェイン: <span class="reward-text">${chainMax}</span></div>` : ''}
+          ${usedItemCount > 0 ? `<div class="reward-line"><span class="reward-icon">📦</span> 消費アイテム: <span class="reward-text">${usedItemCount}個</span></div>` : ''}
         </div>`;
     } else if (result === 'wipeout') {
+      const lostCount = this.state?.selectedItems?.length || 0;
       msg = '<div class="result-lose">DEFEAT...</div><div style="color:#888;font-size:0.9rem;margin-top:8px">全滅してしまった。装備を強化して再挑戦しよう。</div>';
+      if (lostCount > 0) msg += `<div style="color:#e57373;font-size:0.85rem;margin-top:4px">持ち込みアイテム ${lostCount}個 を失った...</div>`;
     } else {
+      const lostCount = this.state?.selectedItems?.length || 0;
       msg = '<div class="result-lose">逃走した。</div><div style="color:#888;font-size:0.9rem;margin-top:8px">態勢を整えてから再挑戦しよう。</div>';
+      if (lostCount > 0) msg += `<div style="color:#e57373;font-size:0.85rem;margin-top:4px">持ち込みアイテム ${lostCount}個 を失った...</div>`;
     }
 
     const resultOverlay = document.createElement('div');

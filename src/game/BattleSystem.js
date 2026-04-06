@@ -76,11 +76,11 @@ export class BattleSystem {
 
     // パーティ平均レベルに応じたボスステータスのスケーリング
     const avgLevel = participants.reduce((sum, a) => sum + a.level, 0) / participants.length;
-    const levelScale = 1 + (avgLevel - 1) * 0.08; // Lv1=1.0, Lv7=1.48, Lv10=1.72
+    const levelScale = 1 + (avgLevel - 1) * 0.05; // Lv1=1.0, Lv7=1.30, Lv10=1.45
     const scaledMaxHp = Math.floor(bossDef.maxHp * levelScale);
     const scaledAtk = Math.floor(bossDef.atk * levelScale);
     const scaledDef = Math.floor(bossDef.def * levelScale);
-    const scaledSpd = Math.floor(bossDef.spd * (1 + (avgLevel - 1) * 0.04)); // SPDは控えめにスケール
+    const scaledSpd = Math.floor(bossDef.spd * (1 + (avgLevel - 1) * 0.025)); // SPDは控えめにスケール
 
     this.state = {
       rankIndex: rankIndex,
@@ -106,7 +106,8 @@ export class BattleSystem {
       },
       adventurers: participants,
       log: [],
-      itemCooldown: 0,
+      itemCooldown: 0,       // 後方互換（UI参照用）
+      itemCooldowns: {},     // uid → 残りクールダウン秒
       chainCount: 0,
       chainTimer: 0,
       chainMax: 0,
@@ -154,11 +155,15 @@ export class BattleSystem {
       }
     }
 
-    // クールダウン更新
-    if (s.itemCooldown > 0) {
-      s.itemCooldown -= dt;
-      if (s.itemCooldown < 0) s.itemCooldown = 0;
+    // アイテム個別クールダウン更新
+    for (const uid of Object.keys(s.itemCooldowns)) {
+      if (s.itemCooldowns[uid] > 0) {
+        s.itemCooldowns[uid] -= dt;
+        if (s.itemCooldowns[uid] < 0) s.itemCooldowns[uid] = 0;
+      }
     }
+    // 後方互換: 最大クールダウンを共通フィールドにも反映（UI用）
+    s.itemCooldown = Math.max(0, ...Object.values(s.itemCooldowns), 0);
 
     // バフ更新
     this._updateBuffs(s.boss, dt);
@@ -197,7 +202,8 @@ export class BattleSystem {
 
   useItem(itemUid, targetAdvId = null) {
     if (!this.active || this.state.phase !== 'fighting') return false;
-    if (this.state.itemCooldown > 0) return false;
+    // アイテム個別クールダウンチェック
+    if ((this.state.itemCooldowns[itemUid] || 0) > 0) return false;
 
     // 使用回数チェック
     const usesInfo = this.state.itemUses[itemUid];
@@ -314,8 +320,9 @@ export class BattleSystem {
       }
     }
 
-    // クールダウン設定
-    this.state.itemCooldown = GameConfig.bossBattle.itemCooldownSeconds;
+    // アイテム個別クールダウン設定
+    const itemCd = fx.cooldown ?? GameConfig.bossBattle.itemCooldownSeconds;
+    this.state.itemCooldowns[itemUid] = itemCd;
     
     // UIの描画用に1回発火
     eventBus.emit('battle:tick', this.state);
@@ -328,6 +335,7 @@ export class BattleSystem {
     this._log('逃走した...');
     this.state.phase = 'lose';
     this.active = false;
+    this._discardBattleItems();
     eventBus.emit('battle:lose', { reason: 'flee' });
   }
 
@@ -576,6 +584,7 @@ export class BattleSystem {
       this._log('パーティは全滅した...');
       this.state.phase = 'lose';
       this.active = false;
+      this._discardBattleItems();
       eventBus.emit('battle:lose', { reason: 'wipeout' });
     }
   }
@@ -585,7 +594,21 @@ export class BattleSystem {
     this._log('ボスを撃破した！！');
     this.state.phase = 'win';
     this.active = false;
+    this._discardBattleItems();
     eventBus.emit('battle:win', { rankIndex: this.state.rankIndex });
+  }
+
+  /** バトル終了時に持ち込みアイテムをインベントリから破棄 */
+  _discardBattleItems() {
+    if (!this.selectedItems || this.selectedItems.length === 0) return;
+    const discarded = [];
+    for (const uid of this.selectedItems) {
+      const removed = this.inventory.removeItem(uid);
+      if (removed) discarded.push(removed.name);
+    }
+    if (discarded.length > 0) {
+      this._log(`持ち込みアイテム ${discarded.length} 個を消費した`);
+    }
   }
 
   _log(msg) {

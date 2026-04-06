@@ -5,7 +5,7 @@
  * 参加冒険者のステータスを確認してからバトルを開始する。
  */
 import { eventBus } from '../core/EventBus.js';
-import { ItemBlueprints } from '../data/items.js';
+import { ItemBlueprints, TraitDefs } from '../data/items.js';
 import { AdventurerDefs, UnlockableAdventurers } from '../data/adventurers.js';
 import { GameConfig } from '../data/config.js';
 import { assetPath } from '../core/assetPath.js';
@@ -74,6 +74,7 @@ export class BattlePrepScreen {
 
           <div class="prep-section prep-items">
             <h3>🎒 持ち込みアイテム（最大${this.maxSlots}つ）</h3>
+            <p class="prep-item-warning">⚠ 持ち込みアイテムはバトル終了後に消費されます</p>
             <div class="prep-slots" id="prep-slots">
               ${Array.from({ length: this.maxSlots }, (_, i) => `
                 <div class="prep-slot" data-slot="${i}">
@@ -105,21 +106,48 @@ export class BattlePrepScreen {
     const def = _getAdvDef(adv.id);
     const bat = (def && def.battle) || { maxHp: 100, atk: 10, def: 5, spd: 50 };
     const level = adv.level || 1;
-    const hp = bat.maxHp + (level - 1) * 5;
-    const atk = bat.atk + (level - 1) * 2;
-    const defStat = bat.def + (level - 1) * 1;
-    const spd = bat.spd + (level - 1) * 2;
+    const baseHp = bat.maxHp + (level - 1) * 5;
+    const baseAtk = bat.atk + (level - 1) * 2;
+    const baseDef = bat.def + (level - 1) * 1;
+    const baseSpd = bat.spd + (level - 1) * 2;
+
+    // 装備ボーナス計算
+    let eqAtk = 0, eqDef = 0, eqSpd = 0, eqHp = 0;
+    if (adv.equipment?.weapon) {
+      const wVal = adv.equipment.weapon.value || 0;
+      eqAtk += Math.floor(wVal / 10);
+      for (const traitName of (adv.equipment.weapon.traits || [])) {
+        const td = TraitDefs[traitName];
+        if (!td?.effects) continue;
+        eqAtk += td.effects.battleAtk  || 0;
+        eqDef += td.effects.battleDef  || 0;
+        eqSpd += td.effects.battleSpd  || 0;
+        eqHp  += td.effects.battleHp   || 0;
+      }
+    }
+
+    const totalHp = baseHp + eqHp;
+    const totalAtk = baseAtk + eqAtk;
+    const totalDef = baseDef + eqDef;
+    const totalSpd = baseSpd + eqSpd;
+
+    const formatStat = (total, bonus) => bonus > 0
+      ? `${total} <span class="prep-stat-bonus">(+${bonus})</span>` : `${total}`;
+
+    const weaponName = adv.equipment?.weapon ? adv.equipment.weapon.name : null;
+
     return `
       <div class="prep-adv-card">
         <span class="prep-adv-icon">${adv.icon}</span>
         <div class="prep-adv-info">
           <div class="prep-adv-name">${adv.name} <span class="prep-adv-lv">Lv.${level}</span></div>
           <div class="prep-adv-stats">
-            <span>❤️ ${hp}</span>
-            <span>⚔ ${atk}</span>
-            <span>🛡 ${defStat}</span>
-            <span>💨 ${spd}</span>
+            <span>❤️ ${formatStat(totalHp, eqHp)}</span>
+            <span>⚔ ${formatStat(totalAtk, eqAtk)}</span>
+            <span>🛡 ${formatStat(totalDef, eqDef)}</span>
+            <span>💨 ${formatStat(totalSpd, eqSpd)}</span>
           </div>
+          ${weaponName ? `<div class="prep-adv-equip">🗡️ ${weaponName}</div>` : '<div class="prep-adv-equip prep-no-equip">装備なし</div>'}
         </div>
       </div>
     `;
