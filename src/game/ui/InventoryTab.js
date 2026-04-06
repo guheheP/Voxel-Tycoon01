@@ -114,7 +114,7 @@ export class InventoryTab {
     html += `<button class="btn btn-sm inv-select-toggle ${this.selectMode ? 'active' : ''}" id="inv-select-toggle">${this.selectMode ? '✕ 選択解除' : '☑ 選択モード'}</button>`;
     if (this.selectMode) {
       const selCount = this.selectedUids.size;
-      const selItems = sorted.filter(i => this.selectedUids.has(i.uid));
+      const selItems = sorted.filter(i => this.selectedUids.has(i.uid) && !i.locked);
       const totalQuickSellValue = selItems.reduce((sum, item) => {
         const bp = ItemBlueprints[item.blueprintId];
         if (!bp) return sum;
@@ -143,6 +143,17 @@ export class InventoryTab {
         const isSelected = this.selectedUids.has(i.uid);
         const quickValue = Math.max(1, Math.floor((i.value || ItemBlueprints[i.blueprintId]?.baseValue || 10) * 0.2));
         let cardHtml = createItemCardHTML(i);
+        // ロックバッジ + ロックボタン
+        if (i.locked) {
+          cardHtml = cardHtml.replace(
+            'class="item-card ',
+            'class="item-card item-locked '
+          );
+        }
+        cardHtml = cardHtml.replace(
+          'data-uid="' + i.uid + '">',
+          `data-uid="${i.uid}"><button class="item-lock-btn" data-lock-uid="${i.uid}" title="ロック切替">${i.locked ? '🔒' : '🔓'}</button>`
+        );
         if (this.selectMode) {
           // 選択チェックマーク + 即時処分ボタンを追加
           cardHtml = cardHtml.replace(
@@ -264,6 +275,18 @@ export class InventoryTab {
             this.selectedUids.delete(uid);
             eventBus.emit('inventory:changed');
             eventBus.emit('toast', { message: `${item.name}を処分しました (+${price}G)`, type: 'info' });
+            this.render();
+          }
+          return;
+        }
+
+        // ロックボタン
+        const lockBtn = e.target.closest('.item-lock-btn');
+        if (lockBtn) {
+          e.stopPropagation();
+          const lockUid = lockBtn.dataset.lockUid;
+          if (lockUid) {
+            this.inventory.toggleLock(lockUid);
             this.render();
           }
           return;

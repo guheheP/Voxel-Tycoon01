@@ -56,6 +56,8 @@ export const GameConfig = {
   bossBattle: {
     atbFillRate: 1.0,
     itemCooldownSeconds: 5,
+    defaultItemUses: 3,   // アイテムのデフォルト使用回数
+    baseItemSlots: 2,     // ランク未指定時のデフォルト枠数
   },
 
   // --- ランク定義 (8段階) ---
@@ -63,6 +65,7 @@ export const GameConfig = {
     {
       rank: 1, name: '駆け出しの店',
       requiredSales: 0,
+      battleItemSlots: 2,
       newRecipes: [],
       newAreas: [],
     },
@@ -70,6 +73,7 @@ export const GameConfig = {
       rank: 2, name: '町の小さな店',
       requiredSales: 500,
       requiredBossId: 'boss_plains_slime',
+      battleItemSlots: 2,
       newRecipes: ['fire_sword', 'ice_shield', 'antidote', 'silver_dagger', 'leather_armor',
                    'iron_spear', 'amber_ring', 'bone_charm', 'stamina_drink', 'iron_helm'],
       newAreas: ['cave'],
@@ -78,6 +82,7 @@ export const GameConfig = {
       rank: 3, name: '繁盛する道具屋',
       requiredSales: 1500,
       requiredBossId: 'boss_cave_golem',
+      battleItemSlots: 3,
       newRecipes: ['mage_staff', 'chainmail', 'elixir', 'wind_bow', 'spirit_robe',
                    'strength_potion', 'spider_cloak', 'crystal_orb', 'dark_blade',
                    'fairy_necklace', 'poison_dagger', 'magic_ink'],
@@ -87,6 +92,7 @@ export const GameConfig = {
       rank: 4, name: '名高き工房',
       requiredSales: 3500,
       requiredBossId: 'boss_forest_treant',
+      battleItemSlots: 3,
       newRecipes: ['holy_sword', 'dragon_armor', 'phoenix_feather_acc', 'flame_lance',
                    'moonlight_staff', 'silver_mail', 'spirit_potion', 'thunder_hammer',
                    'cursed_ring', 'lava_shield', 'fire_cloak', 'enchant_scroll', 'thunder_bomb'],
@@ -96,6 +102,7 @@ export const GameConfig = {
       rank: 5, name: '王都の名店',
       requiredSales: 7000,
       requiredBossId: 'boss_volcano_ifrit',
+      battleItemSlots: 4,
       newRecipes: ['trident', 'coral_armor', 'pearl_tiara', 'tidal_bow', 'deep_elixir',
                    'mithril_sword', 'mithril_shield', 'void_amulet', 'frost_blade',
                    'elder_staff', 'sea_serpent_whip', 'lotus_perfume'],
@@ -105,6 +112,7 @@ export const GameConfig = {
       rank: 6, name: '大陸一の店',
       requiredSales: 12000,
       requiredBossId: 'boss_sea_kraken',
+      battleItemSlots: 4,
       newRecipes: ['dragon_slayer', 'storm_cloak', 'ancient_crown', 'sage_stone',
                    'mystic_amulet', 'dragon_bow', 'phoenix_robe', 'void_blade',
                    'dragon_potion', 'thunder_spear', 'cursed_crown', 'scale_shield'],
@@ -114,6 +122,7 @@ export const GameConfig = {
       rank: 7, name: '王国御用達',
       requiredSales: 20000,
       requiredBossId: 'boss_elder_dragon',
+      battleItemSlots: 5,
       newRecipes: ['sky_sword', 'time_hourglass', 'star_shield', 'divine_armor',
                    'aether_staff', 'sky_bow', 'rainbow_robe', 'divine_elixir',
                    'chaos_ring', 'star_pendant', 'wind_lance', 'phoenix_bow'],
@@ -123,6 +132,7 @@ export const GameConfig = {
       rank: 8, name: '伝説のアイテム工房',
       requiredSales: 35000,
       requiredBossId: 'boss_sky_titan',
+      battleItemSlots: 6,
       newRecipes: ['legendary_blade', 'world_tree_staff', 'genesis_armor', 'time_blade',
                    'primordial_crown', 'eternity_ring', 'cosmos_bow', 'panacea',
                    'oblivion_shield', 'astral_robe'],

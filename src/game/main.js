@@ -190,7 +190,7 @@ async function startGame(saveData) {
   // バトルシステム初期化
   battleSystem = new BattleSystem(adventurerSystem, inventorySystem);
   battleScreen = new BattleScreen(inventorySystem);
-  battlePrepScreen = new BattlePrepScreen(inventorySystem, adventurerSystem);
+  battlePrepScreen = new BattlePrepScreen(inventorySystem, adventurerSystem, dayCycleSystem);
 
   // イベントリスナー（重複防止: 前回のリスナーを解除してから再登録）
   if (_gameEventUnsubs) _gameEventUnsubs.forEach(u => u());
@@ -245,7 +245,9 @@ function _applySaveData(data) {
   // インベントリ
   inventorySystem.items = [];
   for (const item of data.items) {
-    inventorySystem.items.push(createItemInstance(item.blueprintId, item.quality, item.traits));
+    const inst = createItemInstance(item.blueprintId, item.quality, item.traits);
+    if (item.locked) inst.locked = true;
+    inventorySystem.items.push(inst);
   }
 
   // 陳列中アイテム（売値をShopSystemの計算式で再設定する）

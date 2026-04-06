@@ -314,6 +314,7 @@ export const TraitDefs = {
   '薬草の香り': { name: '薬草の香り', rarity: 'common',    color: 'gray',   description: 'アイテム回復量が少しUP',     effects: { battleHealBonus: 10 } },
   '滋養':       { name: '滋養',       rarity: 'common',    color: 'gray',   description: 'アイテム使用時に味方を微回復', effects: { battleHealFlat: 8 } },
   '硬い':       { name: '硬い',       rarity: 'common',    color: 'gray',   description: '成功率+2%, 調合+1',          effects: { exploreSuccess: 2, craftQualityBonus: 1 } },
+  '丹念':       { name: '丹念',       rarity: 'common',    color: 'gray',   description: 'バトル使用回数+1',           effects: { battleItemUses: 1 } },
 
   // ═══════════════════════════════════════════════
   //  Uncommon (アンコモン) — 各系統の中位
@@ -332,6 +333,7 @@ export const TraitDefs = {
   '採取量UP':   { name: '採取量UP',   rarity: 'uncommon',  color: 'green',  description: 'ドロップ+1',                 effects: { dropBonus: 1 } },
   '先制':       { name: '先制',       rarity: 'uncommon',  color: 'green',  description: 'バトル開始時ATB+25',         effects: { startAtb: 25 } },
   '体力強化':   { name: '体力強化',   rarity: 'uncommon',  color: 'green',  description: 'バトル最大HP UP, 防御力UP',  effects: { battleHp: 30, battleDef: 3 } },
+  '練成':       { name: '練成',       rarity: 'uncommon',  color: 'green',  description: 'バトル使用回数+2',           effects: { battleItemUses: 2 } },
 
   // ═══════════════════════════════════════════════
   //  Rare (レア) — 各系統の上位
@@ -351,6 +353,7 @@ export const TraitDefs = {
   '吸血':       { name: '吸血',       rarity: 'rare',      color: 'blue',   description: '成功率+5%, 売値+15%',        effects: { exploreSuccess: 5, sellBonus: 15 } },
   '鉄壁':       { name: '鉄壁',       rarity: 'rare',      color: 'blue',   description: 'バトルダメージ軽減+4',       effects: { battleDmgReduction: 4 } },
   '疾走':       { name: '疾走',       rarity: 'rare',      color: 'blue',   description: 'バトル素早さ+18, ATB+15',    effects: { battleSpd: 18, startAtb: 15 } },
+  '達人の業':   { name: '達人の業',   rarity: 'rare',      color: 'blue',   description: 'バトル使用回数+3',           effects: { battleItemUses: 3 } },
 
   // ═══════════════════════════════════════════════
   //  Epic (エピック) — 融合でのみ入手可能
@@ -365,6 +368,7 @@ export const TraitDefs = {
   '運命の導き': { name: '運命の導き', rarity: 'epic',      color: 'purple', description: '特性付与率+40%',             effects: { traitChanceBonus: 40 } },
   '聖癒':       { name: '聖癒',       rarity: 'epic',      color: 'purple', description: '回復量超UP + 使用時全体回復', effects: { battleHealBonus: 60, battleHealFlat: 25 } },
   '生命の奔流': { name: '生命の奔流', rarity: 'epic',      color: 'purple', description: 'アイテム使用時に味方全体を大回復', effects: { battleHealFlat: 35 } },
+  '無尽蔵':     { name: '無尽蔵',     rarity: 'epic',      color: 'purple', description: 'バトル使用回数+5',           effects: { battleItemUses: 5 } },
   // スタンドアロン Epic
   '混沌':       { name: '混沌',       rarity: 'epic',      color: 'purple', description: '成功率+15%, 売値-10%',       effects: { exploreSuccess: 15, sellBonus: -10 } },
   '再生':       { name: '再生',       rarity: 'epic',      color: 'purple', description: 'バトル中HP2/秒回復',         effects: { battleRegen: 2 } },
@@ -419,6 +423,10 @@ export const TraitFusionTable = {
   '薬草の香り': '癒しの力',
   '癒しの力':   '慈愛',
   '慈愛':       '聖癒',
+  // ── 使用回数系 ──
+  '丹念':       '練成',
+  '練成':       '達人の業',
+  '達人の業':   '無尽蔵',
   // ── 固定回復系 ──
   '滋養':       '命の露',
   '命の露':     '生命の雫',

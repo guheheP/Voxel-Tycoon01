@@ -176,6 +176,7 @@ export class ShopSystem {
     // ルールに合う候補を売値順で取得
     const candidates = this.inventory.items
       .filter(item => {
+        if (item.locked) return false; // ロック済みは除外
         if (!rules.types.includes(item.type)) return false;
         if (item.quality < rules.minQuality) return false;
         if (rules.excludeTraits && item.traits && item.traits.length > 0) return false;
