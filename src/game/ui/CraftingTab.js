@@ -7,7 +7,7 @@ import { craftItem, isCategorySlot, getCategoryId, materialMatchesSlot } from '.
 import { eventBus } from '../core/EventBus.js';
 import { GameConfig } from '../data/config.js';
 import { ShopSystem } from '../ShopSystem.js';
-import { getQualityTier, getTypeInfo, createItemCardHTML } from './UIHelpers.js';
+import { getQualityTier, getTypeInfo, createItemCardHTML, createTraitBadgeHTML } from './UIHelpers.js';
 import { CraftingPuzzle } from './CraftingPuzzle.js';
 import { assetPath } from '../core/assetPath.js';
 
@@ -250,7 +250,7 @@ export class CraftingTab {
         const tier = getQualityTier(chosen.quality);
         const typeInfo = getTypeInfo(chosen.type);
         const traitsHtml = chosen.traits
-          .map(t => `<span class="trait-badge ${traitColorClass(t)}">${t}</span>`)
+          .map(t => createTraitBadgeHTML(t))
           .join('');
 
         html += `
@@ -286,7 +286,7 @@ export class CraftingTab {
           const typeInfo = getTypeInfo(item.type);
           const isChosen = item.uid === selectedUid;
           const traitsHtml = item.traits
-            .map(t => `<span class="trait-badge ${traitColorClass(t)}">${t}</span>`)
+            .map(t => createTraitBadgeHTML(t))
             .join('');
 
           html += `
@@ -361,9 +361,9 @@ export class CraftingTab {
             const fromDef = TraitDefs[f.from];
             const toDef = TraitDefs[f.to];
             return `<div class="craft-fusion-row">
-              <span class="trait-badge trait-${fromDef?.color || 'gray'}">${f.from}</span>
+              ${createTraitBadgeHTML(f.from)}
               <span class="craft-fusion-arrow">×2 → </span>
-              <span class="trait-badge trait-${toDef?.color || 'purple'} trait-fused">✨ ${f.to}</span>
+              ${createTraitBadgeHTML(f.to, 'trait-fused')}
             </div>`;
           }).join('')}</div>`
         : '';
@@ -383,7 +383,7 @@ export class CraftingTab {
                   const def = TraitDefs[t];
                   const colorCls = def ? `trait-${def.color}` : '';
                   const isFused = fusionPreviews.some(f => f.to === t);
-                  return `<span class="trait-badge ${colorCls} ${isFused ? 'trait-fused' : ''}">${isFused ? '✨ ' : ''}${t}</span>`;
+                  return createTraitBadgeHTML(t, isFused ? 'trait-fused' : '');
                 }).join('') || '<span class="text-dim">特性なし</span>'}
               </div>
               <div class="craft-preview-value">💰 推定売値: ${estimatedValue}G</div>
@@ -585,7 +585,7 @@ export class CraftingTab {
           const def = TraitDefs[t];
           const colorCls = def ? `trait-${def.color}` : '';
           const isFused = fusedTraits.has(t);
-          return `<span class="trait-badge ${colorCls} ${isFused ? 'trait-fused' : ''}">${isFused ? '✨ ' : ''}${t}</span>`;
+          return createTraitBadgeHTML(t, isFused ? 'trait-fused' : '');
         }).join('')
       : '';
     const fusionNotice = fusedTraits.size > 0

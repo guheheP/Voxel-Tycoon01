@@ -4,7 +4,7 @@
 import { eventBus } from '../core/EventBus.js';
 import { ItemBlueprints, TraitDefs } from '../data/items.js';
 import { assetPath } from '../core/assetPath.js';
-import { getQualityTier } from './UIHelpers.js';
+import { getQualityTier, createTraitBadgeHTML } from './UIHelpers.js';
 
 const MAX_ITEM_ICONS = 5;
 
@@ -142,12 +142,7 @@ export class ToastManager {
 
     const itemRows = items.map(item => {
       const tier = getQualityTier(item.quality);
-      const traitBadges = (item.traits || []).map(t => {
-        const def = TraitDefs[t];
-        const rc = def ? `trait-rarity-${def.rarity || 'common'}` : '';
-        const title = def?.description ?? '';
-        return `<span class="trait-badge ${rc}" title="${title}">${t}</span>`;
-      }).join('');
+      const traitBadges = (item.traits || []).map(t => createTraitBadgeHTML(t)).join('');
       return `
         <div class="return-item-row">
           <span class="return-item-emoji">📦</span>

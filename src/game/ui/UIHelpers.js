@@ -36,6 +36,15 @@ function traitColorClass(traitName) {
   return def ? `trait-rarity-${def.rarity || 'common'}` : '';
 }
 
+/** 特性バッジHTMLを生成（GameTooltip対応） */
+export function createTraitBadgeHTML(traitName, extra = '') {
+  const def = TraitDefs[traitName];
+  const colorCls = traitColorClass(traitName);
+  const desc = def?.description ?? '';
+  const rarity = def?.rarity ?? '';
+  return `<span class="trait-badge ${colorCls} ${extra}" data-tooltip="${desc}" data-tooltip-title="${traitName}" data-tooltip-rarity="${rarity}">${traitName}</span>`;
+}
+
 // アイテムの画像URL（将来のカスタム画像パス対応）
 function getItemImageUrl(item) {
   const bp = ItemBlueprints[item.blueprintId];
@@ -217,7 +226,7 @@ export function createItemCardHTML(item) {
     .map(t => {
       const def = TraitDefs[t];
       const title = def?.description ?? '';
-      return `<span class="trait-badge ${traitColorClass(t)}" title="${title}">${t}</span>`;
+      return createTraitBadgeHTML(t);
     })
     .join('');
 
@@ -257,7 +266,7 @@ export function createShopItemCardHTML(item) {
     .map(t => {
       const def = TraitDefs[t];
       const title = def?.description ?? '';
-      return `<span class="trait-badge ${traitColorClass(t)}" title="${title}">${t}</span>`;
+      return createTraitBadgeHTML(t);
     })
     .join('');
 
@@ -297,7 +306,7 @@ export function createDisplayedItemCardHTML(item) {
     .map(t => {
       const def = TraitDefs[t];
       const title = def?.description ?? '';
-      return `<span class="trait-badge ${traitColorClass(t)}" title="${title}">${t}</span>`;
+      return createTraitBadgeHTML(t);
     })
     .join('');
 
