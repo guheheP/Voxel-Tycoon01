@@ -1,0 +1,586 @@
+/* ============================================================
+   Mobile Responsive — 768px 以下のモバイル専用レイアウト
+   デスクトップレイアウトを壊さず、メディアクエリのみで対応
+   ============================================================ */
+
+/* ===== Phase 1: レイアウト基盤 ===== */
+
+@media (max-width: 768px) {
+  /* --- ボトムナビゲーション化 --- */
+  .sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100% !important;
+    height: auto;
+    flex-direction: row;
+    padding: 0;
+    z-index: 9000;
+    border-radius: 0;
+    border-top: 1px solid rgba(160, 132, 92, 0.2);
+    border-right: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    gap: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    min-width: 56px;
+    min-height: 48px;
+    font-size: 9px;
+    justify-content: center;
+    align-items: center;
+    scroll-snap-align: start;
+    border-left: none !important;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+  }
+  .tab-btn.active {
+    border-left: none !important;
+    border-bottom: 3px solid var(--gold, #e8b84b);
+  }
+  .tab-btn .tab-icon {
+    font-size: 18px;
+    margin: 0;
+  }
+  /* タブラベルはアイコン下に小さく表示 */
+  .tab-btn {
+    font-size: 9px !important;
+  }
+
+  /* バッジ位置調整 */
+  .tab-badge {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    min-width: 14px;
+    height: 14px;
+    font-size: 8px;
+    margin-left: 0;
+  }
+
+  /* --- メインエリアの再配置 --- */
+  .main-area {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .ui-container {
+    padding: 0;
+    gap: 0;
+  }
+
+  .content-panel {
+    padding: 8px;
+    padding-bottom: 68px; /* ボトムナビの高さ分 */
+    border-radius: 0;
+    max-height: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 装飾コーナー非表示 */
+  .content-panel::before,
+  .content-panel::after {
+    display: none;
+  }
+
+  /* --- ステータスバーのコンパクト化 --- */
+  .status-bar {
+    padding: 4px 8px;
+    flex-wrap: wrap;
+    gap: 4px;
+    border-radius: 0;
+  }
+
+  .game-title {
+    display: none; /* タイトルは非表示 */
+  }
+
+  .status-info {
+    width: 100%;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .status-item {
+    flex-direction: row;
+    gap: 3px;
+    min-width: auto;
+  }
+
+  .status-label {
+    font-size: 9px;
+  }
+  .status-value {
+    font-size: 11px;
+  }
+
+  /* ランクとレピュテーションは折りたたみ */
+  .rank-progress-container {
+    display: none;
+  }
+  .reputation-display {
+    display: none;
+  }
+
+  /* 日表示のコンパクト化 */
+  .day-display {
+    min-width: auto !important;
+    flex: 1;
+  }
+  .day-progress-bar {
+    max-width: 80px;
+  }
+  .skip-day-btn {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  /* ゴールド表示 */
+  .gold-display {
+    min-width: auto;
+  }
+  .gold-amount {
+    font-size: 14px;
+  }
+
+  /* 維持費は省略 */
+  .status-item:has(#rent-value) {
+    display: none;
+  }
+
+  /* --- セクションタイトル --- */
+  .content-section > h3 {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  /* --- イベントバナー --- */
+  .event-banner {
+    position: relative;
+    left: 0;
+    transform: none;
+    padding: 2px 8px;
+  }
+}
+
+/* ===== Phase 2: タブコンテンツのレスポンシブ化 ===== */
+
+@media (max-width: 768px) {
+  /* --- 全2カラムレイアウトを1カラムに --- */
+  .craft-columns,
+  .shop-columns,
+  .disp-columns {
+    flex-direction: column;
+  }
+
+  .craft-panel-left,
+  .shop-panel-left,
+  .disp-panel-left {
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .craft-panel-right,
+  .shop-panel-right,
+  .disp-panel-right {
+    width: 100%;
+  }
+
+  /* --- アイテムカードグリッド --- */
+  .item-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
+    gap: 6px;
+  }
+
+  /* カード画像の縮小 */
+  .item-card-image {
+    height: 60px;
+  }
+  .item-card-image img {
+    height: 50px;
+  }
+
+  /* カード内テキスト縮小 */
+  .item-card-body {
+    padding: 4px 6px;
+  }
+  .item-name {
+    font-size: 11px;
+  }
+  .item-quality {
+    font-size: 10px;
+  }
+  .trait-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+
+  /* --- インベントリ高度フィルタの折りたたみ --- */
+  .inv-advanced-filters {
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px 0;
+  }
+  .inv-adv-group {
+    flex-wrap: wrap;
+  }
+  .inv-qf-btn, .inv-tf-btn {
+    font-size: 9px !important;
+    padding: 3px 5px !important;
+  }
+
+  /* 一括操作バーの折り返し */
+  .inv-bulk-bar {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* --- ショップタブ --- */
+  .shop-shelf-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+  .shop-inv-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+
+  /* オートセルパネルのコンパクト化 */
+  .autosell-panel {
+    padding: 8px;
+  }
+  .autosell-rules {
+    flex-direction: column;
+  }
+
+  /* --- 調合タブ --- */
+  .craft-recipe-grid {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  .craft-rcard {
+    padding: 6px;
+  }
+  .craft-rcard-img {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* --- 派遣タブ --- */
+  .disp-area-grid {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .disp-area-card {
+    min-width: 200px;
+    flex: 0 0 auto;
+  }
+  .disp-adv-card {
+    padding: 8px;
+  }
+  .disp-area-select {
+    flex-wrap: wrap;
+  }
+  .disp-area-btn {
+    min-width: 36px;
+    min-height: 36px;
+    font-size: 16px;
+  }
+
+  /* --- バトル画面 --- */
+  .battle-container {
+    max-width: 100%;
+    width: 100%;
+    height: 100dvh;
+    border-radius: 0;
+    border: none;
+  }
+  .battle-main {
+    flex-direction: column;
+  }
+  .party-container {
+    border-right: none;
+    border-bottom: 2px solid #4a4e69;
+    max-height: 35vh;
+    overflow-y: auto;
+  }
+  .battle-log {
+    max-height: 15vh;
+  }
+  .boss-icon {
+    font-size: 2.5rem;
+  }
+  .boss-name {
+    font-size: 1.1rem;
+  }
+  .battle-inventory {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .battle-item-btn {
+    min-width: 70px;
+    flex: 0 0 auto;
+  }
+
+  /* --- バトル準備画面 --- */
+  .battle-prep-container {
+    max-width: 100%;
+    width: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+  .prep-body {
+    flex-direction: column;
+  }
+  .prep-item-grid {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .prep-item-option {
+    min-width: 100px;
+    flex: 0 0 auto;
+  }
+
+  /* --- パズル画面 --- */
+  .puzzle-container {
+    max-width: 100%;
+    width: 100%;
+  }
+  .puzzle-body {
+    flex-direction: column;
+    align-items: center;
+  }
+  .puzzle-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    min-width: auto;
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px;
+  }
+  .puzzle-score-box,
+  .puzzle-combo-box,
+  .puzzle-bonus-box,
+  .puzzle-next-box {
+    min-width: auto;
+    flex: 0 0 auto;
+  }
+  .puzzle-skip-btn {
+    width: auto;
+  }
+
+  /* --- 図鑑タブ --- */
+  .coll-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .coll-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+  .coll-trait-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* --- 設備タブ --- */
+  .upgrade-grid {
+    grid-template-columns: 1fr;
+  }
+  .quest-item {
+    flex-wrap: wrap;
+  }
+
+  /* --- 統計タブ --- */
+  .stats-two-col {
+    grid-template-columns: 1fr;
+  }
+  .stats-achievements {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Phase 3: タッチターゲット最適化 ===== */
+
+@media (max-width: 768px) {
+  /* すべてのボタンに最低タッチサイズ */
+  .btn, button {
+    min-height: 36px;
+  }
+
+  /* フィルターボタン */
+  .inv-filter-btn,
+  .shop-filter-btn {
+    min-height: 32px;
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  /* ソートボタン */
+  .inv-sort-btn {
+    min-height: 28px;
+    padding: 3px 8px;
+  }
+
+  /* スライダーの拡大 */
+  input[type="range"] {
+    height: 32px;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* チェックボックスの拡大 */
+  input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* タップフィードバック */
+  .item-card,
+  .craft-rcard,
+  .disp-adv-card,
+  .disp-area-btn,
+  .upgrade-card,
+  .shop-displayable-card,
+  .displayed-glow {
+    -webkit-tap-highlight-color: rgba(232, 184, 75, 0.15);
+    transition: transform 0.1s;
+  }
+  .item-card:active,
+  .craft-rcard:active,
+  .shop-displayable-card:active {
+    transform: scale(0.97);
+  }
+
+  /* ホバー効果をモバイルで無効化 */
+  @media (hover: none) {
+    .item-card:hover,
+    .craft-rcard:hover,
+    .coll-card-found:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+
+  /* タブガイドの位置調整 */
+  .tab-guide {
+    bottom: 70px;
+    right: 10px;
+    left: 10px;
+  }
+  .tab-guide-card {
+    max-width: none;
+  }
+
+  /* セーブインジケーター */
+  .save-indicator {
+    top: auto;
+    bottom: 70px;
+    right: 10px;
+  }
+
+  /* トーストの位置調整 */
+  .toast-container {
+    bottom: 70px;
+    right: 8px;
+    left: 8px;
+    max-width: none;
+  }
+  .toast {
+    max-width: none;
+    font-size: 12px;
+  }
+
+  /* ランクアップオーバーレイ */
+  .rankup-content {
+    padding: 20px;
+  }
+  .rankup-icon {
+    font-size: 48px;
+  }
+  .rankup-name {
+    font-size: 18px;
+  }
+}
+
+/* ===== Phase 5: Landscape 対応 ===== */
+
+@media (max-width: 768px) and (orientation: landscape) {
+  /* 横画面: ボトムナビを左端に縦配置 */
+  .sidebar {
+    bottom: 0;
+    top: 0;
+    left: 0;
+    right: auto;
+    width: 48px !important;
+    height: 100%;
+    flex-direction: column;
+    border-top: none;
+    border-right: 1px solid rgba(160, 132, 92, 0.2);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 0;
+  }
+  .tab-btn {
+    min-width: 44px;
+    min-height: 40px;
+    padding: 4px;
+    font-size: 0 !important;
+  }
+  .tab-btn .tab-icon {
+    font-size: 16px;
+  }
+  .tab-btn.active {
+    border-bottom: none;
+    border-right: 3px solid var(--gold, #e8b84b);
+  }
+
+  .content-panel {
+    padding-bottom: 8px;
+    padding-left: 56px; /* 左ナビ分 */
+  }
+
+  /* ステータスバーを1行に */
+  .status-bar {
+    padding: 2px 8px 2px 56px;
+  }
+
+  /* バトル画面は横画面で横レイアウト維持 */
+  .battle-main {
+    flex-direction: row;
+  }
+  .party-container {
+    border-right: 2px solid #4a4e69;
+    border-bottom: none;
+    max-height: none;
+  }
+}
+
+/* ===== 環境パーティクルのモバイル対応 ===== */
+@media (max-width: 768px) {
+  .ambient-particles {
+    display: none; /* モバイルではCSS環境パーティクル非表示 */
+  }
+}

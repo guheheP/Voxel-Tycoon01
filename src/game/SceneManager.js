@@ -40,7 +40,11 @@ export class SceneManager {
     this.camera.lookAt(0, 0, 0);
 
     // パーティクルシステム初期化
+    this._isMobile = window.innerWidth <= 768;
     this.particles = new ParticleSystem(this.scene);
+    if (this._isMobile) {
+      ParticleSystem.MAX_PARTICLES = 80;
+    }
 
     // 背景・お店のロード
     await this.spawnEnvironment();
@@ -145,9 +149,10 @@ export class SceneManager {
     if (this.particles) {
       this.particles.update(dt);
 
-      // 環境パーティクル自動生成（約3秒ごと）
+      // 環境パーティクル自動生成（モバイル: 6秒、デスクトップ: 3秒）
+      const ambientInterval = this._isMobile ? 6 : 3;
       this._ambientTimer = (this._ambientTimer || 0) + dt;
-      if (this._ambientTimer >= 3) {
+      if (this._ambientTimer >= ambientInterval) {
         this._ambientTimer = 0;
         const count = 1 + Math.floor(Math.random() * 2);
         for (let i = 0; i < count; i++) {

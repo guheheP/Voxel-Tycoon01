@@ -5,11 +5,17 @@ import * as THREE from 'three';
 
 export class Renderer {
   constructor(canvasId = 'game-canvas') {
+    // モバイル判定
+    this._isMobile = window.innerWidth <= 768;
+
     // --- Canvas & WebGLRenderer ---
     this.canvas = document.getElementById(canvasId);
-    this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.canvas,
+      antialias: !this._isMobile, // モバイルではアンチエイリアス無効
+    });
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = this._isMobile ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.2;
     this.renderer.setClearColor(0x87ceeb);
@@ -44,7 +50,7 @@ export class Renderer {
     this.sunLight = new THREE.DirectionalLight(0xfff8e8, 1.6);
     this.sunLight.position.set(20, 30, 15);
     this.sunLight.castShadow = true;
-    this.sunLight.shadow.mapSize.set(2048, 2048);
+    this.sunLight.shadow.mapSize.set(this._isMobile ? 1024 : 2048, this._isMobile ? 1024 : 2048);
     this.sunLight.shadow.camera.left = -30;
     this.sunLight.shadow.camera.right = 30;
     this.sunLight.shadow.camera.top = 30;
@@ -70,10 +76,13 @@ export class Renderer {
   }
 
   _onResize() {
+    this._isMobile = window.innerWidth <= 768;
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // モバイルでは pixelRatio を制限してGPU負荷を軽減
+    const maxDpr = this._isMobile ? 1.5 : 2;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxDpr));
   }
 
   render() {
