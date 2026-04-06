@@ -118,7 +118,7 @@ export class InventoryTab {
       const totalQuickSellValue = selItems.reduce((sum, item) => {
         const bp = ItemBlueprints[item.blueprintId];
         if (!bp) return sum;
-        return sum + Math.max(1, Math.floor((item.value || bp.baseValue) * 0.2));
+        return sum + Math.max(1, Math.floor((item.value || bp.baseValue || 10) * 0.2));
       }, 0);
 
       html += `<span class="inv-sel-count">${selCount}個選択中</span>`;

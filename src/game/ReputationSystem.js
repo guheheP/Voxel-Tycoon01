@@ -103,6 +103,7 @@ export class ReputationSystem {
     if (idx >= ReputationLevels.length - 1) return 1.0;
     const next = ReputationLevels[idx + 1];
     const range = next.minRep - this.currentLevel.minRep;
+    if (range <= 0) return 1.0;
     const progress = this.reputation - this.currentLevel.minRep;
     return Math.min(1.0, progress / range);
   }

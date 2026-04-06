@@ -130,11 +130,7 @@ export class SaveSystem {
         raw = localStorage.getItem(key);
         if (raw) {
           const data = JSON.parse(raw);
-          if (data.version < 5) {
-             data.version = 5;
-             data.rankBossAvailable = false;
-             data.defeatedBosses = [];
-          }
+          // v4未満 → v4 フィールド補完（v5移行より先に実行する必要がある）
           if (data.version < 4) {
              data.maxCapacity = data.maxCapacity || GameConfig.initialInventoryCapacity;
              data.maxSlots = data.maxSlots || GameConfig.shopMaxDisplaySlots;
@@ -144,6 +140,12 @@ export class SaveSystem {
              delete data.ap;
              delete data.maxAP;
           }
+          // v5未満 → v5 フィールド補完
+          if (data.version < 5) {
+             data.rankBossAvailable = data.rankBossAvailable ?? false;
+             data.defeatedBosses = data.defeatedBosses || [];
+          }
+          data.version = 5;
           localStorage.removeItem(key);
           localStorage.setItem(SAVE_KEY, JSON.stringify(data));
           console.log(`[Save] ${key} → v5 マイグレーション完了`);
