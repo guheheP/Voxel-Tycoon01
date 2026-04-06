@@ -68,40 +68,41 @@ export class Renderer {
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    const grid = new THREE.GridHelper(40, 40, 0x7db892, 0x6aad80);
-    grid.position.y = 0.01;
-    grid.material.transparent = true;
-    grid.material.opacity = 0.3;
-    this.scene.add(grid);
+    // グリッドはパノラマストリップでは不自然なので削除
   }
 
   _onResize() {
-    this._isMobile = window.innerWidth <= 768;
-    if (this._isMobile) return; // モバイルでは描画しないのでリサイズ不要
-
     const w = window.innerWidth;
     const h = window.innerHeight;
+    this._isMobile = w <= 768;
+
+    // モバイルでもキャンバスサイズは設定（WebGLコンテキストの整合性のため）
+    this.renderer.setSize(w, h);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this._isMobile ? 1.5 : 2));
+
+    if (this._isMobile) return; // 以降はデスクトップのみ
 
     // シーンストリップの高さを取得（CSS と同期）
     const stripEl = document.querySelector('.scene-strip');
-    const stripH = stripEl ? stripEl.offsetHeight : 120;
+    this._stripH = stripEl ? stripEl.offsetHeight : 120;
 
-    // カメラのアスペクト比はストリップ領域に合わせる
-    this.camera.aspect = w / stripH;
+    // カメラのアスペクト比: ストリップのワイド比をFOV調整で自然に見せる
+    this.camera.aspect = w / this._stripH;
+    this.camera.fov = 20; // ワイドアスペクトに合わせて狭FOVで歪み軽減
     this.camera.updateProjectionMatrix();
-
-    this.renderer.setSize(w, h);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-    // 描画をストリップ領域（画面下部）のみに制限
-    // Three.js の座標系は左下原点なので、Y=0 が画面最下部
-    this.renderer.setScissorTest(true);
-    this.renderer.setScissor(0, 0, w, stripH);
-    this.renderer.setViewport(0, 0, w, stripH);
   }
 
   render() {
     if (this._isMobile) return;
+
+    const w = window.innerWidth;
+    const stripH = this._stripH || 120;
+
+    // 毎フレーム Scissor/Viewport を再適用（WebGL状態の信頼性確保）
+    this.renderer.setScissorTest(true);
+    this.renderer.setScissor(0, 0, w, stripH);
+    this.renderer.setViewport(0, 0, w, stripH);
+
     this.renderer.render(this.scene, this.camera);
   }
 

@@ -36,8 +36,8 @@ export class SceneManager {
 
   async init() {
     // カメラの固定値設定 (パノラマストリップ向け: 低め・ワイドアングル)
-    this.camera.position.set(18, 10, 22);
-    this.camera.lookAt(0, 2, 0);
+    this.camera.position.set(16, 8, 20);
+    this.camera.lookAt(-2, 1.5, 0);
 
     // パーティクルシステム初期化
     this._isMobile = window.innerWidth <= 768;
@@ -49,39 +49,42 @@ export class SceneManager {
     // 背景・お店のロード
     await this.spawnEnvironment();
 
-    // NPC演出: 冒険者派遣/帰還
-    eventBus.on('adventurer:return', (d) => this._onAdventurerReturn(d));
+    // NPC演出・パーティクルエフェクト（デスクトップのみ — モバイルではスキップ）
+    if (!this._isMobile) {
+      // NPC演出: 冒険者派遣/帰還
+      eventBus.on('adventurer:return', (d) => this._onAdventurerReturn(d));
 
-    // ショップ外装進化: ランクアップ
-    eventBus.on('rank:up', (d) => {
-      this._evolveShopExterior(d.rank);
-      // 紙吹雪パーティクル
-      this.particles.spawnConfetti(50);
-    });
+      // ショップ外装進化: ランクアップ
+      eventBus.on('rank:up', (d) => {
+        this._evolveShopExterior(d.rank);
+        // 紙吹雪パーティクル
+        this.particles.spawnConfetti(50);
+      });
 
-    // 売上時コインパーティクル（スロットリング: 2秒間隔）
-    this._lastCoinBurstTime = 0;
-    this._coinBurstPos = new THREE.Vector3(-2, 2, 5);
-    eventBus.on('item:sold', () => {
-      const now = performance.now();
-      if (now - this._lastCoinBurstTime < 2000) return;
-      this._lastCoinBurstTime = now;
-      this.particles.spawnCoinBurst(this._coinBurstPos, 8);
-    });
+      // 売上時コインパーティクル（スロットリング: 2秒間隔）
+      this._lastCoinBurstTime = 0;
+      this._coinBurstPos = new THREE.Vector3(-2, 2, 5);
+      eventBus.on('item:sold', () => {
+        const now = performance.now();
+        if (now - this._lastCoinBurstTime < 2000) return;
+        this._lastCoinBurstTime = now;
+        this.particles.spawnCoinBurst(this._coinBurstPos, 8);
+      });
 
-    // 調合時スターパーティクル
-    this._craftStarPos = new THREE.Vector3(6, 1, 0);
-    eventBus.on('item:crafted', (d) => {
-      const tier = d.item && d.item.quality >= 81 ? 'q-legendary'
-                 : d.item && d.item.quality >= 61 ? 'q-excellent'
-                 : d.item && d.item.quality >= 41 ? 'q-fine'
-                 : 'q-common';
-      const count = tier === 'q-legendary' ? 15 : tier === 'q-excellent' ? 10 : 8;
-      this.particles.spawnCraftStars(this._craftStarPos, count, tier);
-    });
+      // 調合時スターパーティクル
+      this._craftStarPos = new THREE.Vector3(6, 1, 0);
+      eventBus.on('item:crafted', (d) => {
+        const tier = d.item && d.item.quality >= 81 ? 'q-legendary'
+                   : d.item && d.item.quality >= 61 ? 'q-excellent'
+                   : d.item && d.item.quality >= 41 ? 'q-fine'
+                   : 'q-common';
+        const count = tier === 'q-legendary' ? 15 : tier === 'q-excellent' ? 10 : 8;
+        this.particles.spawnCraftStars(this._craftStarPos, count, tier);
+      });
 
-    // 背景NPC (お客さんが歩き回る)
-    await this._spawnWanderers();
+      // 背景NPC (お客さんが歩き回る)
+      await this._spawnWanderers();
+    } // end: デスクトップのみのビジュアル演出
   }
 
   update(dt) {
@@ -100,7 +103,7 @@ export class SceneManager {
         // 歩行中 (約 4.5 units / sec = 往時の 0.15 / 33ms に相当)
         npc.root.position.x -= 4.5 * dt;
         npc.root.rotation.y = Math.PI / 2;
-        if (npc.root.position.x <= 4) {
+        if (npc.root.position.x <= 2) {
           npcState.state = 'idle';
           npcState.timer = 3.0; // 3秒待機
           npc.playAnimation('idle');
@@ -124,8 +127,9 @@ export class SceneManager {
     for (const w of this.wanderers) {
       w.timer -= dt;
       if (w.timer <= 0) {
-        w.targetX = (Math.random() - 0.5) * 30;
-        w.targetZ = (Math.random() - 0.5) * 30;
+        // カメラ可視域（手前の開放エリア）に行動範囲を制限
+        w.targetX = -12 + Math.random() * 20; // -12 ~ 8
+        w.targetZ = 2 + Math.random() * 12;   //  2 ~ 14
         w.timer = 5 + Math.random() * 8;
       }
       const entity = w.entity;
@@ -274,15 +278,35 @@ export class SceneManager {
       scale: 0.6,
     });
 
-    // 背景の木・岩等の装飾
+    // 木と岩をパノラマ全体に散りばめる
+    // 中央のキャラクターエリア (X:-8~8, Z:0~10) は避ける
     const decorations = [
+      // 左奥 — 森の奥行き感
       { path: 'Pine Tree.json', pos: [-15, -15], scale: 1.0 },
-      { path: 'Pine Tree.json', pos: [12, -10], scale: 0.8 },
-      { path: 'Pine Tree.json', pos: [10, 15], scale: 0.9 },
-      { path: 'Pine Tree.json', pos: [-18, 8], scale: 0.7 },
-      { path: 'Rock.json', pos: [8, 12], scale: 0.6 },
-      { path: 'Rock.json', pos: [-10, 10], scale: 0.5 },
-      { path: 'Rock.json', pos: [15, -5], scale: 0.4 },
+      { path: 'Pine Tree.json', pos: [-20, -10], scale: 0.8 },
+      { path: 'Pine Tree.json', pos: [-12, -18], scale: 0.9 },
+      // 右奥
+      { path: 'Pine Tree.json', pos: [12, -12], scale: 0.8 },
+      { path: 'Pine Tree.json', pos: [18, -14], scale: 0.7 },
+      { path: 'Pine Tree.json', pos: [22, -8], scale: 0.6 },
+      // 左手前 — パノラマ左端のフレーミング
+      { path: 'Pine Tree.json', pos: [-16, 6], scale: 0.9 },
+      { path: 'Pine Tree.json', pos: [-20, 12], scale: 1.0 },
+      { path: 'Pine Tree.json', pos: [-14, 14], scale: 0.7 },
+      // 右手前 — パノラマ右端のフレーミング
+      { path: 'Pine Tree.json', pos: [14, 8], scale: 0.8 },
+      { path: 'Pine Tree.json', pos: [18, 12], scale: 0.9 },
+      { path: 'Pine Tree.json', pos: [22, 6], scale: 0.6 },
+      // 遠景の追加木（奥行き感）
+      { path: 'Pine Tree.json', pos: [-8, -22], scale: 1.1 },
+      { path: 'Pine Tree.json', pos: [5, -20], scale: 1.0 },
+      { path: 'Pine Tree.json', pos: [-25, -5], scale: 0.8 },
+      { path: 'Pine Tree.json', pos: [25, -2], scale: 0.7 },
+      // 岩（アクセント）
+      { path: 'Rock.json', pos: [-10, -10], scale: 0.5 },
+      { path: 'Rock.json', pos: [15, -8], scale: 0.4 },
+      { path: 'Rock.json', pos: [-18, 10], scale: 0.4 },
+      { path: 'Rock.json', pos: [12, 10], scale: 0.3 },
     ];
 
     for (const dec of decorations) {
@@ -292,10 +316,10 @@ export class SceneManager {
       });
     }
 
-    // 店主NPC
+    // 店主NPC（人型キャラは小さめに統一）
     const shopkeeper = await this.loadEntity('/presets/RPG_Characters/King.json', {
-      position: [0, 0, 3],
-      scale: 0.5,
+      position: [-1, 0, 6],
+      scale: 0.32,
     });
     if (shopkeeper) {
       shopkeeper.playAnimation('idle');
@@ -303,17 +327,19 @@ export class SceneManager {
   }
 
   async _spawnWanderers() {
+    // カメラ手前（Z>0 側）に配置し、ストリップから見えやすくする
+    // 人型(12.5v)→scale 0.32≈高さ4.0, 動物(7.5-8v)→scale 0.38≈高さ3.0
     const wandererDefs = [
-      { path: 'Chibi Human.json', x: -8, z: 8 },
-      { path: 'Cat.json', x: 10, z: 10 },
-      { path: 'Dog.json', x: -12, z: -8 },
+      { path: 'Chibi Human.json', x: -6, z: 8, scale: 0.32 },
+      { path: 'Cat.json', x: 5, z: 7, scale: 0.38 },
+      { path: 'Dog.json', x: -10, z: 4, scale: 0.38 },
     ];
 
     for (const def of wandererDefs) {
       try {
         const entity = await this.loadEntity(`/presets/RPG_Characters/${def.path}`, {
           position: [def.x, 0, def.z],
-          scale: 0.4,
+          scale: def.scale,
         });
         if (entity) {
           entity.playAnimation('walk');
@@ -337,8 +363,8 @@ export class SceneManager {
 
     try {
       const npc = await this.loadEntity('/presets/RPG_Characters/Knight.json', {
-        position: [18, 0, 0],
-        scale: 0.5,
+        position: [18, 0, 5],
+        scale: 0.31, // Knight(13v) → 高さ≈4.0 で他の人型と統一
       });
       if (!npc) { this._returnNpcCount--; return; }
       
