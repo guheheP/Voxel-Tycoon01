@@ -314,44 +314,101 @@ export class SceneManager {
       scale: 0.5,
     });
 
-    // --- 木: 弧状に配置して「森の中の広場」感を出す ---
+    // --- 森: 拠点の周囲を深い森で囲む ---
+    // 「ひだまり森の錬金工房」— 拠点の開けた広場 (X:-8~8, Z:-2~8) 以外を
+    // 松と広葉樹で密に埋めて、森の中に工房がある雰囲気を出す
+    //
+    // P = Pine Tree, T = Tree (広葉樹)
     const trees = [
-      // 遠景 — 森のスカイライン (大きめ)
-      { pos: [-14, -18], scale: 1.1 },
-      { pos: [-6,  -20], scale: 1.0 },
-      { pos: [4,   -19], scale: 1.1 },
-      { pos: [13,  -17], scale: 0.9 },
-      // 中景左 — お店の左側
-      { pos: [-14, -10], scale: 0.9 },
-      { pos: [-18,  -5], scale: 1.0 },
-      { pos: [-12,  -3], scale: 0.7 },
-      // 中景右 — お店の右側
-      { pos: [14,  -10], scale: 0.9 },
-      { pos: [18,   -6], scale: 0.8 },
-      { pos: [12,   -2], scale: 0.7 },
-      // 前景左端 — パノラマ左のフレーミング
-      { pos: [-17,   4], scale: 0.9 },
-      { pos: [-14,   9], scale: 0.8 },
-      // 前景右端 — パノラマ右のフレーミング
-      { pos: [16,    3], scale: 0.8 },
-      { pos: [14,    8], scale: 0.9 },
-      // 遠景端 — パノラマの左右を埋めて途切れ感を消す
-      { pos: [-22, -12], scale: 0.8 },
-      { pos: [22,  -13], scale: 0.7 },
+      // ── 遠景 (Z: -25~-14) — 奥の森のスカイライン、密に ──
+      { pos: [-24, -24], scale: 1.0, type: 'P' },
+      { pos: [-16, -22], scale: 1.1, type: 'P' },
+      { pos: [-8,  -24], scale: 0.9, type: 'T' },
+      { pos: [-2,  -22], scale: 1.0, type: 'P' },
+      { pos: [5,   -23], scale: 1.1, type: 'P' },
+      { pos: [12,  -21], scale: 0.9, type: 'T' },
+      { pos: [20,  -22], scale: 1.0, type: 'P' },
+      { pos: [-20, -18], scale: 0.8, type: 'T' },
+      { pos: [-12, -19], scale: 1.0, type: 'P' },
+      { pos: [0,   -18], scale: 0.9, type: 'T' },
+      { pos: [8,   -19], scale: 1.0, type: 'P' },
+      { pos: [16,  -18], scale: 0.8, type: 'P' },
+      { pos: [24,  -20], scale: 0.9, type: 'T' },
+      // 2列目
+      { pos: [-22, -15], scale: 0.9, type: 'P' },
+      { pos: [-14, -16], scale: 1.1, type: 'P' },
+      { pos: [-6,  -17], scale: 0.8, type: 'T' },
+      { pos: [3,   -16], scale: 0.9, type: 'P' },
+      { pos: [10,  -15], scale: 1.0, type: 'T' },
+      { pos: [18,  -16], scale: 0.9, type: 'P' },
+
+      // ── お店裏の森 (Z: -14~-8) — 建屋の後ろを埋める ──
+      { pos: [-18, -12], scale: 0.9, type: 'P' },
+      { pos: [-10, -11], scale: 0.8, type: 'T' },
+      { pos: [10,  -12], scale: 0.8, type: 'T' },
+      { pos: [16,  -11], scale: 0.9, type: 'P' },
+      { pos: [-14,  -8], scale: 0.7, type: 'P' },
+      { pos: [14,   -9], scale: 0.7, type: 'P' },
+
+      // ── 左の森 (X: -12~-30) — 左サイドを密に ──
+      { pos: [-16,  -5], scale: 1.0, type: 'P' },
+      { pos: [-20,  -2], scale: 0.9, type: 'T' },
+      { pos: [-14,   0], scale: 0.8, type: 'P' },
+      { pos: [-18,   3], scale: 0.9, type: 'T' },
+      { pos: [-22,   1], scale: 1.0, type: 'P' },
+      { pos: [-15,   6], scale: 0.8, type: 'P' },
+      { pos: [-20,   7], scale: 0.9, type: 'T' },
+      { pos: [-12,   9], scale: 0.7, type: 'T' },
+      { pos: [-17,  11], scale: 0.9, type: 'P' },
+      { pos: [-24,   5], scale: 0.8, type: 'P' },
+      { pos: [-26,  -3], scale: 1.0, type: 'T' },
+
+      // ── 右の森 (X: 12~30) — 右サイドを密に ──
+      { pos: [16,   -5], scale: 0.9, type: 'P' },
+      { pos: [20,   -2], scale: 1.0, type: 'T' },
+      { pos: [14,    0], scale: 0.8, type: 'P' },
+      { pos: [18,    3], scale: 0.9, type: 'P' },
+      { pos: [22,    1], scale: 0.8, type: 'T' },
+      { pos: [15,    6], scale: 0.7, type: 'T' },
+      { pos: [20,    7], scale: 0.9, type: 'P' },
+      { pos: [13,    9], scale: 0.8, type: 'P' },
+      { pos: [17,   11], scale: 0.9, type: 'T' },
+      { pos: [24,    4], scale: 0.8, type: 'P' },
+      { pos: [26,   -4], scale: 1.0, type: 'P' },
+
+      // ── 手前の森 (Z: 10~18) — カメラ手前側も木で埋める ──
+      { pos: [-20,  13], scale: 0.9, type: 'P' },
+      { pos: [-14,  15], scale: 1.0, type: 'T' },
+      { pos: [-8,   14], scale: 0.8, type: 'P' },
+      { pos: [8,    14], scale: 0.8, type: 'P' },
+      { pos: [14,   15], scale: 1.0, type: 'T' },
+      { pos: [20,   13], scale: 0.9, type: 'P' },
+      { pos: [-24,  16], scale: 0.8, type: 'P' },
+      { pos: [-4,   16], scale: 0.7, type: 'T' },
+      { pos: [4,    16], scale: 0.7, type: 'T' },
+      { pos: [24,   16], scale: 0.8, type: 'P' },
     ];
+
     for (const t of trees) {
-      await this.loadEntity('/presets/RPG_Props/Pine Tree.json', {
+      const path = t.type === 'T'
+        ? '/presets/RPG_Props/Tree.json'
+        : '/presets/RPG_Props/Pine Tree.json';
+      await this.loadEntity(path, {
         position: [t.pos[0], 0, t.pos[1]],
         scale: t.scale,
       });
     }
 
-    // --- 岩: アクセント (小さめ、地面に自然に散らす) ---
+    // --- 岩: 森の地面にアクセント ---
     const rocks = [
-      { pos: [-9,  -8], scale: 0.35 },
-      { pos: [10,  -7], scale: 0.3 },
-      { pos: [-6,   6], scale: 0.25 },
-      { pos: [8,    5], scale: 0.3 },
+      { pos: [-9,  -8],  scale: 0.35 },
+      { pos: [10,  -7],  scale: 0.3 },
+      { pos: [-6,   6],  scale: 0.25 },
+      { pos: [8,    5],  scale: 0.3 },
+      { pos: [-16, -14], scale: 0.4 },
+      { pos: [18,  -10], scale: 0.35 },
+      { pos: [-20,   8], scale: 0.3 },
+      { pos: [22,    8], scale: 0.3 },
     ];
     for (const r of rocks) {
       await this.loadEntity('/presets/RPG_Props/Rock.json', {
