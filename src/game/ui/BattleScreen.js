@@ -1,6 +1,7 @@
 import { eventBus } from '../core/EventBus.js';
 import { ItemBlueprints } from '../data/items.js';
 import { GameConfig } from '../data/config.js';
+import { assetPath } from '../core/assetPath.js';
 
 export class BattleScreen {
   constructor(inventorySystem) {
@@ -9,7 +10,7 @@ export class BattleScreen {
     this.state = null;
     this.itemsWithEffects = [];
     this._lastLogLength = 0;
-    this._lastItemCount = -1;
+    this._lastUsesKey = '';
 
     // DOM element caches (set in show())
     this._els = {};
@@ -48,7 +49,7 @@ export class BattleScreen {
   show(state) {
     this.state = state;
     this._lastLogLength = 0;
-    this._lastItemCount = -1;
+    this._lastUsesKey = '';
     this._clearAllTimers();
     eventBus.emit('game:pause');
 
@@ -183,13 +184,22 @@ export class BattleScreen {
     if (this.itemsWithEffects.length === 0) {
       return '<div class="no-items">使えるアイテムがありません</div>';
     }
+    const itemUses = this.state?.itemUses || {};
     return this.itemsWithEffects.map(item => {
       const bp = ItemBlueprints[item.blueprintId];
+      const uses = itemUses[item.uid];
+      const remaining = uses ? uses.remaining : 0;
+      const max = uses ? uses.max : 0;
+      const exhausted = remaining <= 0;
+      const imgUrl = bp.image ? assetPath(bp.image) : null;
+      const imgHtml = imgUrl
+        ? `<img src="${imgUrl}" alt="${item.name}" />`
+        : `<span class="battle-item-emoji">💊</span>`;
       return `
-        <div class="battle-item-btn" data-uid="${item.uid}">
-          <img src="${bp.image}" alt="${item.name}" />
+        <div class="battle-item-btn ${exhausted ? 'disabled' : ''}" data-uid="${item.uid}">
+          ${imgHtml}
           <div class="item-name">${item.name}</div>
-          <div class="item-qty">Q${item.quality}</div>
+          <div class="item-uses-badge">${remaining}/${max}</div>
         </div>
       `;
     }).join('');
@@ -267,21 +277,14 @@ export class BattleScreen {
          if (els.inventory) els.inventory.classList.remove('cooldown-active');
        }
 
-       // アイテムリストの同期（使用済みアイテムを反映）
-       const currentCount = this.inventory.items.filter(i => ItemBlueprints[i.blueprintId]?.battleEffect).length;
-       if (currentCount !== this._lastItemCount) {
-          this._lastItemCount = currentCount;
-          const allBattleItems = this.inventory.items.filter(i => ItemBlueprints[i.blueprintId]?.battleEffect);
-          if (state.selectedItems && state.selectedItems.length > 0) {
-            this.itemsWithEffects = allBattleItems.filter(item =>
-              state.selectedItems.includes(item.uid)
-            );
-          } else {
-            this.itemsWithEffects = allBattleItems;
-          }
+       // アイテムリストの同期（使用回数の変化を検知して再描画）
+       const usesKey = state.itemUses
+         ? Object.entries(state.itemUses).map(([k, v]) => `${k}:${v.remaining}`).join(',')
+         : '';
+       if (usesKey !== this._lastUsesKey) {
+          this._lastUsesKey = usesKey;
           if (els.inventory) {
             els.inventory.innerHTML = this._renderItems();
-            // イベント委譲なので再バインド不要
           }
        }
     }

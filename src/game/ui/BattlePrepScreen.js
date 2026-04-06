@@ -16,12 +16,16 @@ function _getAdvDef(id) {
 }
 
 export class BattlePrepScreen {
-  constructor(inventorySystem, adventurerSystem) {
+  constructor(inventorySystem, adventurerSystem, dayCycleSystem) {
     this.inventory = inventorySystem;
     this.adventurers = adventurerSystem;
+    this.dayCycle = dayCycleSystem;
     this.overlay = null;
-    this.selectedItems = []; // uid[] — 持ち込みアイテム
-    this.maxSlots = GameConfig.bossBattle?.playerItemSlots || 4;
+    this.selectedItems = [];
+    // ランクに応じた持ち込み枠数
+    const rankIdx = this.dayCycle?.currentRankIndex ?? 0;
+    const rankDef = GameConfig.ranks[rankIdx];
+    this.maxSlots = rankDef?.battleItemSlots || GameConfig.bossBattle?.baseItemSlots || 2;
     this._pendingBattle = null; // { rankIndex, bossDef }
   }
 
@@ -33,6 +37,10 @@ export class BattlePrepScreen {
   show(rankIndex, bossDef) {
     this._pendingBattle = { rankIndex, bossDef };
     this.selectedItems = [];
+    // ランク枠数を再計算
+    const rankIdx = this.dayCycle?.currentRankIndex ?? 0;
+    const rankDef = GameConfig.ranks[rankIdx];
+    this.maxSlots = rankDef?.battleItemSlots || GameConfig.bossBattle?.baseItemSlots || 2;
 
     // バトル用アイテムをフィルタ
     const allItems = this.inventory.items;

@@ -42,6 +42,7 @@ export class SaveSystem {
           blueprintId: i.blueprintId,
           quality: i.quality,
           traits: i.traits,
+          locked: i.locked || false,
         })),
         displayedItems: this.shop.displayedItems.map(i => ({
           blueprintId: i.blueprintId,

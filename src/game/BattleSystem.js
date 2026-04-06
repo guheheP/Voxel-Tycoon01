@@ -104,8 +104,28 @@ export class BattleSystem {
       adventurers: participants,
       log: [],
       itemCooldown: 0,
-      selectedItems: selectedItems, // 持ち込みアイテムのuid[] (nullなら全アイテム)
+      selectedItems: selectedItems,
+      itemUses: {}, // uid → { remaining, max }
     };
+
+    // バトルアイテムの使用回数を初期化
+    const defaultUses = GameConfig.bossBattle.defaultItemUses || 3;
+    const allBattleItems = this.inventory.items.filter(i => {
+      const bp = ItemBlueprints[i.blueprintId];
+      return bp && bp.battleEffect;
+    });
+    const targetItems = selectedItems
+      ? allBattleItems.filter(i => selectedItems.includes(i.uid))
+      : allBattleItems;
+    for (const item of targetItems) {
+      let bonusUses = 0;
+      for (const traitName of (item.traits || [])) {
+        const td = TraitDefs[traitName];
+        if (td?.effects?.battleItemUses) bonusUses += td.effects.battleItemUses;
+      }
+      const maxUses = defaultUses + bonusUses;
+      this.state.itemUses[item.uid] = { remaining: maxUses, max: maxUses };
+    }
 
     this.active = true;
     eventBus.emit('battle:start', this.state);
@@ -164,6 +184,10 @@ export class BattleSystem {
     if (!this.active || this.state.phase !== 'fighting') return false;
     if (this.state.itemCooldown > 0) return false;
 
+    // 使用回数チェック
+    const usesInfo = this.state.itemUses[itemUid];
+    if (!usesInfo || usesInfo.remaining <= 0) return false;
+
     // アイテム検索
     const item = this.inventory.items.find(i => i.uid === itemUid);
     if (!item) return false;
@@ -195,8 +219,8 @@ export class BattleSystem {
     // 統合倍率
     const totalMult = qualityMult * traitMult;
 
-    // Remove from inventory
-    this.inventory.removeItem(itemUid);
+    // 使用回数をデクリメント（アイテムはインベントリに残る）
+    usesInfo.remaining--;
 
     this._log(`プレイヤーが ${item.name} を使った！`);
     eventBus.emit('battle:se:itemUse');

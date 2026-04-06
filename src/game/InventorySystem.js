@@ -61,12 +61,28 @@ export class InventorySystem {
     eventBus.emit('inventory:changed');
   }
 
-  removeItem(uid) {
+  removeItem(uid, force = false) {
     const idx = this.items.findIndex(i => i.uid === uid);
-    if (idx !== -1) {
-      return this.items.splice(idx, 1)[0];
+    if (idx === -1) return null;
+    // ロック済みアイテムは force=true でない限り削除不可
+    if (this.items[idx].locked && !force) return null;
+    return this.items.splice(idx, 1)[0];
+  }
+
+  /** アイテムのロック状態を切り替え */
+  toggleLock(uid) {
+    const item = this.items.find(i => i.uid === uid);
+    if (item) {
+      item.locked = !item.locked;
+      eventBus.emit('inventory:changed');
+      return item.locked;
     }
-    return null;
+    return false;
+  }
+
+  /** ロックされていないアイテムのみを返す */
+  getUnlockedItems() {
+    return this.items.filter(i => !i.locked);
   }
 
   getItems() {
