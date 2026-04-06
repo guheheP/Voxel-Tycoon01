@@ -245,17 +245,25 @@ function _applySaveData(data) {
   // インベントリ
   inventorySystem.items = [];
   for (const item of data.items) {
-    const inst = createItemInstance(item.blueprintId, item.quality, item.traits);
-    if (item.locked) inst.locked = true;
-    inventorySystem.items.push(inst);
+    try {
+      const inst = createItemInstance(item.blueprintId, item.quality, item.traits);
+      if (item.locked) inst.locked = true;
+      inventorySystem.items.push(inst);
+    } catch (e) {
+      console.warn('[Load] 不明なアイテムをスキップ:', item.blueprintId, e.message);
+    }
   }
 
   // 陳列中アイテム（売値をShopSystemの計算式で再設定する）
   shopSystem.displayedItems = [];
   for (const item of data.displayedItems || []) {
-    const inst = createItemInstance(item.blueprintId, item.quality, item.traits);
-    inst.value = shopSystem._calcValue(inst);
-    shopSystem.displayedItems.push(inst);
+    try {
+      const inst = createItemInstance(item.blueprintId, item.quality, item.traits);
+      inst.value = shopSystem._calcValue(inst);
+      shopSystem.displayedItems.push(inst);
+    } catch (e) {
+      console.warn('[Load] 不明な陳列アイテムをスキップ:', item.blueprintId, e.message);
+    }
   }
 
   // レシピ解放
@@ -327,7 +335,12 @@ function _applySaveData(data) {
         adv.exp = savedAdv.exp || 0;
         adv.assignedArea = savedAdv.assignedArea || 'plains';
         if (savedAdv.weapon) {
-          adv.equipment.weapon = createItemInstance(savedAdv.weapon.blueprintId, savedAdv.weapon.quality, savedAdv.weapon.traits);
+          try {
+            adv.equipment.weapon = createItemInstance(savedAdv.weapon.blueprintId, savedAdv.weapon.quality, savedAdv.weapon.traits);
+          } catch (e) {
+            console.warn('[Load] 不明な武器をスキップ:', savedAdv.weapon.blueprintId, e.message);
+            adv.equipment.weapon = null;
+          }
         }
       }
     }

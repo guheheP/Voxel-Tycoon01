@@ -103,10 +103,10 @@ export class AdventurerSystem {
 
   /** 探索時間の計算 */
   _calcExploreTime(adv, area) {
-    const levelReduction = 1 - ((adv.level - 1) * LevelBonuses.timeReduction);
+    const levelReduction = Math.max(0.1, 1 - ((adv.level - 1) * LevelBonuses.timeReduction));
     // 装備の速度ボーナス
     const speedBonus = this._getWeaponTraitEffects(adv).speedBonus || 0;
-    const speedMult = 1 - (speedBonus / 100);
+    const speedMult = Math.max(0.1, 1 - (speedBonus / 100));
     return Math.max(8, Math.ceil(area.baseTime * (adv.exploreTimeMultiplier || 1.0) * levelReduction * speedMult));
   }
 

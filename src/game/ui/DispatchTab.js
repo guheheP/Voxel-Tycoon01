@@ -203,7 +203,7 @@ export class DispatchTab {
   }
 
   _calcTimeText(adv, area) {
-    const levelReduction = 1 - ((adv.level - 1) * LevelBonuses.timeReduction);
+    const levelReduction = Math.max(0.1, 1 - ((adv.level - 1) * LevelBonuses.timeReduction));
     const time = Math.max(8, Math.ceil(area.baseTime * (adv.exploreTimeMultiplier || 1.0) * levelReduction));
     if (time <= 12) return 'とても速い';
     if (time <= 20) return '速い';
