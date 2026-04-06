@@ -461,6 +461,53 @@
   text-align: center;
   flex-shrink: 0;
 }
+/* ── 融合プレビュー ── */
+.craft-fusion-preview {
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: rgba(180, 120, 255, 0.08);
+  border: 1px solid rgba(180, 120, 255, 0.2);
+  border-radius: var(--radius-sm);
+}
+.craft-fusion-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+.craft-fusion-row:last-child { margin-bottom: 0; }
+.craft-fusion-arrow {
+  color: var(--gold);
+  font-weight: 700;
+  font-size: 11px;
+}
+.trait-fused {
+  animation: traitFusedPulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 6px rgba(180, 120, 255, 0.3);
+}
+@keyframes traitFusedPulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(180, 120, 255, 0.3); }
+  50% { box-shadow: 0 0 12px rgba(180, 120, 255, 0.5); }
+}
+
+/* ── 調合結果の融合表示 ── */
+.craft-result-fusion {
+  color: #c8a0ff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 8px;
+  animation: traitFusedPulse 1.5s ease-in-out infinite;
+}
+.craft-result-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  margin: 8px 0;
+}
+
 .craft-preview-info {
   flex: 1;
   min-width: 0;
