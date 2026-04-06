@@ -118,6 +118,11 @@ export class ShopSystem {
     }
     let value = Math.max(1, Math.floor(bp.baseValue * multiplier));
 
+    // アクセサリ系アイテムのボーナス倍率
+    if (bp.type === 'accessory') {
+      value = Math.floor(value * 1.3);
+    }
+
     // 特性の売値ボーナスを合算
     if (item.traits && item.traits.length > 0) {
       let sellBonusPct = 0;

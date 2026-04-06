@@ -182,6 +182,7 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+  position: relative;
 }
 
 .battle-item-btn:hover {
@@ -189,11 +190,30 @@
   border-color: #fca311;
 }
 
-.battle-item-btn.disabled,
-.cooldown-active .battle-item-btn {
+.battle-item-btn.disabled {
   opacity: 0.4;
   pointer-events: none;
   filter: grayscale(100%);
+}
+
+.battle-item-btn.on-cooldown {
+  opacity: 0.5;
+  pointer-events: none;
+  position: relative;
+}
+
+.item-cd-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fca311;
+  pointer-events: none;
 }
 
 .battle-item-btn img {
@@ -876,6 +896,22 @@
   margin-top: 2px;
 }
 
+.prep-stat-bonus {
+  color: #7ddd88;
+  font-weight: 600;
+}
+
+.prep-adv-equip {
+  font-size: 0.7rem;
+  color: #b8b8d0;
+  margin-top: 3px;
+}
+
+.prep-adv-equip.prep-no-equip {
+  color: #666;
+  font-style: italic;
+}
+
 /* Item Slots */
 .prep-slots {
   display: flex;
@@ -916,6 +952,13 @@
   font-size: 0.8rem;
   font-weight: 700;
   color: #fca311;
+}
+
+.prep-item-warning {
+  font-size: 0.75rem;
+  color: #e57373;
+  margin: 0 0 0.5rem 0;
+  padding: 0;
 }
 
 /* Item Grid */

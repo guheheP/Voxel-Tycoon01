@@ -27,7 +27,7 @@ export const GameConfig = {
   exploreDropCountMax: 2,
   exploreQualityMin: 10,
   exploreQualityMax: 40,
-  traitChance: 0.35,
+  traitChance: 0.25,
 
   // 特性はみ出し抽選 — エリアのtraitPool外からランダムに出る確率
   traitBonusRollChance: 0.02,       // 探索ごとにはみ出し抽選が発生する確率
