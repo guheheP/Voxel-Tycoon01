@@ -196,19 +196,25 @@ export class AdventurerSystem {
 
         // 特性 — エリアのtraitPoolから付与 + はみ出し抽選
         const traits = [];
-        const traitPool = area.traitPool || [];
+        // プールの先頭の特性ばかりが当たらないよう順序をシャッフル
+        let traitPool = area.traitPool ? [...area.traitPool] : [];
+        traitPool = traitPool.sort(() => 0.5 - Math.random());
+
         // 装備の特性チャンスボーナス
         const traitChanceBonus = traitEffects.traitChanceBonus || 0;
-        const effectiveTraitChance = Math.min(0.8, GameConfig.traitChance + traitChanceBonus / 100);
+        let effectiveTraitChance = Math.min(0.8, GameConfig.traitChance + traitChanceBonus / 100);
 
         for (const t of traitPool) {
+          if (traits.length >= 3) break; // 最大3個まで制限
+
           if (Math.random() < effectiveTraitChance) {
             traits.push(t);
+            effectiveTraitChance *= 0.5; // 獲得するたびに確率半減（減衰処理）
           }
         }
 
-        // はみ出し抽選 — エリアのプール外からランダムにレアな特性が出る
-        if (Math.random() < GameConfig.traitBonusRollChance) {
+        // はみ出し抽選 — エリアのプール外からランダムにレアな特性が出る (枠が空いている場合のみ)
+        if (traits.length < 3 && Math.random() < GameConfig.traitBonusRollChance) {
           const bonusTrait = this._rollBonusTrait(traitPool, traits);
           if (bonusTrait) traits.push(bonusTrait);
         }

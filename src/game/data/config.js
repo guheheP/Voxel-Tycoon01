@@ -30,7 +30,7 @@ export const GameConfig = {
   traitChance: 0.35,
 
   // 特性はみ出し抽選 — エリアのtraitPool外からランダムに出る確率
-  traitBonusRollChance: 0.12,       // 探索ごとにはみ出し抽選が発生する確率
+  traitBonusRollChance: 0.02,       // 探索ごとにはみ出し抽選が発生する確率
   traitBonusRarityWeights: {        // はみ出し抽選時のレアリティ重み
     uncommon: 50,
     rare: 25,
@@ -75,8 +75,8 @@ export const GameConfig = {
       requiredBossId: 'boss_plains_slime',
       battleItemSlots: 2,
       newRecipes: ['sword', 'antidote', 'silver_dagger', 'leather_armor',
-                   'iron_spear', 'amber_ring', 'bone_charm', 'stamina_drink', 'iron_helm',
-                   'iron_spike', 'steel_ingot', 'alloy_ore', 'pure_crystal'],
+        'iron_spear', 'amber_ring', 'bone_charm', 'stamina_drink', 'iron_helm',
+        'iron_spike', 'steel_ingot', 'alloy_ore', 'pure_crystal'],
       newAreas: ['cave'],
     },
     {
@@ -85,9 +85,9 @@ export const GameConfig = {
       requiredBossId: 'boss_cave_golem',
       battleItemSlots: 3,
       newRecipes: ['mage_staff', 'chainmail', 'elixir', 'wind_bow', 'spirit_robe',
-                   'strength_potion', 'spider_cloak', 'crystal_orb', 'dark_blade',
-                   'fairy_necklace', 'poison_dagger', 'magic_ink', 'weakness_draught',
-                   'magic_cloth', 'spirit_thread'],
+        'strength_potion', 'spider_cloak', 'crystal_orb', 'dark_blade',
+        'fairy_necklace', 'poison_dagger', 'magic_ink', 'weakness_draught',
+        'magic_cloth', 'spirit_thread'],
       newAreas: ['forest'],
     },
     {
@@ -96,9 +96,9 @@ export const GameConfig = {
       requiredBossId: 'boss_forest_treant',
       battleItemSlots: 3,
       newRecipes: ['fire_sword', 'ice_shield', 'holy_sword', 'dragon_armor',
-                   'phoenix_feather_acc', 'flame_lance',
-                   'moonlight_staff', 'silver_mail', 'spirit_potion', 'thunder_hammer',
-                   'cursed_ring', 'lava_shield', 'fire_cloak', 'enchant_scroll', 'thunder_bomb'],
+        'phoenix_feather_acc', 'flame_lance',
+        'moonlight_staff', 'silver_mail', 'spirit_potion', 'thunder_hammer',
+        'cursed_ring', 'lava_shield', 'fire_cloak', 'enchant_scroll', 'thunder_bomb'],
       newAreas: ['volcano'],
     },
     {
@@ -107,9 +107,9 @@ export const GameConfig = {
       requiredBossId: 'boss_volcano_ifrit',
       battleItemSlots: 4,
       newRecipes: ['trident', 'coral_armor', 'pearl_tiara', 'tidal_bow', 'deep_elixir',
-                   'mithril_sword', 'mithril_shield', 'void_amulet', 'frost_blade',
-                   'elder_staff', 'sea_serpent_whip', 'lotus_perfume', 'revival_herb',
-                   'dragon_alloy'],
+        'mithril_sword', 'mithril_shield', 'void_amulet', 'frost_blade',
+        'elder_staff', 'sea_serpent_whip', 'lotus_perfume', 'revival_herb',
+        'dragon_alloy'],
       newAreas: ['deep_sea'],
     },
     {
@@ -118,8 +118,8 @@ export const GameConfig = {
       requiredBossId: 'boss_sea_kraken',
       battleItemSlots: 4,
       newRecipes: ['dragon_slayer', 'storm_cloak', 'ancient_crown', 'sage_stone',
-                   'mystic_amulet', 'dragon_bow', 'phoenix_robe', 'void_blade',
-                   'dragon_potion', 'thunder_spear', 'cursed_crown', 'scale_shield'],
+        'mystic_amulet', 'dragon_bow', 'phoenix_robe', 'void_blade',
+        'dragon_potion', 'thunder_spear', 'cursed_crown', 'scale_shield'],
       newAreas: ['dragon_nest'],
     },
     {
@@ -128,8 +128,8 @@ export const GameConfig = {
       requiredBossId: 'boss_elder_dragon',
       battleItemSlots: 5,
       newRecipes: ['sky_sword', 'time_hourglass', 'star_shield', 'divine_armor',
-                   'aether_staff', 'sky_bow', 'rainbow_robe', 'divine_elixir',
-                   'chaos_ring', 'star_pendant', 'wind_lance', 'phoenix_bow'],
+        'aether_staff', 'sky_bow', 'rainbow_robe', 'divine_elixir',
+        'chaos_ring', 'star_pendant', 'wind_lance', 'phoenix_bow'],
       newAreas: ['sky_tower'],
     },
     {
@@ -138,19 +138,19 @@ export const GameConfig = {
       requiredBossId: 'boss_sky_titan',
       battleItemSlots: 6,
       newRecipes: ['legendary_blade', 'world_tree_staff', 'genesis_armor', 'time_blade',
-                   'primordial_crown', 'eternity_ring', 'cosmos_bow', 'panacea',
-                   'oblivion_shield', 'astral_robe'],
+        'primordial_crown', 'eternity_ring', 'cosmos_bow', 'panacea',
+        'oblivion_shield', 'astral_robe'],
       newAreas: ['time_corridor'],
     },
   ],
 
   // --- 初期インベントリ ---
   initialItems: [
-    { blueprintId: 'stone',  quality: 15, traits: [] },
-    { blueprintId: 'wood',   quality: 20, traits: [] },
-    { blueprintId: 'wood',   quality: 12, traits: [] },
-    { blueprintId: 'herb',   quality: 18, traits: [] },
-    { blueprintId: 'clay',   quality: 10, traits: [] },
-    { blueprintId: 'sand',   quality: 25, traits: [] },
+    { blueprintId: 'stone', quality: 15, traits: [] },
+    { blueprintId: 'wood', quality: 20, traits: [] },
+    { blueprintId: 'wood', quality: 12, traits: [] },
+    { blueprintId: 'herb', quality: 18, traits: [] },
+    { blueprintId: 'clay', quality: 10, traits: [] },
+    { blueprintId: 'sand', quality: 25, traits: [] },
   ],
 };
