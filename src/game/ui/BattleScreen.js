@@ -252,7 +252,7 @@ export class BattleScreen {
     // Log updates — only when log has new entries (avoid innerHTML every frame)
     if (els.logContainer && state.log.length !== this._lastLogLength) {
       const newCount = state.log.length - this._lastLogLength;
-      const newEntries = state.log.slice(this._lastLogLength);
+      const newEntries = state.log.slice(0, newCount);
       this._lastLogLength = state.log.length;
       els.logContainer.innerHTML = state.log.map(l => `<div class="log-line">${l.msg}</div>`).join('');
       // Spawn damage/heal popups for each new log entry

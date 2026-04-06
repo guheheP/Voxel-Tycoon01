@@ -69,6 +69,8 @@ export class CustomerSystem {
       if (c.checkTimer >= 3) {
         c.checkTimer = 0;
         this._tryPurchase(c);
+        // 購入成功で既に除去されていたらスキップ
+        if (this.customers.indexOf(c) === -1) continue;
       }
 
       if (c.timer <= 0) {
