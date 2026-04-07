@@ -75,13 +75,25 @@ class EventBus {
   emit(event, data) {
     const set = this._listeners.get(event);
     if (!set) return;
-    for (const cb of set) {
+
+    // ネスト深度制限 — 無限ループによるスタックオーバーフロー防止
+    if (!this._depth) this._depth = 0;
+    this._depth++;
+    if (this._depth > 30) {
+      console.error(`[EventBus] Max emit depth (30) exceeded at "${event}" — breaking potential infinite loop`);
+      this._depth--;
+      return;
+    }
+
+    for (const cb of [...set]) {
       try {
         cb(data);
       } catch (err) {
         console.error(`[EventBus] Error in listener for "${event}":`, err);
       }
     }
+
+    this._depth--;
   }
 }
 
