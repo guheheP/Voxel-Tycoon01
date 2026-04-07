@@ -54,7 +54,7 @@ export const GameConfig = {
 
   // --- ボスバトル ---
   bossBattle: {
-    atbFillRate: 1.0,
+    atbFillRate: 0.6,
     itemCooldownSeconds: 5,
     defaultItemUses: 3,   // アイテムのデフォルト使用回数
     baseItemSlots: 2,     // ランク未指定時のデフォルト枠数
