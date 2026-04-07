@@ -738,6 +738,7 @@
 .shop-panel-left {
   width: 42%;
   flex-shrink: 0;
+  overflow: hidden;
 }
 .shop-shelf-count {
   font-size: 11px;
@@ -865,6 +866,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .shop-shelf-full-badge {
   font-size: 10px;
