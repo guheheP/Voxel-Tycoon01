@@ -19,7 +19,6 @@ export class BattleScreen {
 
     this._resultShown = false;
     this._pendingTimers = [];  // 全 setTimeout を追跡
-    this._pendingTargetSelect = null; // B7: ターゲット選択待ち { uid }
     this._scene3d = null; // C9: 3Dバトルシーン
 
     this._unsubs = [
