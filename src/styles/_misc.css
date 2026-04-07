@@ -211,7 +211,6 @@
   .shop-panel-left { width: 100%; max-height: 40%; }
   .craft-columns { flex-direction: column; }
   .craft-panel-left { width: 100%; }
-  .craft-recipe-scroll { height: 35vh; }
   .disp-columns { flex-direction: column; }
   .disp-panel-left { width: 100%; max-height: 35%; }
 }

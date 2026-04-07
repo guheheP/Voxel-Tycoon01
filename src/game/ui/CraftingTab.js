@@ -117,9 +117,7 @@ export class CraftingTab {
           <button class="shop-filter-btn ${this.recipeFilter === 'material' ? 'active' : ''}" data-craft-filter="material">🧱 素材 <span class="shop-filter-count">${counts.material}</span></button>
           <button class="shop-filter-btn craft-craftable-toggle ${this.craftableOnly ? 'active' : ''}" id="craft-toggle-craftable">✅ 作成可能のみ</button>
         </div>
-        <div class="craft-recipe-scroll">
-          <div class="craft-recipe-grid">${recipeCards}</div>
-        </div>
+        <div class="craft-recipe-grid">${recipeCards}</div>
         ${autoCraftPanel}
       </div>
     `;
