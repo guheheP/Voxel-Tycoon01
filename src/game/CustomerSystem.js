@@ -45,11 +45,19 @@ export class CustomerSystem {
     });
   }
 
+  /** アップグレードボーナスをEventBus経由で同期取得 */
+  _getUpgradeBonus(effectType) {
+    const q = { effectType, result: 0 };
+    eventBus.emit('upgrade:queryBonus', q);
+    return q.result;
+  }
+
   /** 毎フレーム更新 */
   update(dt) {
-    // 来店タイマー — 評判で間隔を短縮
+    // 来店タイマー — 評判+アップグレードで間隔を短縮
     const rateMultiplier = this.reputation ? this.reputation.getCustomerRateMultiplier() : 1.0;
-    const spawnInterval = GameConfig.customerSpawnInterval / rateMultiplier;
+    const upgradeRate = this._getUpgradeBonus('customer_rate');
+    const spawnInterval = GameConfig.customerSpawnInterval / (rateMultiplier + upgradeRate);
 
     this.spawnTimer += dt;
     if (this.spawnTimer >= spawnInterval) {
@@ -83,7 +91,7 @@ export class CustomerSystem {
   _spawnCustomer() {
     const template = CUSTOMER_NAMES[Math.floor(Math.random() * CUSTOMER_NAMES.length)];
     const demands = DEMAND_SETS[Math.floor(Math.random() * DEMAND_SETS.length)];
-    const patience = GameConfig.customerPatienceSeconds;
+    const patience = GameConfig.customerPatienceSeconds + this._getUpgradeBonus('customer_patience');
 
     const customer = {
       id: crypto.randomUUID(),
