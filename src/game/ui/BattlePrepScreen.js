@@ -25,22 +25,30 @@ export class BattlePrepScreen {
     // ランクに応じた持ち込み枠数
     const rankIdx = this.dayCycle?.currentRankIndex ?? 0;
     const rankDef = GameConfig.ranks[rankIdx];
-    this.maxSlots = rankDef?.battleItemSlots || GameConfig.bossBattle?.baseItemSlots || 2;
+    this.maxSlots = this._calcMaxSlots(rankIdx);
     this._pendingBattle = null; // { rankIndex, bossDef }
+  }
+
+  /** 持ち込み枠数を計算（ランク基準 + アップグレードボーナス） */
+  _calcMaxSlots(rankIdx) {
+    const rankDef = GameConfig.ranks[rankIdx];
+    const base = rankDef?.battleItemSlots || GameConfig.bossBattle?.baseItemSlots || 2;
+    const q = { effectType: 'battle_item_slots', result: 0 };
+    eventBus.emit('upgrade:queryBonus', q);
+    return base + q.result;
   }
 
   /**
    * 準備画面を表示
-   * @param {number} rankIndex 
-   * @param {object} bossDef 
+   * @param {number} rankIndex
+   * @param {object} bossDef
    */
   show(rankIndex, bossDef) {
     this._pendingBattle = { rankIndex, bossDef };
     this.selectedItems = [];
     // ランク枠数を再計算
     const rankIdx = this.dayCycle?.currentRankIndex ?? 0;
-    const rankDef = GameConfig.ranks[rankIdx];
-    this.maxSlots = rankDef?.battleItemSlots || GameConfig.bossBattle?.baseItemSlots || 2;
+    this.maxSlots = this._calcMaxSlots(rankIdx);
 
     // バトル用アイテムをフィルタ
     const allItems = this.inventory.items;

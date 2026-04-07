@@ -26,6 +26,11 @@ export class ShopSystem {
       excludeTraits: false,  // 特性付きは除外
     };
     this.autoSellTimer = 0;
+
+    // 他システムからアップグレードボーナスを同期取得するリスナー
+    this._unsubUpgradeQuery = eventBus.on('upgrade:queryBonus', (query) => {
+      query.result = this.getUpgradeBonus(query.effectType);
+    });
   }
 
   /** 毎フレーム更新 — 自動販売チェック + オートセル */
@@ -97,9 +102,15 @@ export class ShopSystem {
     }
   }
 
-  /** 売値計算 — 他モジュールからも呼べるように static 相当で公開 */
+  /** 売値計算 — アップグレードボーナスを含む */
   _calcValue(item) {
-    return ShopSystem.calcValue(item);
+    let value = ShopSystem.calcValue(item);
+    // sell_bonusアップグレードを適用
+    const sellBonus = this.getUpgradeBonus('sell_bonus');
+    if (sellBonus > 0) {
+      value = Math.max(1, Math.floor(value * (1 + sellBonus)));
+    }
+    return value;
   }
 
   /** 売値計算（静的メソッド — ShopSystem インスタンスなしで呼べる） */
@@ -149,7 +160,7 @@ export class ShopSystem {
 
     this.purchasedUpgrades.push(upgradeId);
 
-    // 効果の適用
+    // 効果の適用（即時効果はここで処理、参照型はgetUpgradeBonus()経由）
     const effect = upgradeDef.effect;
     switch (effect.type) {
       case 'display_slots':
@@ -160,12 +171,26 @@ export class ShopSystem {
         this.inventory.expandCapacity(effect.value);
         break;
       default:
-        // その他の効果は各システムで参照可能にする
+        // customer_rate, customer_patience, sell_bonus, reputation_bonus,
+        // quality_bonus, trait_slots, explore_speed, battle_item_slots
+        // → 各システムが getUpgradeBonus() で参照
         break;
     }
 
     eventBus.emit('upgrade:purchased', { upgradeId, effect });
     return true;
+  }
+
+  /** 購入済みアップグレードの効果値を合算して返す */
+  getUpgradeBonus(effectType) {
+    let total = 0;
+    for (const uid of this.purchasedUpgrades) {
+      const def = UpgradeDefs.find(u => u.id === uid);
+      if (def && def.effect.type === effectType) {
+        total += def.effect.value;
+      }
+    }
+    return total;
   }
 
   /** アップグレード購入済み判定 */

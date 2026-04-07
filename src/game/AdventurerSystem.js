@@ -107,7 +107,11 @@ export class AdventurerSystem {
     // 装備の速度ボーナス
     const speedBonus = this._getWeaponTraitEffects(adv).speedBonus || 0;
     const speedMult = Math.max(0.1, 1 - (speedBonus / 100));
-    return Math.max(8, Math.ceil(area.baseTime * (adv.exploreTimeMultiplier || 1.0) * levelReduction * speedMult));
+    // アップグレードの探索速度ボーナス
+    const q = { effectType: 'explore_speed', result: 0 };
+    eventBus.emit('upgrade:queryBonus', q);
+    const upgradeMult = Math.max(0.1, 1 - q.result);
+    return Math.max(8, Math.ceil(area.baseTime * (adv.exploreTimeMultiplier || 1.0) * levelReduction * speedMult * upgradeMult));
   }
 
   /** 成功率計算 — 外部（UI）からも呼べるように public */

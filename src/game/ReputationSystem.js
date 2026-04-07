@@ -55,6 +55,12 @@ export class ReputationSystem {
 
   addReputation(amount) {
     const oldLevel = this.currentLevel;
+    // アップグレードボーナス（加算のみに適用、減算には適用しない）
+    if (amount > 0) {
+      const q = { effectType: 'reputation_bonus', result: 0 };
+      eventBus.emit('upgrade:queryBonus', q);
+      if (q.result > 0) amount = Math.ceil(amount * (1 + q.result));
+    }
     this.reputation = Math.max(0, this.reputation + amount);
     this._updateLevel();
 
