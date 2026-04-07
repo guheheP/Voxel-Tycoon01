@@ -100,7 +100,7 @@ export class CraftingTab {
       `;
     }).join('');
 
-    // ── オート調合パネル（左パネル内に配置） ──
+    // ── オート調合パネル（左カラム下部固定） ──
     const autoCraftPanel = this._renderAutoCraftPanel();
 
     const leftPanel = `

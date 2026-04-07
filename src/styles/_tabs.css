@@ -16,14 +16,19 @@
 .craft-layout {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 .craft-columns {
   display: flex;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
 }
 .craft-panel {
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 .craft-panel-header {
   display: flex;
@@ -43,6 +48,7 @@
 .craft-panel-right {
   flex: 1;
   min-width: 0;
+  overflow-y: auto;
 }
 .craft-recipe-count {
   font-size: 11px;
@@ -54,7 +60,13 @@
 }
 
 /* Crafting tab fill */
-#tab-crafting.active { gap: 0; }
+/* 調合タブ: content-panelのスクロールを無効化し、各カラムが独立スクロール */
+#tab-crafting.active {
+  gap: 0;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
 
 /* ── Auto Craft Panel ── */
 .autocraft-panel {
@@ -179,6 +191,10 @@
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 6px;
   align-content: start;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 2px;
 }
 
 /* ── Recipe Card ── */
@@ -278,8 +294,6 @@
 
 /* Workspace scroll */
 .craft-workspace {
-  overflow-y: auto;
-  max-height: 60vh;
   padding-right: 2px;
 }
 
