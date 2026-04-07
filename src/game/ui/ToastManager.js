@@ -43,7 +43,10 @@ export class ToastManager {
     eventBus.on('adventurer:return', (d) => this._showAdventurerReturn(d));
     eventBus.on('day:newDay',       (d) => this.show(`${d.day}日目 — 維持費 ${d.rent}G を支払いました`, 'default'));
     eventBus.on('rank:up',          (d) => this.show(`🎉 ランクアップ！ ${d.rank}`, 'special'));
-    eventBus.on('recipe:unlocked',  (d) => this.show(`📜 新レシピ解放: ${d.name}`, 'green'));
+    eventBus.on('recipe:unlocked',  (d) => {
+      const count = d.count || 1;
+      this.show(count > 1 ? `📜 新レシピ ${count}種 解放！` : `📜 新レシピ解放: ${d.name || ''}`, 'green');
+    });
     eventBus.on('area:unlocked',    (d) => this.show(`🗺️ 新エリア解放: ${d.name}`, 'green'));
     // customer:arrived / customer:left は高頻度なので間引き（3秒間隔）
     eventBus.on('customer:arrived', (d) => {

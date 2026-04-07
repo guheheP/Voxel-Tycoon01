@@ -134,21 +134,29 @@ export class DayCycleSystem {
   /** 実際のランクアップ処理（ボス撃破時に呼ばれる） */
   _doRankUp(targetRankIndex) {
     if (targetRankIndex !== this.currentRankIndex + 1) return;
-    
+    // 二重実行防止
+    if (this._rankingUp) return;
+    this._rankingUp = true;
+
     this.currentRankIndex = targetRankIndex;
     this.rankBossAvailable = false;
-    
+
     const ranks = GameConfig.ranks;
     const rankDef = ranks[this.currentRankIndex];
 
-    // レシピ解放
+    // レシピ解放（イベント発火をバッチ化）
+    const unlockedRecipes = [];
     if (rankDef.newRecipes) {
       for (const key of rankDef.newRecipes) {
         if (Recipes[key]) {
           Recipes[key].unlocked = true;
-          eventBus.emit('recipe:unlocked', { name: Recipes[key].targetId, key });
+          unlockedRecipes.push(key);
         }
       }
+    }
+    // レシピ解放イベントは1回だけ発火
+    if (unlockedRecipes.length > 0) {
+      eventBus.emit('recipe:unlocked', { keys: unlockedRecipes, count: unlockedRecipes.length });
     }
 
     // エリア解放
@@ -176,7 +184,8 @@ export class DayCycleSystem {
         rank: rankDef.name,
       });
     }
-    
+
+    this._rankingUp = false;
     // さらに次のランクへの条件を即座に満たしているかチェック
     this._checkRankUp();
   }
