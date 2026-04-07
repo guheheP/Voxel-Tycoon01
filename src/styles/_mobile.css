@@ -260,8 +260,6 @@
 
   /* --- 調合タブ --- */
   .craft-recipe-grid {
-    max-height: 200px;
-    overflow-y: auto;
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     gap: 4px;
   }

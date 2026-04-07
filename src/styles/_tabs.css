@@ -16,19 +16,14 @@
 .craft-layout {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
 }
 .craft-columns {
   display: flex;
   gap: 10px;
-  flex: 1;
-  min-height: 0;
 }
 .craft-panel {
   display: flex;
   flex-direction: column;
-  min-height: 0;
 }
 .craft-panel-header {
   display: flex;
@@ -60,7 +55,6 @@
 
 /* Crafting tab fill */
 #tab-crafting.active { gap: 0; }
-#tab-crafting .craft-layout { flex: 1; min-height: 0; }
 
 /* ── Auto Craft Panel ── */
 .autocraft-panel {
@@ -184,9 +178,6 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 6px;
-  overflow-y: auto;
-  max-height: 50vh;
-  padding-right: 2px;
   align-content: start;
 }
 
