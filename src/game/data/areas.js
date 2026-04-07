@@ -81,7 +81,7 @@ export const AreaDefs = {
       atk: 30,
       def: 16,
       spd: 58,
-      preset: '/presets/TD_Enemies/Troll.json',
+      preset: '/presets/Bosses/Golem.json',
       phases: [
         { hpThreshold: 0.5, name: '岩石強化', effect: { stat: 'atk', amount: 10 }, message: 'ゴーレムの拳が赤熱した！' },
         { hpThreshold: 0.25, name: '崩壊の一撃', effect: { stat: 'atk', amount: 8 }, message: 'ゴーレムが地面を叩き割った！' },
@@ -127,7 +127,7 @@ export const AreaDefs = {
       atk: 36,
       def: 18,
       spd: 55,
-      preset: '/presets/TD_Enemies/Gargoyle.json',
+      preset: '/presets/Bosses/Treant.json',
       phases: [
         { hpThreshold: 0.6, name: '怒りの覚醒', effect: { stat: 'atk', amount: 8 }, message: 'ツリーアントの枝が鋭く輝き始めた！' },
         { hpThreshold: 0.3, name: '森の怒り', effect: { stat: 'spd', amount: 15 }, message: 'ツリーアントが咆哮を上げ、動きが速くなった！' },
@@ -172,7 +172,7 @@ export const AreaDefs = {
       atk: 38,
       def: 22,
       spd: 78,
-      preset: '/presets/TD_Enemies/Orc.json',
+      preset: '/presets/Bosses/Ifrit.json',
       phases: [
         { hpThreshold: 0.5, name: '灼熱の怒り', effect: { stat: 'atk', amount: 13 }, message: 'イフリートが炎に包まれた！' },
         { hpThreshold: 0.2, name: '炎帝覚醒', effect: { stat: 'spd', amount: 20 }, message: 'イフリートの怒りが頂点に達した！' },
@@ -217,7 +217,7 @@ export const AreaDefs = {
       atk: 42,
       def: 24,
       spd: 70,
-      preset: '/presets/TD_Enemies/Giant Spider.json',
+      preset: '/presets/Bosses/Kraken.json',
       phases: [
         { hpThreshold: 0.6, name: '深海の速流', effect: { stat: 'spd', amount: 12 }, message: 'クラーケンの触手が高速で振り回された！' },
         { hpThreshold: 0.3, name: '触手乱舞', effect: { stat: 'atk', amount: 14 }, message: 'クラーケンが怒りに満ちた叫びを上げた！' },
@@ -263,7 +263,7 @@ export const AreaDefs = {
       atk: 40,
       def: 26,
       spd: 68,
-      preset: '/presets/RPG_Characters/Bat.json',
+      preset: '/presets/Bosses/Dragon.json',
       phases: [
         { hpThreshold: 0.7, name: '竜の咆哮', effect: { stat: 'atk', amount: 10 }, message: '古竜が天を揺るがす咆哮を上げた！' },
         { hpThreshold: 0.4, name: '古竜覚醒', effect: { stat: 'spd', amount: 18 }, message: '古竜の瞳が赤く燃え始めた！' },
