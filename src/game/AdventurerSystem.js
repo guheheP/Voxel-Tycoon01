@@ -209,7 +209,7 @@ export class AdventurerSystem {
 
           if (Math.random() < effectiveTraitChance) {
             traits.push(t);
-            effectiveTraitChance *= 0.35; // 獲得するたびに確率大幅減衰
+            effectiveTraitChance = Math.min(0.8, effectiveTraitChance * 0.35); // 獲得するたびに確率大幅減衰（キャップ再適用）
           }
         }
 

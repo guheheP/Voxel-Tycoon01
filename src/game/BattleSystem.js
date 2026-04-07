@@ -163,7 +163,8 @@ export class BattleSystem {
       }
     }
     // 後方互換: 最大クールダウンを共通フィールドにも反映（UI用）
-    s.itemCooldown = Math.max(0, ...Object.values(s.itemCooldowns), 0);
+    const cdValues = Object.values(s.itemCooldowns);
+    s.itemCooldown = cdValues.length > 0 ? Math.max(0, ...cdValues) : 0;
 
     // バフ更新
     this._updateBuffs(s.boss, dt);
