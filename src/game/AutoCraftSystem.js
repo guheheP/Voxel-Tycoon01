@@ -1,13 +1,15 @@
 /**
  * AutoCraftSystem — オート調合
  *
- * 指定レシピの調合を一定間隔で自動実行する。
+ * モード:
+ *   'single' — 指定レシピ1種を繰り返し調合
+ *   'all'    — 作れるレシピを片っ端から調合（解放済み全レシピ対象）
+ *
  * 素材はインベントリからロックされていないものを品質降順で自動選択。
  * パズルボーナスなし（品質0ボーナス）、特性は全引き継ぎ。
  */
-import { Recipes, ItemBlueprints, TraitDefs } from './data/items.js';
+import { Recipes, ItemBlueprints } from './data/items.js';
 import { craftItem, materialMatchesSlot } from './ItemSystem.js';
-import { GameConfig } from './data/config.js';
 import { eventBus } from './core/EventBus.js';
 
 const AUTO_CRAFT_INTERVAL = 8; // 秒
@@ -17,30 +19,38 @@ export class AutoCraftSystem {
     this.inventory = inventorySystem;
 
     this.enabled = false;
-    this.recipeId = null;        // 選択中のレシピID
+    this.mode = 'single';        // 'single' | 'all'
+    this.recipeId = null;        // single モード時の選択レシピ
     this.timer = 0;
-    this.craftCount = 0;         // 今回の有効化以降の調合回数（統計用）
+    this.craftCount = 0;         // 有効化以降の調合回数（統計用）
   }
 
   /** 毎フレーム更新 */
   update(dt) {
-    if (!this.enabled || !this.recipeId) return;
+    if (!this.enabled) return;
+    if (this.mode === 'single' && !this.recipeId) return;
 
     this.timer += dt;
     if (this.timer < AUTO_CRAFT_INTERVAL) return;
     this.timer = 0;
 
-    this._tryAutoCraft();
+    if (this.mode === 'all') {
+      this._tryAutoCraftAll();
+    } else {
+      this._tryAutoCraft(this.recipeId);
+    }
   }
 
-  /** オート調合の有効/無効を切り替え */
   setEnabled(flag) {
     this.enabled = flag;
     this.timer = 0;
     if (!flag) this.craftCount = 0;
   }
 
-  /** レシピを設定 */
+  setMode(mode) {
+    if (mode === 'single' || mode === 'all') this.mode = mode;
+  }
+
   setRecipe(recipeId) {
     if (recipeId && !Recipes[recipeId]) return;
     this.recipeId = recipeId;
@@ -49,6 +59,7 @@ export class AutoCraftSystem {
 
   /** 現在の設定で調合可能かどうか判定 */
   canCraft() {
+    if (this.mode === 'all') return this._findCraftableRecipe() !== null;
     if (!this.recipeId) return false;
     const recipe = Recipes[this.recipeId];
     if (!recipe || !recipe.unlocked) return false;
@@ -57,13 +68,14 @@ export class AutoCraftSystem {
 
   /** 現在のレシピに対する素材候補数を返す（UI用） */
   getMaterialStatus() {
+    if (this.mode === 'all') return null; // allモードでは不要
     if (!this.recipeId) return null;
     const recipe = Recipes[this.recipeId];
     if (!recipe) return null;
 
     const result = [];
     for (const slot of recipe.materials) {
-      const candidates = this._getCandidatesForSlot(slot, []);
+      const candidates = this._getCandidatesForSlot(slot, new Set());
       result.push({
         slot,
         slotLabel: this._getSlotLabel(slot),
@@ -75,44 +87,73 @@ export class AutoCraftSystem {
 
   // ── Private ──
 
-  /** 調合を試行 */
-  _tryAutoCraft() {
-    const recipe = Recipes[this.recipeId];
+  /** 単一レシピの調合を試行 */
+  _tryAutoCraft(recipeId) {
+    const recipe = Recipes[recipeId];
     if (!recipe || !recipe.unlocked) return;
-
-    // 倉庫がいっぱいなら停止
     if (this.inventory.isFull) return;
 
     const materials = this._findMaterials(recipe);
     if (!materials) return;
 
-    // 全素材のトレイトを収集（手動調合と同じ）
+    this._executeCraft(recipeId, materials);
+  }
+
+  /** 全レシピモード — 作れるものを1つ調合 */
+  _tryAutoCraftAll() {
+    if (this.inventory.isFull) return;
+
+    const recipeId = this._findCraftableRecipe();
+    if (!recipeId) return;
+
+    const recipe = Recipes[recipeId];
+    const materials = this._findMaterials(recipe);
+    if (!materials) return;
+
+    this._executeCraft(recipeId, materials);
+  }
+
+  /** 解放済みレシピの中から調合可能なものを1つ返す（素材レシピ以外を優先） */
+  _findCraftableRecipe() {
+    const candidates = [];
+    for (const [key, recipe] of Object.entries(Recipes)) {
+      if (!recipe.unlocked) continue;
+      if (this._findMaterials(recipe)) {
+        candidates.push({ key, isMat: recipe.isMaterialRecipe || false });
+      }
+    }
+    if (candidates.length === 0) return null;
+    // 素材レシピ以外を優先（売値が高い完成品を先に作る）
+    const nonMat = candidates.filter(c => !c.isMat);
+    if (nonMat.length > 0) return nonMat[Math.floor(Math.random() * nonMat.length)].key;
+    return candidates[Math.floor(Math.random() * candidates.length)].key;
+  }
+
+  /** 調合の実行（共通処理） */
+  _executeCraft(recipeId, materials) {
     const allTraits = new Set();
     materials.forEach(m => m.traits.forEach(t => allTraits.add(t)));
     const selectedTraits = Array.from(allTraits);
 
-    // アップグレードの品質ボーナスを取得
+    // アップグレード品質ボーナス
     const upgradeQ = { effectType: 'quality_bonus', result: 0 };
     eventBus.emit('upgrade:queryBonus', upgradeQ);
-    const qualityBonus = upgradeQ.result; // パズルなし → 0 + アップグレード分
 
     try {
-      const newItem = craftItem(this.recipeId, materials, selectedTraits, qualityBonus);
+      const newItem = craftItem(recipeId, materials, selectedTraits, upgradeQ.result);
 
-      // 素材をインベントリから消費
       for (const mat of materials) {
         this.inventory.removeItem(mat.uid);
       }
 
-      // 調合品を追加
       this.inventory.forceAddItem(newItem);
       this.craftCount++;
 
       eventBus.emit('inventory:changed');
       eventBus.emit('item:crafted', { item: newItem });
-      eventBus.emit('autoCraft:crafted', { item: newItem, count: this.craftCount });
+      eventBus.emit('autoCraft:crafted', { item: newItem, recipeId, count: this.craftCount });
     } catch (e) {
-      // 素材が合わないなど — 無視
+      // 素材不足など — 無視
     }
   }
 
@@ -123,9 +164,8 @@ export class AutoCraftSystem {
 
     for (const slot of recipe.materials) {
       const candidates = this._getCandidatesForSlot(slot, usedUids);
-      if (candidates.length === 0) return null; // 素材不足
+      if (candidates.length === 0) return null;
 
-      // 品質降順ソート → 最良を選択
       candidates.sort((a, b) => b.quality - a.quality);
       const pick = candidates[0];
       selected.push(pick);
@@ -148,9 +188,7 @@ export class AutoCraftSystem {
   /** スロットの表示名を返す */
   _getSlotLabel(slot) {
     if (typeof slot === 'string' && slot.startsWith('@')) {
-      const catId = slot.slice(1);
-      // MaterialCategories は items.js の export
-      return catId.replace('_type', '系');
+      return slot.slice(1).replace('_type', '系');
     }
     const bp = ItemBlueprints[slot];
     return bp ? bp.name : slot;
@@ -160,6 +198,7 @@ export class AutoCraftSystem {
   toSaveData() {
     return {
       enabled: this.enabled,
+      mode: this.mode,
       recipeId: this.recipeId,
     };
   }
@@ -168,6 +207,7 @@ export class AutoCraftSystem {
   loadSaveData(data) {
     if (!data) return;
     this.enabled = data.enabled || false;
+    this.mode = data.mode || 'single';
     this.recipeId = data.recipeId || null;
   }
 }
