@@ -231,6 +231,8 @@ export class BattleScreen {
 
   update(state) {
     if (!this.overlay || !state) return;
+    // バトル終了後は描画更新不要
+    if (this._resultShown) return;
     this.state = state;
     const els = this._els;
 
@@ -330,8 +332,9 @@ export class BattleScreen {
     if (!this.overlay || this._resultShown) return;
     this._resultShown = true;
 
-    // バトル終了 — 全 pending タイマーをクリア
+    // バトル終了 — 全 pending タイマーをクリア + 3Dシーンを即座に解放
     this._clearAllTimers();
+    this._dispose3DScene();
 
     let msg = '';
     let rewardsHtml = '';

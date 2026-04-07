@@ -321,13 +321,13 @@ export class BattleSystem {
       }
     }
 
-    // アイテム個別クールダウン設定
-    const itemCd = fx.cooldown ?? GameConfig.bossBattle.itemCooldownSeconds;
-    this.state.itemCooldowns[itemUid] = itemCd;
-    
-    // UIの描画用に1回発火
-    eventBus.emit('battle:tick', this.state);
-    
+    // バトルが終了していなければクールダウン設定+UI更新
+    if (this.state.phase === 'fighting') {
+      const itemCd = fx.cooldown ?? GameConfig.bossBattle.itemCooldownSeconds;
+      this.state.itemCooldowns[itemUid] = itemCd;
+      eventBus.emit('battle:tick', this.state);
+    }
+
     return true;
   }
 

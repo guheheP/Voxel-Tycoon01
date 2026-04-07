@@ -86,7 +86,7 @@ export class BattleScene3D {
     // ボスを読み込み（中央奥）
     const bossDfn = await loadDef(bossDef.preset);
     if (bossDfn && !this._disposed) {
-      this.bossEntity = new VoxelEntity(bossDfn, { scale: 1.8 });
+      this.bossEntity = new VoxelEntity(bossDfn, { scale: 1.8, skipEdges: true });
       this.bossEntity.root.position.set(0, 0, -3);
       this.bossEntity.addTo(this.scene);
       this.entities.push(this.bossEntity);
@@ -107,7 +107,7 @@ export class BattleScene3D {
       const advDfn = await loadDef(presetPath);
       if (!advDfn || this._disposed) continue;
 
-      const entity = new VoxelEntity(advDfn, { scale: 1.2 });
+      const entity = new VoxelEntity(advDfn, { scale: 1.2, skipEdges: true });
       entity.root.position.set(startX + i * spacing, 0, 3);
       entity.root.rotation.y = Math.PI; // ボスの方を向く
       entity.addTo(this.scene);
