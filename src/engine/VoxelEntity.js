@@ -35,6 +35,7 @@ export class VoxelEntity {
     this.partGroups = {};
     this.animController = new AnimationController();
     this.currentAnimName = null;
+    this._skipEdges = options.skipEdges || false; // エッジライン省略（メモリ節約）
 
     // Build materials from palette
     this.materials = definition.palette.map(hex => {
@@ -48,7 +49,7 @@ export class VoxelEntity {
     this.boxGeom = new THREE.BoxGeometry(s * 0.98, s * 0.98, s * 0.98);
 
     // Edge material for voxel outlines (shared)
-    this.edgeMat = new THREE.LineBasicMaterial({
+    this.edgeMat = this._skipEdges ? null : new THREE.LineBasicMaterial({
       color: 0x000000,
       transparent: true,
       opacity: 0.12,
@@ -120,7 +121,7 @@ export class VoxelEntity {
     }
 
     const dummy = new THREE.Object3D();
-    const edgeGeom = new THREE.EdgesGeometry(new THREE.BoxGeometry(s, s, s));
+    const edgeGeom = this._skipEdges ? null : new THREE.EdgesGeometry(new THREE.BoxGeometry(s, s, s));
 
     for (const [ci, bucket] of colorBuckets) {
       // Create InstancedMesh for this color group
@@ -154,10 +155,12 @@ export class VoxelEntity {
           origIdx,
         };
 
-        // Add edge lines (these are lightweight LineSegments, not meshes)
-        const edges = new THREE.LineSegments(edgeGeom, this.edgeMat);
-        edges.position.set(px, py, pz);
-        group.add(edges);
+        // Add edge lines (skip if _skipEdges for memory savings)
+        if (edgeGeom && this.edgeMat) {
+          const edges = new THREE.LineSegments(edgeGeom, this.edgeMat);
+          edges.position.set(px, py, pz);
+          group.add(edges);
+        }
       }
 
       instancedMesh.instanceMatrix.needsUpdate = true;
