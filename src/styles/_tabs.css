@@ -180,13 +180,19 @@
 }
 
 /* ── Recipe Card Grid ── */
+/* スクロールラッパー — 確実に高さを制限してスクロール可能にする */
+.craft-recipe-scroll {
+  overflow-y: auto;
+  height: 45vh;
+  min-height: 120px;
+  border: 1px solid rgba(160, 132, 92, 0.08);
+  border-radius: var(--radius-sm);
+  padding-right: 2px;
+}
 .craft-recipe-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 6px;
-  overflow-y: auto;
-  max-height: 50vh;
-  padding-right: 2px;
   align-content: start;
 }
 
