@@ -32,6 +32,7 @@ import { BattleScreen } from './ui/BattleScreen.js';
 import { BattlePrepScreen } from './ui/BattlePrepScreen.js';
 import { CollectionSystem } from './CollectionSystem.js';
 import { GameTooltip } from './ui/GameTooltip.js';
+import { AutoCraftSystem } from './AutoCraftSystem.js';
 
 // ============================================================
 //  Systems
@@ -54,6 +55,7 @@ let battleSystem = null;
 let battleScreen = null;
 let battlePrepScreen = null;
 let collectionSystem = null;
+let autoCraftSystem = null;
 let gameStarted = false;
 let _gameEventUnsubs = null;
 
@@ -167,8 +169,7 @@ async function startGame(saveData) {
   randomEventSystem = new RandomEventSystem(inventorySystem);
   reputationSystem = new ReputationSystem();
   customerSystem = new CustomerSystem(inventorySystem, shopSystem, randomEventSystem, reputationSystem);
-
-  // 参照は不要（各システムは独立して動作）
+  autoCraftSystem = new AutoCraftSystem(inventorySystem);
 
   // セーブデータのロード
   if (saveData) {
@@ -179,7 +180,7 @@ async function startGame(saveData) {
   collectionSystem = new CollectionSystem();
 
   // セーブシステム
-  saveSystem = new SaveSystem(inventorySystem, adventurerSystem, dayCycleSystem, shopSystem, reputationSystem, questSystem, collectionSystem);
+  saveSystem = new SaveSystem(inventorySystem, adventurerSystem, dayCycleSystem, shopSystem, reputationSystem, questSystem, collectionSystem, autoCraftSystem);
 
   // UI初期化
   uiManager = new UIManager(inventorySystem, shopSystem, adventurerSystem, customerSystem, dayCycleSystem, randomEventSystem, reputationSystem, questSystem, collectionSystem);
@@ -220,6 +221,21 @@ async function startGame(saveData) {
     }),
     eventBus.on('game:pause', () => { gamePaused = true; }),
     eventBus.on('game:resume', () => { gamePaused = false; }),
+    // オート調合: UIからの問い合わせに応答
+    eventBus.on('autoCraft:query', (q) => {
+      if (!autoCraftSystem) return;
+      q.enabled = autoCraftSystem.enabled;
+      q.recipeId = autoCraftSystem.recipeId;
+      q.canCraft = autoCraftSystem.canCraft();
+      q.materialStatus = autoCraftSystem.getMaterialStatus();
+      q.craftCount = autoCraftSystem.craftCount;
+    }),
+    eventBus.on('autoCraft:setEnabled', (d) => {
+      if (autoCraftSystem) autoCraftSystem.setEnabled(d.enabled);
+    }),
+    eventBus.on('autoCraft:setRecipe', (d) => {
+      if (autoCraftSystem) autoCraftSystem.setRecipe(d.recipeId);
+    }),
   ];
 
   gameStarted = true;
@@ -309,6 +325,11 @@ function _applySaveData(data) {
   }
   if (data.autoSellRules) {
     Object.assign(shopSystem.autoSellRules, data.autoSellRules);
+  }
+
+  // オート調合の復元
+  if (data.autoCraft && autoCraftSystem) {
+    autoCraftSystem.loadSaveData(data.autoCraft);
   }
 
   // 冒険者の復元
@@ -404,6 +425,7 @@ function animate() {
     if (shopSystem) shopSystem.update(dt);
     if (adventurerSystem) adventurerSystem.update(dt);
     if (customerSystem) customerSystem.update(dt);
+    if (autoCraftSystem) autoCraftSystem.update(dt);
     if (saveSystem) saveSystem.update(dt);
 
     // 日夜ライティング同期

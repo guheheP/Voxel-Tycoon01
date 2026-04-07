@@ -128,13 +128,18 @@ export class CraftingTab {
       </div>
     `;
 
+    // ── オート調合パネル ──
+    const autoCraftPanel = this._renderAutoCraftPanel();
+
     this.el.innerHTML = `
       <div class="craft-layout">
         <div class="craft-columns">${leftPanel}${rightPanel}</div>
+        ${autoCraftPanel}
       </div>
     `;
 
     this._bindEvents();
+    this._bindAutoCraftEvents();
   }
 
   // =============================================
@@ -631,5 +636,87 @@ export class CraftingTab {
     const result = await puzzle.start(recipeName);
     eventBus.emit('game:resume');
     this._executeCrafting(recipeId, materials, result.bonus);
+  }
+
+  // =============================================
+  //  オート調合パネル
+  // =============================================
+
+  _renderAutoCraftPanel() {
+    // AutoCraftSystemの状態をEventBus経由で取得
+    const q = { enabled: false, recipeId: null, canCraft: false, materialStatus: null, craftCount: 0 };
+    eventBus.emit('autoCraft:query', q);
+
+    const unlockedRecipes = Object.entries(Recipes).filter(([, r]) => r.unlocked);
+
+    // レシピ選択オプション
+    const recipeOptions = unlockedRecipes.map(([key, r]) => {
+      const bp = ItemBlueprints[r.targetId];
+      if (!bp) return '';
+      const sel = q.recipeId === key ? 'selected' : '';
+      return `<option value="${key}" ${sel}>${bp.name}</option>`;
+    }).join('');
+
+    // 素材状態
+    let matStatusHtml = '';
+    if (q.materialStatus) {
+      matStatusHtml = q.materialStatus.map(m => {
+        const ok = m.available > 0;
+        return `<span class="ac-mat-badge ${ok ? 'ac-mat-ok' : 'ac-mat-ng'}">${m.slotLabel}: ${m.available}個</span>`;
+      }).join('');
+    }
+
+    const statusText = !q.recipeId
+      ? '<span class="ac-status-idle">レシピ未選択</span>'
+      : q.canCraft
+        ? '<span class="ac-status-ready">調合可能</span>'
+        : '<span class="ac-status-wait">素材不足 — 待機中</span>';
+
+    return `
+      <div class="autocraft-panel">
+        <div class="autocraft-header">
+          <label class="autocraft-toggle">
+            <input type="checkbox" id="autocraft-enabled" ${q.enabled ? 'checked' : ''} />
+            <span class="autocraft-toggle-label">🤖 オート調合</span>
+          </label>
+          <span class="autocraft-desc">素材があれば自動で調合（パズルなし・8秒間隔）</span>
+        </div>
+        <div class="autocraft-body ${q.enabled ? '' : 'autocraft-body-disabled'}">
+          <div class="autocraft-row">
+            <span class="autocraft-label">レシピ:</span>
+            <select id="autocraft-recipe" class="autocraft-select">
+              <option value="">-- 選択 --</option>
+              ${recipeOptions}
+            </select>
+          </div>
+          <div class="autocraft-row">
+            <span class="autocraft-label">素材:</span>
+            <div class="autocraft-mat-status">${matStatusHtml || '<span class="text-dim">—</span>'}</div>
+          </div>
+          <div class="autocraft-row">
+            <span class="autocraft-label">状態:</span>
+            ${statusText}
+            ${q.craftCount > 0 ? `<span class="ac-count-badge">調合 ${q.craftCount}回</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  _bindAutoCraftEvents() {
+    const toggle = this.el.querySelector('#autocraft-enabled');
+    if (toggle) {
+      toggle.addEventListener('change', () => {
+        eventBus.emit('autoCraft:setEnabled', { enabled: toggle.checked });
+        this.render();
+      });
+    }
+    const select = this.el.querySelector('#autocraft-recipe');
+    if (select) {
+      select.addEventListener('change', () => {
+        eventBus.emit('autoCraft:setRecipe', { recipeId: select.value || null });
+        this.render();
+      });
+    }
   }
 }

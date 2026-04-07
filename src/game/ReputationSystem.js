@@ -7,11 +7,11 @@ import { eventBus } from './core/EventBus.js';
 
 // 評判レベル定義
 const ReputationLevels = [
-  { level: 1, name: '無名の店',    icon: '☆',  minRep: 0,   customerRate: 1.0, priceBonus: 0,    customerPool: ['villager', 'adventurer_customer'] },
-  { level: 2, name: '知られた店',   icon: '★',  minRep: 30,  customerRate: 1.3, priceBonus: 0.05, customerPool: ['villager', 'adventurer_customer', 'soldier', 'healer'] },
-  { level: 3, name: '人気店',      icon: '★★', minRep: 80,  customerRate: 1.6, priceBonus: 0.10, customerPool: ['villager', 'adventurer_customer', 'soldier', 'healer', 'merchant', 'scholar', 'alchemist'] },
-  { level: 4, name: '王国御用達',   icon: '★★★', minRep: 150, customerRate: 2.0, priceBonus: 0.15, customerPool: ['villager', 'adventurer_customer', 'soldier', 'healer', 'merchant', 'noble', 'witch', 'scholar', 'alchemist', 'knight', 'dancer'] },
-  { level: 5, name: '伝説の名店',   icon: '🌟',  minRep: 250, customerRate: 2.5, priceBonus: 0.20, customerPool: ['villager', 'adventurer_customer', 'soldier', 'healer', 'merchant', 'noble', 'witch', 'scholar', 'alchemist', 'knight', 'dancer', 'pirate', 'fairy'] },
+  { level: 1, name: '無名の店',    icon: '☆',  minRep: 0,   customerRate: 1.0, priceBonus: 0    },
+  { level: 2, name: '知られた店',   icon: '★',  minRep: 30,  customerRate: 1.3, priceBonus: 0.05 },
+  { level: 3, name: '人気店',      icon: '★★', minRep: 80,  customerRate: 1.6, priceBonus: 0.10 },
+  { level: 4, name: '王国御用達',   icon: '★★★', minRep: 150, customerRate: 2.0, priceBonus: 0.15 },
+  { level: 5, name: '伝説の名店',   icon: '🌟',  minRep: 250, customerRate: 2.5, priceBonus: 0.20 },
 ];
 
 export class ReputationSystem {
@@ -96,11 +96,6 @@ export class ReputationSystem {
   /** 売値ボーナス（0.0 ~ 0.20） */
   getPriceBonus() {
     return this.currentLevel.priceBonus;
-  }
-
-  /** 来店可能な客種ID一覧 */
-  getAvailableCustomerPool() {
-    return this.currentLevel.customerPool;
   }
 
   /** 次レベルまでの進捗 (0.0~1.0) */
