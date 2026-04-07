@@ -62,6 +62,101 @@
 #tab-crafting.active { gap: 0; }
 #tab-crafting .craft-layout { flex: 1; min-height: 0; }
 
+/* ── Auto Craft Panel ── */
+.autocraft-panel {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(200, 220, 255, 0.03);
+  border: 1px solid rgba(100, 140, 200, 0.2);
+  border-radius: 8px;
+}
+.autocraft-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.autocraft-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.autocraft-toggle input[type="checkbox"] {
+  accent-color: #64b5f6;
+  width: 16px;
+  height: 16px;
+}
+.autocraft-toggle-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cream, #f5e6c8);
+}
+.autocraft-desc {
+  font-size: 11px;
+  color: rgba(245, 230, 200, 0.5);
+}
+.autocraft-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(100, 140, 200, 0.1);
+}
+.autocraft-body-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.autocraft-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.autocraft-label {
+  font-size: 11px;
+  color: rgba(245, 230, 200, 0.5);
+  min-width: 44px;
+}
+.autocraft-select {
+  background: rgba(30, 30, 50, 0.8);
+  border: 1px solid rgba(100, 140, 200, 0.3);
+  color: #e0e0e0;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 12px;
+  max-width: 200px;
+}
+.autocraft-mat-status {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ac-mat-badge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.ac-mat-ok {
+  background: rgba(76, 175, 80, 0.15);
+  color: #81c784;
+}
+.ac-mat-ng {
+  background: rgba(244, 67, 54, 0.15);
+  color: #e57373;
+}
+.ac-status-idle { font-size: 11px; color: #888; }
+.ac-status-ready { font-size: 11px; color: #81c784; font-weight: 600; }
+.ac-status-wait { font-size: 11px; color: #ffb74d; }
+.ac-count-badge {
+  font-size: 10px;
+  background: rgba(100, 181, 246, 0.15);
+  color: #90caf9;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+}
+
 /* ── Recipe Card Grid ── */
 .craft-recipe-grid {
   display: grid;
