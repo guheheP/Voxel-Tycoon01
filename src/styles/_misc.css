@@ -240,6 +240,7 @@
 /* Shop tab: fill entire content area */
 #tab-shop.active {
   gap: 0;
+  overflow: hidden;
 }
 #tab-shop .shop-layout {
   flex: 1;

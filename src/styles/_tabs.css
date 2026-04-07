@@ -61,7 +61,7 @@
 }
 
 /* Crafting tab fill */
-#tab-crafting.active { gap: 0; }
+#tab-crafting.active { gap: 0; overflow: hidden; }
 #tab-crafting .craft-layout { flex: 1; min-height: 0; }
 
 /* ── Auto Craft Panel ── */
@@ -759,7 +759,7 @@
 }
 
 /* Dispatch tab fill */
-#tab-dispatch.active { gap: 0; }
+#tab-dispatch.active { gap: 0; overflow: hidden; }
 #tab-dispatch .disp-layout { flex: 1; min-height: 0; }
 
 /* ── Area Card Grid ── */
