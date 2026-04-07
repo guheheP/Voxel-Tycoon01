@@ -604,7 +604,7 @@ export class BattleSystem {
     if (!this.selectedItems || this.selectedItems.length === 0) return;
     const discarded = [];
     for (const uid of this.selectedItems) {
-      const removed = this.inventory.removeItem(uid);
+      const removed = this.inventory.removeItem(uid, true); // ロック済みでも強制破棄
       if (removed) discarded.push(removed.name);
     }
     if (discarded.length > 0) {
