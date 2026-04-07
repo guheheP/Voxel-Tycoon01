@@ -44,12 +44,10 @@
 .craft-panel-left {
   width: 42%;
   flex-shrink: 0;
-  overflow: hidden;
 }
 .craft-panel-right {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
 }
 .craft-recipe-count {
   font-size: 11px;
@@ -61,7 +59,7 @@
 }
 
 /* Crafting tab fill */
-#tab-crafting.active { gap: 0; overflow: hidden; }
+#tab-crafting.active { gap: 0; }
 #tab-crafting .craft-layout { flex: 1; min-height: 0; }
 
 /* ── Auto Craft Panel ── */
@@ -187,7 +185,7 @@
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 6px;
   overflow-y: auto;
-  flex: 1;
+  max-height: 50vh;
   padding-right: 2px;
   align-content: start;
 }
@@ -289,8 +287,8 @@
 
 /* Workspace scroll */
 .craft-workspace {
-  flex: 1;
   overflow-y: auto;
+  max-height: 60vh;
   padding-right: 2px;
 }
 
@@ -759,7 +757,7 @@
 }
 
 /* Dispatch tab fill */
-#tab-dispatch.active { gap: 0; overflow: hidden; }
+#tab-dispatch.active { gap: 0; }
 #tab-dispatch .disp-layout { flex: 1; min-height: 0; }
 
 /* ── Area Card Grid ── */

@@ -22,6 +22,7 @@ class EventBus {
   constructor() {
     /** @type {Map<string, Set<Function>>} */
     this._listeners = new Map();
+    this._depth = 0;
   }
 
   /**
@@ -77,7 +78,6 @@ class EventBus {
     if (!set) return;
 
     // ネスト深度制限 — 無限ループによるスタックオーバーフロー防止
-    if (!this._depth) this._depth = 0;
     this._depth++;
     if (this._depth > 30) {
       console.error(`[EventBus] Max emit depth (30) exceeded at "${event}" — breaking potential infinite loop`);
@@ -85,7 +85,7 @@ class EventBus {
       return;
     }
 
-    for (const cb of [...set]) {
+    for (const cb of set) {
       try {
         cb(data);
       } catch (err) {
