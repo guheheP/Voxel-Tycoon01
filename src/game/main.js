@@ -225,6 +225,7 @@ async function startGame(saveData) {
     eventBus.on('autoCraft:query', (q) => {
       if (!autoCraftSystem) return;
       q.enabled = autoCraftSystem.enabled;
+      q.mode = autoCraftSystem.mode;
       q.recipeId = autoCraftSystem.recipeId;
       q.canCraft = autoCraftSystem.canCraft();
       q.materialStatus = autoCraftSystem.getMaterialStatus();
@@ -232,6 +233,9 @@ async function startGame(saveData) {
     }),
     eventBus.on('autoCraft:setEnabled', (d) => {
       if (autoCraftSystem) autoCraftSystem.setEnabled(d.enabled);
+    }),
+    eventBus.on('autoCraft:setMode', (d) => {
+      if (autoCraftSystem) autoCraftSystem.setMode(d.mode);
     }),
     eventBus.on('autoCraft:setRecipe', (d) => {
       if (autoCraftSystem) autoCraftSystem.setRecipe(d.recipeId);
