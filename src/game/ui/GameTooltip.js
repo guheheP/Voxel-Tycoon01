@@ -29,6 +29,7 @@ export class GameTooltip {
   }
 
   _onEnter(e) {
+    if (!e.target?.closest) return;
     const target = e.target.closest('[data-tooltip]');
     if (!target) return;
     const text = target.dataset.tooltip;
@@ -59,6 +60,7 @@ export class GameTooltip {
   }
 
   _onLeave(e) {
+    if (!e.target?.closest) return; // テキストノードやdocument等はスキップ
     const target = e.target.closest('[data-tooltip]');
     if (!target || target !== this._currentTarget) return;
     this._hide();
