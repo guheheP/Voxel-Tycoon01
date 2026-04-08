@@ -453,7 +453,7 @@ export class CraftingPuzzle {
       e.preventDefault();
       this.selPiece.rot = (this.selPiece.rot + (e.deltaY > 0 ? 1 : 3)) % 4;
       this._renderPieces();
-      if (this._lastHR != null) this._showGhost(this._lastHR, this._lastHC);
+      this._refreshGhost();
     }, { passive: false });
 
     // Right-click rotation
@@ -462,7 +462,7 @@ export class CraftingPuzzle {
       if (!this.selPiece || this.selPiece.placed) return;
       this.selPiece.rot = (this.selPiece.rot + 1) % 4;
       this._renderPieces();
-      if (this._lastHR != null) this._showGhost(this._lastHR, this._lastHC);
+      this._refreshGhost();
     });
 
     // Keyboard rotation
@@ -472,7 +472,7 @@ export class CraftingPuzzle {
         e.preventDefault();
         this.selPiece.rot = (this.selPiece.rot + 1) % 4;
         this._renderPieces();
-        if (this._lastHR != null) this._showGhost(this._lastHR, this._lastHC);
+        this._refreshGhost();
       }
     };
     document.addEventListener('keydown', this._onKey);
@@ -498,11 +498,21 @@ export class CraftingPuzzle {
     this._recalc(); this._renderPieces(); this._updateUI();
   }
 
+  /** Force ghost redraw after rotation */
+  _refreshGhost() {
+    if (this._lastHR != null) {
+      const r = this._lastHR, c = this._lastHC;
+      this._lastHR = null; // invalidate cache
+      this._showGhost(r, c);
+    }
+  }
+
   _onRotate(pid) {
     const p = this.pieces.find(x => x.id === pid);
     if (!p || p.placed) return;
     p.rot = (p.rot + 1) % 4;
-    this._renderPieces(); this._clearGhost();
+    this._renderPieces();
+    this._refreshGhost();
   }
 
   _onGridClick(r, c) {
