@@ -399,7 +399,7 @@ export class CraftingTab {
           </div>
           <div class="crafting-buttons">
             <button id="btn-do-craft" class="btn crafting-execute-btn">⚒️ 通常調合</button>
-            <button id="btn-puzzle-craft" class="btn primary crafting-execute-btn crafting-puzzle-btn">⚗️ 配置調合<span class="puzzle-hint">ボーナスチャンス!</span></button>
+            <button id="btn-puzzle-craft" class="btn primary crafting-execute-btn crafting-puzzle-btn">🧩 ブロック調合<span class="puzzle-hint">ボーナスチャンス!</span></button>
           </div>
         </div>
       `;
