@@ -44,6 +44,7 @@
 .craft-panel-left {
   width: 42%;
   flex-shrink: 0;
+  overflow: hidden;
 }
 .craft-panel-right {
   flex: 1;
@@ -185,16 +186,20 @@
   margin-left: 4px;
 }
 
+/* ── Recipe Card Scroll Container ── */
+.craft-recipe-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 2px;
+}
+
 /* ── Recipe Card Grid ── */
 .craft-recipe-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
   gap: 6px;
   align-content: start;
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-  padding-right: 2px;
 }
 
 /* ── Recipe Card ── */

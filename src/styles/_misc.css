@@ -210,7 +210,8 @@
   .shop-columns { flex-direction: column; }
   .shop-panel-left { width: 100%; max-height: 40%; }
   .craft-columns { flex-direction: column; }
-  .craft-panel-left { width: 100%; }
+  .craft-panel-left { width: 100%; overflow: visible; }
+  .craft-recipe-scroll { flex: none; overflow-y: visible; min-height: auto; }
   .disp-columns { flex-direction: column; }
   .disp-panel-left { width: 100%; max-height: 35%; }
 }
