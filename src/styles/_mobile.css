@@ -259,6 +259,11 @@
   }
 
   /* --- 調合タブ --- */
+  .craft-recipe-scroll {
+    flex: none;
+    overflow-y: visible;
+    min-height: auto;
+  }
   .craft-recipe-grid {
     grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     gap: 4px;
