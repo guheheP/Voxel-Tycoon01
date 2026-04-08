@@ -12,6 +12,9 @@
  *   reputation_bonus   — 評判獲得量を割合UP (ReputationSystem)
  *   explore_speed      — 探索時間を割合短縮 (AdventurerSystem)
  *   battle_item_slots  — ボスバトルの持ち込み枠を増やす (BattlePrepScreen)
+ *   puzzle_extra_piece — パズルのブロック数を追加 (CraftingPuzzle)
+ *   puzzle_grid_expand — パズルのグリッドサイズ拡張 (CraftingPuzzle)
+ *   puzzle_bonus_cap   — パズルの品質ボーナス上限を引き上げ (CraftingPuzzle)
  */
 
 export const UpgradeDefs = [
@@ -31,6 +34,11 @@ export const UpgradeDefs = [
   // ===== 🔨 工房設備 =====
   { id: 'craft_quality_1',category: 'workshop', name: '品質管理台',        description: '調合品質 +5',         icon: '🔨', cost: 400,  requiredRank: 2, effect: { type: 'quality_bonus', value: 5 } },
   { id: 'craft_quality_2',category: 'workshop', name: '精密作業台',        description: '調合品質 +5',         icon: '🔨', cost: 1500, requiredRank: 5, effect: { type: 'quality_bonus', value: 5 } },
+  { id: 'puzzle_piece_1', category: 'workshop', name: '補助素材棚',        description: 'パズルのブロック +1',   icon: '🧩', cost: 600,  requiredRank: 3, effect: { type: 'puzzle_extra_piece', value: 1 } },
+  { id: 'puzzle_piece_2', category: 'workshop', name: '高級素材棚',        description: 'パズルのブロック +1',   icon: '🧩', cost: 2500, requiredRank: 6, effect: { type: 'puzzle_extra_piece', value: 1 } },
+  { id: 'puzzle_grid_1',  category: 'workshop', name: '大型調合台',        description: 'パズルのグリッド +1',   icon: '🧩', cost: 1000, requiredRank: 4, effect: { type: 'puzzle_grid_expand', value: 1 } },
+  { id: 'puzzle_cap_1',   category: 'workshop', name: '匠の秘伝書',        description: 'パズルボーナス上限 +1', icon: '🧩', cost: 2000, requiredRank: 5, effect: { type: 'puzzle_bonus_cap', value: 1 } },
+  { id: 'puzzle_cap_2',   category: 'workshop', name: '極意の書',          description: 'パズルボーナス上限 +1', icon: '🧩', cost: 5000, requiredRank: 7, effect: { type: 'puzzle_bonus_cap', value: 1 } },
 
   // ===== 🎪 店の装飾 =====
   { id: 'sign_board',     category: 'decor',    name: '看板設置',          description: '来客間隔 -15%',       icon: '🎪', cost: 80,   requiredRank: 1, effect: { type: 'customer_rate', value: 0.15 } },

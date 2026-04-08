@@ -53,8 +53,7 @@
 /* ── 4×4 Grid ── */
 .pz-grid {
   display: inline-grid;
-  grid-template-columns: repeat(4, 56px);
-  grid-template-rows: repeat(4, 56px);
+  /* columns/rows set inline for dynamic grid size */
   gap: 2px;
   padding: 3px;
   background: rgba(160, 132, 92, 0.12);
@@ -233,10 +232,10 @@
   box-shadow: 0 0 14px rgba(232, 184, 75, 0.3);
 }
 
-/* Ghost icon */
-.pz-ghost-icon {
+/* Ghost preview text */
+.pz-ghost-ok {
   font-size: 18px;
-  opacity: 0.5;
+  color: rgba(255,255,255,0.4);
 }
 
 /* ── Score ── */
