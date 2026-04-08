@@ -10,6 +10,7 @@ import { ShopSystem } from '../ShopSystem.js';
 import { getQualityTier, getTypeInfo, createItemCardHTML, createTraitBadgeHTML } from './UIHelpers.js';
 import { CraftingPuzzle } from './CraftingPuzzle.js';
 import { assetPath } from '../core/assetPath.js';
+import { StatsTracker } from '../StatsTracker.js';
 
 function traitColorClass(traitName) {
   const def = TraitDefs[traitName];
@@ -398,7 +399,7 @@ export class CraftingTab {
           </div>
           <div class="crafting-buttons">
             <button id="btn-do-craft" class="btn crafting-execute-btn">⚒️ 通常調合</button>
-            <button id="btn-puzzle-craft" class="btn primary crafting-execute-btn crafting-puzzle-btn">⚗️ 配置調合<span class="puzzle-hint">ボーナスチャンス!</span></button>
+            <button id="btn-puzzle-craft" class="btn primary crafting-execute-btn crafting-puzzle-btn">🧩 ブロック調合<span class="puzzle-hint">ボーナスチャンス!</span></button>
           </div>
         </div>
       `;
@@ -637,6 +638,7 @@ export class CraftingTab {
     const puzzle = new CraftingPuzzle();
     const result = await puzzle.start(recipeName, recipeId);
     eventBus.emit('game:resume');
+    if (!result.skipped) StatsTracker.recordPuzzle(result.score);
     this._executeCrafting(recipeId, materials, result.bonus);
   }
 

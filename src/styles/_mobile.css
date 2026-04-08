@@ -383,25 +383,24 @@
     flex-direction: column;
     align-items: center;
   }
-  .pz-board {
-    grid-template-columns: 64px 20px 64px 20px 64px;
-    grid-template-rows: 64px 20px 64px 20px 64px;
+  .pz-grid {
+    grid-template-columns: repeat(4, 48px);
+    grid-template-rows: repeat(4, 48px);
   }
-  .pz-cell-icon { font-size: 20px; }
-  .pz-cell-lbl { font-size: 8px; }
+  .pz-gcell-icon { font-size: 18px; }
+  .pz-syn-list { max-width: 100%; }
   .puzzle-sidebar {
     width: 100%;
     min-width: auto;
   }
-  .pz-pool {
+  .pz-pieces {
     flex-direction: row;
     flex-wrap: wrap;
-    max-height: none;
-    gap: 3px;
+    gap: 4px;
   }
-  .pz-pool-tile { padding: 3px 6px; }
-  .pz-pool-icon { font-size: 14px; }
-  .pz-pool-name { font-size: 10px; }
+  .pz-piece { padding: 4px 6px; }
+  .pz-piece-cat { font-size: 10px; }
+  .pz-mini-on, .pz-mini-off { width: 10px; height: 10px; }
   .pz-skip-btn { width: auto; }
 
   /* --- 図鑑タブ: ミニマル --- */
