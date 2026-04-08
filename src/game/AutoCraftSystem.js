@@ -103,6 +103,8 @@ export class AutoCraftSystem {
 
   /** 全レシピモード — 作れるものを1つ調合 */
   _tryAutoCraftAll() {
+    // 倉庫が容量の2倍を超えている場合は安全停止（メモリリーク防止）
+    if (this.inventory.items.length >= this.inventory.maxCapacity * 2) return;
     if (this.inventory.freeSlots <= 0 && this.inventory.items.filter(i => i.type === 'material' && !i.locked).length < 2) return;
 
     const recipeId = this._findCraftableRecipe();
@@ -148,7 +150,11 @@ export class AutoCraftSystem {
         this.inventory.removeItem(mat.uid);
       }
 
-      this.inventory.forceAddItem(newItem);
+      // 容量チェック付きで追加（forceAddItemによる無制限増加を防止）
+      if (!this.inventory.addItem(newItem)) {
+        // 倉庫満杯でも素材は消費済み — 強制追加（素材N個→1個なので差し引きで減る）
+        this.inventory.forceAddItem(newItem);
+      }
       this.craftCount++;
 
       eventBus.emit('inventory:changed');

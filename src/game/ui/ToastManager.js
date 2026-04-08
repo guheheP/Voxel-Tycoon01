@@ -19,9 +19,10 @@ export class ToastManager {
     this._lastCustomerToast = 0;
     this._soldBatch = { count: 0, totalPrice: 0, timer: null };
 
-    // イベント購読
+    // イベント購読（unsubscribe用に保持）
+    this._unsubs = [];
     // item:sold は高頻度なのでバッチ化（2秒間の売上をまとめて表示）
-    eventBus.on('item:sold', (d) => {
+    this._unsubs.push(eventBus.on('item:sold', (d) => {
       this._soldBatch.count++;
       this._soldBatch.totalPrice += d.price || d.item?.value || 0;
       if (!this._soldBatch.lastName) this._soldBatch.lastName = d.item?.name || 'アイテム';
@@ -39,29 +40,29 @@ export class ToastManager {
           b.lastName = null;
         }, 2000);
       }
-    });
-    eventBus.on('adventurer:return', (d) => this._showAdventurerReturn(d));
-    eventBus.on('day:newDay',       (d) => this.show(`${d.day}日目 — 維持費 ${d.rent}G を支払いました`, 'default'));
-    eventBus.on('rank:up',          (d) => this.show(`🎉 ランクアップ！ ${d.rank}`, 'special'));
-    eventBus.on('recipe:unlocked',  (d) => {
+    }));
+    this._unsubs.push(eventBus.on('adventurer:return', (d) => this._showAdventurerReturn(d)));
+    this._unsubs.push(eventBus.on('day:newDay',       (d) => this.show(`${d.day}日目 — 維持費 ${d.rent}G を支払いました`, 'default')));
+    this._unsubs.push(eventBus.on('rank:up',          (d) => this.show(`🎉 ランクアップ！ ${d.rank}`, 'special')));
+    this._unsubs.push(eventBus.on('recipe:unlocked',  (d) => {
       const count = d.count || 1;
       this.show(count > 1 ? `📜 新レシピ ${count}種 解放！` : `📜 新レシピ解放: ${d.name || ''}`, 'green');
-    });
-    eventBus.on('area:unlocked',    (d) => this.show(`🗺️ 新エリア解放: ${d.name}`, 'green'));
+    }));
+    this._unsubs.push(eventBus.on('area:unlocked',    (d) => this.show(`🗺️ 新エリア解放: ${d.name}`, 'green')));
     // customer:arrived / customer:left は高頻度なので間引き（3秒間隔）
-    eventBus.on('customer:arrived', (d) => {
+    this._unsubs.push(eventBus.on('customer:arrived', (d) => {
       const now = Date.now();
       if (now - this._lastCustomerToast < 3000) return;
       this._lastCustomerToast = now;
       this.show(`${d.customer.icon} ${d.customer.name}が来店！`, 'default');
-    });
-    eventBus.on('customer:left',    () => { /* 間引き: 帰宅通知は省略 */ });
-    eventBus.on('customer:bought',  (d) => {
+    }));
+    this._unsubs.push(eventBus.on('customer:left',    () => { /* 間引き: 帰宅通知は省略 */ }));
+    this._unsubs.push(eventBus.on('customer:bought',  (d) => {
       // sold と統合済みなので bought は省略
-    });
-    eventBus.on('adventurer:levelUp', (d) => this.show(`⬆️ ${d.adventurer.name} が Lv.${d.adventurer.level} になった！`, 'special'));
-    eventBus.on('adventurer:joined',  (d) => this.show(`🆕 ${d.adventurer.name} が仲間に加わった！`, 'special'));
-    eventBus.on('event:triggered',    (d) => this.show(`${d.icon} ${d.name}：${d.description}`, 'special'));
+    }));
+    this._unsubs.push(eventBus.on('adventurer:levelUp', (d) => this.show(`⬆️ ${d.adventurer.name} が Lv.${d.adventurer.level} になった！`, 'special')));
+    this._unsubs.push(eventBus.on('adventurer:joined',  (d) => this.show(`🆕 ${d.adventurer.name} が仲間に加わった！`, 'special')));
+    this._unsubs.push(eventBus.on('event:triggered',    (d) => this.show(`${d.icon} ${d.name}：${d.description}`, 'special')));
   }
 
   /**
@@ -222,5 +223,17 @@ export class ToastManager {
     if (!toast || !toast.parentNode) return;
     toast.classList.add('toast-hide');
     setTimeout(() => toast.remove(), 300);
+  }
+
+  dispose() {
+    this._unsubs.forEach(u => u());
+    this._unsubs = [];
+    if (this._soldBatch.timer) {
+      clearTimeout(this._soldBatch.timer);
+      this._soldBatch.timer = null;
+    }
+    if (this.container && this.container.parentNode) {
+      this.container.remove();
+    }
   }
 }

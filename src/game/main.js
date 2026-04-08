@@ -56,6 +56,9 @@ let battleScreen = null;
 let battlePrepScreen = null;
 let collectionSystem = null;
 let autoCraftSystem = null;
+let toastManager = null;
+let gameOverScreen = null;
+let tutorialSystem = null;
 let gameStarted = false;
 let _gameEventUnsubs = null;
 
@@ -182,13 +185,15 @@ async function startGame(saveData) {
   // セーブシステム
   saveSystem = new SaveSystem(inventorySystem, adventurerSystem, dayCycleSystem, shopSystem, reputationSystem, questSystem, collectionSystem, autoCraftSystem);
 
-  // UI初期化
+  // UI初期化（前回のインスタンスをクリーンアップ）
+  if (uiManager) uiManager.dispose();
+  if (toastManager) toastManager.dispose();
   uiManager = new UIManager(inventorySystem, shopSystem, adventurerSystem, customerSystem, dayCycleSystem, randomEventSystem, reputationSystem, questSystem, collectionSystem);
-  new ToastManager();
-  new GameOverScreen();
+  toastManager = new ToastManager();
+  gameOverScreen = new GameOverScreen();
 
   // タブガイド（各タブ初回訪問時に表示）
-  new TutorialSystem();
+  tutorialSystem = new TutorialSystem();
 
   // バトルシステム初期化
   battleSystem = new BattleSystem(adventurerSystem, inventorySystem);
@@ -399,6 +404,8 @@ boot();
 
 const clock = new THREE.Clock();
 let gamePaused = false;
+let _gcTimer = 0;      // Three.js 内部キャッシュクリーン用タイマー
+const GC_INTERVAL = 60; // 60秒ごとにクリーンアップ
 
 function animate() {
   requestAnimationFrame(animate);
@@ -438,6 +445,17 @@ function animate() {
     }
   }
   if (uiManager) uiManager.update(dt);
+
+  // Three.js 内部キャッシュの定期クリーンアップ（メモリリーク防止）
+  if (renderScene && gameStarted) {
+    _gcTimer += dt;
+    if (_gcTimer >= GC_INTERVAL) {
+      _gcTimer = 0;
+      if (renderer.renderer.renderLists) {
+        renderer.renderer.renderLists.dispose();
+      }
+    }
+  }
 
   if (renderScene) renderer.render();
 }

@@ -290,7 +290,7 @@ export class VoxelEntity {
       }
     });
     this.boxGeom.dispose();
-    this.edgeMat.dispose();
+    if (this.edgeMat) this.edgeMat.dispose();
     this.materials.forEach(m => m.dispose());
   }
 }

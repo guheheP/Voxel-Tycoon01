@@ -154,9 +154,17 @@ export class SceneManager {
           npc.root.rotation.y = Math.PI; // カメラに背を向けて (奥へ歩く)
         } else {
           cn.state = 'browsing';
+          cn.browseTimer = 0;
           npc.playAnimation('idle');
           // 店の方を向く
           npc.root.rotation.y = 0;
+        }
+      } else if (cn.state === 'browsing') {
+        // オーファン防止: browsing状態が30秒を超えたら自動退場
+        cn.browseTimer = (cn.browseTimer || 0) + dt;
+        if (cn.browseTimer > 30) {
+          cn.state = 'leaving';
+          if (cn.entity) cn.entity.playAnimation('walk');
         }
       } else if (cn.state === 'leaving') {
         // 手前 (Z大) に向かって歩いて退場
@@ -444,16 +452,22 @@ export class SceneManager {
       const npc = await this.loadEntity(modelPath, {
         position: [spawnX, 0, 16],
         scale: 0.3,
+        skipEdges: true,
       });
       if (!npc) { this._customerNpcCount--; return; }
 
       npc.playAnimation('walk');
+      // 非同期ロード中に顧客が既に退店していないかチェック
+      const stillActive = this._customerNpcs
+        ? !this._customerNpcs.find(c => c.id === data.customer.id && c.state === 'leaving')
+        : true;
       this._customerNpcs.push({
         id: data.customer.id,
         entity: npc,
-        state: 'arriving',       // arriving → browsing → leaving
+        state: stillActive ? 'arriving' : 'leaving',  // 既に退店済みなら即退場
         targetZ: 2 + Math.random() * 4, // お店の前 Z:2~6 に到着
         timer: 0,
+        browseTimer: 0,  // browsing状態の経過時間（オーファン防止用）
       });
     } catch (e) {
       this._customerNpcCount--;
@@ -492,6 +506,7 @@ export class SceneManager {
       const npc = await this.loadEntity('/presets/RPG_Characters/Knight.json', {
         position: [20, 0, 2],
         scale: 0.3,
+        skipEdges: true,
       });
       if (!npc) { this._returnNpcCount--; return; }
       
