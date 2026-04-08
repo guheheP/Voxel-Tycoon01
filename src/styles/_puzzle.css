@@ -53,8 +53,7 @@
 /* ── 4×4 Grid ── */
 .pz-grid {
   display: inline-grid;
-  grid-template-columns: repeat(4, 56px);
-  grid-template-rows: repeat(4, 56px);
+  /* columns/rows set inline for dynamic grid size */
   gap: 2px;
   padding: 3px;
   background: rgba(160, 132, 92, 0.12);
