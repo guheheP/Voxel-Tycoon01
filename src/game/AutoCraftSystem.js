@@ -9,7 +9,7 @@
  * パズルボーナスなし（品質0ボーナス）、特性は全引き継ぎ。
  */
 import { Recipes, ItemBlueprints } from './data/items.js';
-import { craftItem, materialMatchesSlot } from './ItemSystem.js';
+import { craftItem, materialMatchesSlot, isCategorySlot } from './ItemSystem.js';
 import { eventBus } from './core/EventBus.js';
 
 const AUTO_CRAFT_INTERVAL = 8; // 秒
@@ -91,7 +91,9 @@ export class AutoCraftSystem {
   _tryAutoCraft(recipeId) {
     const recipe = Recipes[recipeId];
     if (!recipe || !recipe.unlocked) return;
-    if (this.inventory.isFull) return;
+    // 調合は素材N個消費→1個生成なので、空き0でも素材消費で空く
+    // freeSlots + materialsCount - 1 >= 0 を確認
+    if (this.inventory.freeSlots + recipe.materials.length - 1 < 0) return;
 
     const materials = this._findMaterials(recipe);
     if (!materials) return;
@@ -101,7 +103,7 @@ export class AutoCraftSystem {
 
   /** 全レシピモード — 作れるものを1つ調合 */
   _tryAutoCraftAll() {
-    if (this.inventory.isFull) return;
+    if (this.inventory.freeSlots <= 0 && this.inventory.items.filter(i => i.type === 'material' && !i.locked).length < 2) return;
 
     const recipeId = this._findCraftableRecipe();
     if (!recipeId) return;
@@ -157,18 +159,29 @@ export class AutoCraftSystem {
     }
   }
 
-  /** レシピに必要な素材をインベントリから自動選択（品質降順で最良をピック） */
+  /** レシピに必要な素材をインベントリから自動選択（品質降順で最良をピック）
+   *  指名スロット(例:'flower_petal')をカテゴリスロット(例:'@herb_type')より
+   *  先に処理し、指名素材がカテゴリに奪われるのを防止 */
   _findMaterials(recipe) {
     const usedUids = new Set();
-    const selected = [];
+    const selected = new Array(recipe.materials.length);
 
-    for (const slot of recipe.materials) {
+    // 指名スロット → カテゴリスロットの順で処理
+    const indices = recipe.materials.map((_, i) => i);
+    indices.sort((a, b) => {
+      const aIsCategory = isCategorySlot(recipe.materials[a]) ? 1 : 0;
+      const bIsCategory = isCategorySlot(recipe.materials[b]) ? 1 : 0;
+      return aIsCategory - bIsCategory;
+    });
+
+    for (const i of indices) {
+      const slot = recipe.materials[i];
       const candidates = this._getCandidatesForSlot(slot, usedUids);
       if (candidates.length === 0) return null;
 
       candidates.sort((a, b) => b.quality - a.quality);
       const pick = candidates[0];
-      selected.push(pick);
+      selected[i] = pick;
       usedUids.add(pick.uid);
     }
 

@@ -119,9 +119,12 @@ export class ShopTab {
             <label class="autosell-cb"><input type="checkbox" data-as-type="material" ${as.types.includes('material') ? 'checked' : ''} /> 🪨 素材</label>
           </div>
           <div class="autosell-rule">
-            <span class="autosell-rule-label">最低品質:</span>
-            <input type="range" id="autosell-min-q" min="0" max="80" step="10" value="${as.minQuality}" class="autosell-range" />
-            <span id="autosell-min-q-val" class="autosell-range-val">Q${as.minQuality}+</span>
+            <span class="autosell-rule-label">品質範囲:</span>
+            <input type="range" id="autosell-min-q" min="0" max="100" step="5" value="${as.minQuality}" class="autosell-range" />
+            <span id="autosell-min-q-val" class="autosell-range-val">Q${as.minQuality}</span>
+            <span class="autosell-range-sep">〜</span>
+            <input type="range" id="autosell-max-q" min="0" max="100" step="5" value="${as.maxQuality}" class="autosell-range" />
+            <span id="autosell-max-q-val" class="autosell-range-val">Q${as.maxQuality}</span>
           </div>
           <div class="autosell-rule">
             <label class="autosell-cb"><input type="checkbox" id="autosell-exclude-traits" ${as.excludeTraits ? 'checked' : ''} /> 特性付きは陳列しない（装備用に温存）</label>
@@ -198,10 +201,28 @@ export class ShopTab {
     });
     const minQRange = this.el.querySelector('#autosell-min-q');
     const minQVal = this.el.querySelector('#autosell-min-q-val');
+    const maxQRange = this.el.querySelector('#autosell-max-q');
+    const maxQVal = this.el.querySelector('#autosell-max-q-val');
     if (minQRange) {
       minQRange.addEventListener('input', () => {
-        this.shop.autoSellRules.minQuality = parseInt(minQRange.value);
-        if (minQVal) minQVal.textContent = `Q${minQRange.value}+`;
+        let min = parseInt(minQRange.value);
+        if (maxQRange && min > parseInt(maxQRange.value)) {
+          min = parseInt(maxQRange.value);
+          minQRange.value = min;
+        }
+        this.shop.autoSellRules.minQuality = min;
+        if (minQVal) minQVal.textContent = `Q${min}`;
+      });
+    }
+    if (maxQRange) {
+      maxQRange.addEventListener('input', () => {
+        let max = parseInt(maxQRange.value);
+        if (minQRange && max < parseInt(minQRange.value)) {
+          max = parseInt(minQRange.value);
+          maxQRange.value = max;
+        }
+        this.shop.autoSellRules.maxQuality = max;
+        if (maxQVal) maxQVal.textContent = `Q${max}`;
       });
     }
     const excludeTraits = this.el.querySelector('#autosell-exclude-traits');

@@ -23,6 +23,7 @@ export class ShopSystem {
     this.autoSellRules = {
       types: ['equipment', 'consumable', 'accessory'],  // 自動陳列する種類
       minQuality: 0,     // 最低品質
+      maxQuality: 100,   // 最高品質
       excludeTraits: false,  // 特性付きは除外
     };
     this.autoSellTimer = 0;
@@ -209,6 +210,7 @@ export class ShopSystem {
         if (item.locked) return false; // ロック済みは除外
         if (!rules.types.includes(item.type)) return false;
         if (item.quality < rules.minQuality) return false;
+        if (item.quality > rules.maxQuality) return false;
         if (rules.excludeTraits && item.traits && item.traits.length > 0) return false;
         return true;
       })
