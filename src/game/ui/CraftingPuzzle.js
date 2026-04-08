@@ -201,10 +201,23 @@ export class CraftingPuzzle {
 
   /* ═══ Placement ═══ */
 
+  /** Compute anchor with snap — clamp so piece stays within grid */
   _anchorFor(piece, r, c) {
     const cells = this._pCells(piece);
     const [cr, cc] = centroid(cells);
-    return [r - cr, c - cc];
+    let ar = r - cr, ac = c - cc;
+    // Clamp into grid bounds
+    let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+    for (const [dr, dc] of cells) {
+      const gr = ar + dr, gc = ac + dc;
+      if (gr < minR) minR = gr; if (gr > maxR) maxR = gr;
+      if (gc < minC) minC = gc; if (gc > maxC) maxC = gc;
+    }
+    if (minR < 0) ar -= minR;
+    if (maxR >= this.R) ar -= maxR - this.R + 1;
+    if (minC < 0) ac -= minC;
+    if (maxC >= this.C) ac -= maxC - this.C + 1;
+    return [ar, ac];
   }
 
   _canPlace(piece, ar, ac) {
@@ -510,35 +523,35 @@ export class CraftingPuzzle {
   }
 
   _showGhost(r, c) {
+    // Early return if same cell — avoid redundant DOM work
+    if (r === this._lastHR && c === this._lastHC && this.ghostCells.length > 0) return;
     this._clearGhost();
     this._lastHR = r; this._lastHC = c;
     if (!this.selPiece || this.selPiece.placed) return;
     const [ar, ac] = this._anchorFor(this.selPiece, r, c);
     this._ghostAnchor = [ar, ac];
-    if (!this._canPlace(this.selPiece, ar, ac)) return; // Don't show ghost when invalid
+    const ok = this._canPlace(this.selPiece, ar, ac);
+    const cls = ok ? 'pz-ghost-ok' : 'pz-ghost-ng';
     const pcells = this._pCells(this.selPiece);
     this.ghostCells = [];
     for (let i = 0; i < pcells.length; i++) {
-      const [dr, dc] = pcells[i];
-      const gr = ar + dr, gc = ac + dc;
-      if (gr >= 0 && gr < this.R && gc >= 0 && gc < this.C) {
-        const el = this._$grid[gr][gc];
-        const clr = CAT_COLOR[this.selPiece.tiles[i].cat];
-        el.classList.add('pz-ghost-ok');
-        el.style.setProperty('--ghost-clr', clr);
-        el.textContent = CAT_ICON[this.selPiece.tiles[i].cat] || '';
-        this.ghostCells.push({ el, gr, gc });
-      }
+      const gr = ar + pcells[i][0], gc = ac + pcells[i][1];
+      if (gr < 0 || gr >= this.R || gc < 0 || gc >= this.C) continue;
+      const el = this._$grid[gr][gc];
+      if (this.grid[gr][gc]) continue; // skip occupied
+      el.classList.add(cls);
+      if (ok) el.style.setProperty('--ghost-clr', CAT_COLOR[this.selPiece.tiles[i].cat]);
+      this.ghostCells.push(el);
     }
   }
 
   _clearGhost() {
-    for (const { el, gr, gc } of this.ghostCells) {
-      el.classList.remove('pz-ghost-ok', 'pz-ghost-ng');
+    for (let i = 0; i < this.ghostCells.length; i++) {
+      const el = this.ghostCells[i];
+      el.className = 'pz-gcell pz-gcell-empty';
       el.style.removeProperty('--ghost-clr');
-      if (!this.grid[gr]?.[gc]) el.textContent = '';
     }
-    this.ghostCells = [];
+    this.ghostCells.length = 0;
   }
 
   /* ═══ UI update ═══ */
