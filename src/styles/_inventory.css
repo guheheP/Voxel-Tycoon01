@@ -218,14 +218,19 @@
   accent-color: #e8b84b;
 }
 .autosell-range {
-  width: 120px;
+  width: 90px;
   accent-color: #e8b84b;
 }
 .autosell-range-val {
   font-size: 11px;
   color: #e8b84b;
   font-weight: 600;
-  min-width: 40px;
+  min-width: 30px;
+}
+.autosell-range-sep {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin: 0 2px;
 }
 
 /* ===== Collection Tab ===== */
