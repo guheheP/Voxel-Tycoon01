@@ -377,38 +377,32 @@
   .puzzle-container {
     max-width: 100%;
     width: 100%;
-    padding: 8px;
+    padding: 10px;
   }
   .puzzle-body {
     flex-direction: column;
     align-items: center;
   }
-  #puzzle-canvas {
-    max-width: 100%;
-    height: auto;
+  .pz-board {
+    grid-template-columns: 64px 20px 64px 20px 64px;
+    grid-template-rows: 64px 20px 64px 20px 64px;
   }
+  .pz-cell-icon { font-size: 20px; }
+  .pz-cell-lbl { font-size: 8px; }
   .puzzle-sidebar {
+    width: 100%;
+    min-width: auto;
+  }
+  .pz-pool {
     flex-direction: row;
     flex-wrap: wrap;
-    min-width: auto;
-    width: 100%;
-    justify-content: center;
-    gap: 6px;
-    padding: 6px;
-    order: -1; /* スコア表示をキャンバスの上に */
+    max-height: none;
+    gap: 3px;
   }
-  .puzzle-score-box,
-  .puzzle-combo-box,
-  .puzzle-bonus-box,
-  .puzzle-next-box {
-    min-width: auto;
-    flex: 0 0 auto;
-    padding: 4px 8px;
-    font-size: 11px;
-  }
-  .puzzle-skip-btn {
-    width: auto;
-  }
+  .pz-pool-tile { padding: 3px 6px; }
+  .pz-pool-icon { font-size: 14px; }
+  .pz-pool-name { font-size: 10px; }
+  .pz-skip-btn { width: auto; }
 
   /* --- 図鑑タブ: ミニマル --- */
   .coll-header {

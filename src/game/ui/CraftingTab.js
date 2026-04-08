@@ -398,7 +398,7 @@ export class CraftingTab {
           </div>
           <div class="crafting-buttons">
             <button id="btn-do-craft" class="btn crafting-execute-btn">⚒️ 通常調合</button>
-            <button id="btn-puzzle-craft" class="btn primary crafting-execute-btn crafting-puzzle-btn">🧩 パズル調合<span class="puzzle-hint">ボーナスチャンス!</span></button>
+            <button id="btn-puzzle-craft" class="btn primary crafting-execute-btn crafting-puzzle-btn">⚗️ 配置調合<span class="puzzle-hint">ボーナスチャンス!</span></button>
           </div>
         </div>
       `;
@@ -635,7 +635,7 @@ export class CraftingTab {
   async _executePuzzleCrafting(recipeId, materials, recipeName) {
     eventBus.emit('game:pause');
     const puzzle = new CraftingPuzzle();
-    const result = await puzzle.start(recipeName);
+    const result = await puzzle.start(recipeName, recipeId);
     eventBus.emit('game:resume');
     this._executeCrafting(recipeId, materials, result.bonus);
   }
