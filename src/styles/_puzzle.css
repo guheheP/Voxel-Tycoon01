@@ -224,6 +224,20 @@
 .pz-piece-placed .pz-rot-btn {
   display: none;
 }
+/* Essence piece glow */
+.pz-piece-ess {
+  border-color: rgba(232, 184, 75, 0.25) !important;
+  background: rgba(232, 184, 75, 0.05) !important;
+}
+.pz-piece-ess.pz-piece-sel {
+  box-shadow: 0 0 14px rgba(232, 184, 75, 0.3);
+}
+
+/* Ghost icon */
+.pz-ghost-icon {
+  font-size: 18px;
+  opacity: 0.5;
+}
 
 /* ── Score ── */
 .pz-score-val {
@@ -232,6 +246,14 @@
   font-family: var(--font-title);
   text-align: center;
   transition: color 0.3s ease;
+}
+.pz-score-pop {
+  animation: scorePop 0.3s ease;
+}
+@keyframes scorePop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 .pz-bonus-bar {
   height: 6px;

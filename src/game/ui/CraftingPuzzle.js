@@ -1,12 +1,10 @@
 /**
- * CraftingPuzzle — ブロック配置パズル
+ * CraftingPuzzle — ブロック配置パズル v3
  *
- * 4x4 グリッドにテトロミノ/トロミノ型のブロックをはめ込み、
- * 異なるピース間の隣接シナジーで品質ボーナスを獲得するミニゲーム。
- *
- * ■ ピース: テトロミノ×2 + トロミノ×2 = 14セル (グリッド16セル中)
- * ■ 操作:  ピース選択 → 回転 → グリッドクリックで配置
- * ■ スコア: ピース間の隣接シナジー + 同種隣接 + 全配置ボーナス
+ * ■ 各セルが独立した素材カテゴリを持つマルチカラーミノ
+ * ■ レシピ素材からタイル構成を生成 + エッセンスボーナスピース
+ * ■ 全隣接(ピース内含む)をスコア対象にし戦略性を強化
+ * ■ 中心アンカー配置 / ホイール・右クリック・Rキー回転
  */
 
 import { MaterialCategories, ItemBlueprints, Recipes } from '../data/items.js';
@@ -14,14 +12,14 @@ import { isCategorySlot, getCategoryId } from '../ItemSystem.js';
 
 const ROWS = 4, COLS = 4;
 
-/* ── Category colors ── */
 const CAT_COLOR = {
   wood_type: '#8b7355', stone_type: '#8a8a7a', ore_type: '#c4a87a',
   herb_type: '#7daa68', cloth_type: '#b48cb4', crystal_type: '#7ab0c4',
   monster_type: '#c46a5a', gem_type: '#a08cc8', essence_type: '#e8b84b',
 };
+const CAT_ICON = {};
+for (const [k, v] of Object.entries(MaterialCategories)) CAT_ICON[k] = v.icon;
 
-/* ── Piece shape library ── */
 const TETROS = [
   [[0,0],[0,1],[0,2],[1,1]],  // T
   [[0,0],[1,0],[2,0],[2,1]],  // L
@@ -32,12 +30,12 @@ const TETROS = [
   [[0,0],[0,1],[0,2],[0,3]],  // I
 ];
 const TRIS = [
-  [[0,0],[0,1],[0,2]],        // I3
-  [[0,0],[1,0],[1,1]],        // L3
-  [[0,0],[0,1],[1,0]],        // J3
+  [[0,0],[0,1],[0,2]],
+  [[0,0],[1,0],[1,1]],
+  [[0,0],[0,1],[1,0]],
 ];
+const DOMINO = [[[0,0],[0,1]]];
 
-/* ── Synergy table (positive & negative, keys sorted) ── */
 const SYN_TABLE = {
   'cloth_type+gem_type':       { name: '装飾の美',   pts:  2, icon: '👑' },
   'cloth_type+herb_type':      { name: '薬布',       pts:  2, icon: '🩹' },
@@ -57,7 +55,6 @@ const SYN_TABLE = {
   'ore_type+stone_type':       { name: '鉱脈共鳴',   pts:  3, icon: '⛰️' },
   'ore_type+wood_type':        { name: '道具作り',   pts:  1, icon: '🪓' },
   'stone_type+wood_type':      { name: '基礎工芸',   pts:  1, icon: '🏠' },
-  // Negative
   'cloth_type+monster_type':   { name: '素材の損傷', pts: -1, icon: '💔' },
   'cloth_type+stone_type':     { name: '圧迫',       pts: -1, icon: '🪨' },
   'crystal_type+wood_type':    { name: '結晶の浸食', pts: -1, icon: '🌀' },
@@ -72,10 +69,7 @@ const SCORE_TIERS = [
   { min: 19, bonus: 3, rank: '金',   color: '#e8b84b' },
   { min: 27, bonus: 5, rank: '極',   color: '#e87ae8' },
 ];
-
 const COMPLETE_BONUS = 3;
-
-/* ── Helpers ── */
 
 function rotateCW(cells) {
   const rot = cells.map(([r, c]) => [c, -r]);
@@ -83,37 +77,30 @@ function rotateCW(cells) {
   const mc = Math.min(...rot.map(([, c]) => c));
   return rot.map(([r, c]) => [r - mr, c - mc]);
 }
-
 function getCells(base, rotation) {
   let c = base.map(v => [...v]);
   for (let i = 0; i < (rotation % 4); i++) c = rotateCW(c);
   return c;
 }
-
+function centroid(cells) {
+  const sr = cells.reduce((s, [r]) => s + r, 0);
+  const sc = cells.reduce((s, [, c]) => s + c, 0);
+  return [Math.round(sr / cells.length), Math.round(sc / cells.length)];
+}
 function synKey(a, b) { return a < b ? `${a}+${b}` : `${b}+${a}`; }
 function getSyn(a, b) { return a === b ? null : (SYN_TABLE[synKey(a, b)] || null); }
-
 function synColors(pts) {
   if (pts >= 3) return { fg: '#7daa68', bg: 'rgba(125,170,104,0.15)', bd: 'rgba(125,170,104,0.3)' };
   if (pts >= 2) return { fg: '#e8b84b', bg: 'rgba(232,184,75,0.15)',  bd: 'rgba(232,184,75,0.3)' };
   if (pts >= 1) return { fg: '#8a8a7a', bg: 'rgba(138,138,122,0.15)', bd: 'rgba(138,138,122,0.3)' };
   return { fg: '#c46a5a', bg: 'rgba(196,106,90,0.15)', bd: 'rgba(196,106,90,0.3)' };
 }
-
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-}
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } }
 
 let _uid = 0;
 
 export class CraftingPuzzle {
-  constructor() {
-    this.overlay = null;
-    this.resolve = null;
-  }
+  constructor() { this.overlay = null; this.resolve = null; }
 
   start(recipeName, recipeId) {
     return new Promise(resolve => {
@@ -124,57 +111,65 @@ export class CraftingPuzzle {
     });
   }
 
-  /* ═══════════════════════════════════════════
-     Initialisation
-     ═══════════════════════════════════════════ */
+  /* ═══ Init ═══ */
 
   _init(recipeId) {
     this.grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
     this.pieces = this._genPieces(recipeId);
     this.selPiece = null;
     this.ghostCells = [];
-    this.ghostOk = false;
-    this.score = 0;
-    this.synList = [];
-    this.sameAdj = 0;
-    this.synAdj = 0;
-    this.allPlaced = false;
+    this._ghostAnchor = null;
+    this._lastHR = null; this._lastHC = null;
+    this.score = 0; this.synList = []; this.sameAdj = 0; this.synAdj = 0; this.allPlaced = false;
   }
 
   _genPieces(recipeId) {
-    // Gather categories from recipe
-    const cats = [];
     const recipe = recipeId ? Recipes[recipeId] : null;
+    const recipeCats = [];
     if (recipe) {
       for (const mat of recipe.materials) {
         let cat;
         if (isCategorySlot(mat)) cat = getCategoryId(mat);
         else cat = ItemBlueprints[mat]?.category;
-        if (cat && MaterialCategories[cat]) cats.push(cat);
+        if (cat && MaterialCategories[cat]) recipeCats.push(cat);
+        else if (mat && !isCategorySlot(mat)) recipeCats.push('stone_type'); // fallback
       }
     }
-    const allCats = Object.keys(MaterialCategories);
-    while (cats.length < 4) cats.push(allCats[Math.floor(Math.random() * allCats.length)]);
-    // Ensure at least one shared category pair for same-adj opportunities
-    if (new Set(cats.slice(0, 4)).size === 4) cats[3] = cats[0];
+    const allCats = Object.keys(MaterialCategories).filter(c => c !== 'essence_type');
+    while (recipeCats.length < 2) recipeCats.push(allCats[Math.floor(Math.random() * allCats.length)]);
 
-    // Pick shapes
+    // Build tile pool for recipe pieces (4+4+3 = 11 cells)
+    const pool = [];
+    while (pool.length < 11) {
+      for (const cat of recipeCats) { if (pool.length < 11) pool.push(cat); }
+    }
+    shuffle(pool);
+
     const ts = [...TETROS]; shuffle(ts);
-    const tr = [...TRIS];   shuffle(tr);
+    const tr = [...TRIS]; shuffle(tr);
+    const dm = [...DOMINO];
+
+    let idx = 0;
+    const mkTiles = (shape) => shape.map(() => ({ cat: pool[idx++] }));
+    const essTiles = (shape) => shape.map(() => ({ cat: 'essence_type' }));
 
     return [
-      { id: ++_uid, base: ts[0], cat: cats[0], rot: 0, placed: false, cells: null },
-      { id: ++_uid, base: ts[1], cat: cats[1], rot: 0, placed: false, cells: null },
-      { id: ++_uid, base: tr[0], cat: cats[2], rot: 0, placed: false, cells: null },
-      { id: ++_uid, base: tr[1], cat: cats[3], rot: 0, placed: false, cells: null },
+      { id: ++_uid, base: ts[0], tiles: mkTiles(ts[0]), rot: 0, placed: false, cells: null, isEssence: false },
+      { id: ++_uid, base: ts[1], tiles: mkTiles(ts[1]), rot: 0, placed: false, cells: null, isEssence: false },
+      { id: ++_uid, base: tr[0], tiles: mkTiles(tr[0]), rot: 0, placed: false, cells: null, isEssence: false },
+      { id: ++_uid, base: dm[0], tiles: essTiles(dm[0]), rot: 0, placed: false, cells: null, isEssence: true },
     ];
   }
 
   _pCells(p) { return getCells(p.base, p.rot); }
 
-  /* ═══════════════════════════════════════════
-     Placement logic
-     ═══════════════════════════════════════════ */
+  /* ═══ Placement ═══ */
+
+  _anchorFor(piece, r, c) {
+    const cells = this._pCells(piece);
+    const [cr, cc] = centroid(cells);
+    return [r - cr, c - cc];
+  }
 
   _canPlace(piece, ar, ac) {
     for (const [r, c] of this._pCells(piece)) {
@@ -186,15 +181,16 @@ export class CraftingPuzzle {
   }
 
   _place(piece, ar, ac) {
+    const pcells = this._pCells(piece);
     const placed = [];
-    for (const [r, c] of this._pCells(piece)) {
+    for (let i = 0; i < pcells.length; i++) {
+      const [r, c] = pcells[i];
       const gr = ar + r, gc = ac + c;
-      this.grid[gr][gc] = { pid: piece.id, cat: piece.cat };
+      this.grid[gr][gc] = { pid: piece.id, cat: piece.tiles[i].cat };
       placed.push([gr, gc]);
     }
     piece.placed = true;
     piece.cells = placed;
-    piece.anchor = [ar, ac];
   }
 
   _remove(pid) {
@@ -203,42 +199,32 @@ export class CraftingPuzzle {
     for (const [r, c] of p.cells) this.grid[r][c] = null;
     p.placed = false;
     p.cells = null;
-    p.anchor = null;
   }
 
-  /* ═══════════════════════════════════════════
-     Scoring — only cross-piece adjacencies count
-     ═══════════════════════════════════════════ */
+  /* ═══ Scoring — ALL adjacencies (within + between pieces) ═══ */
 
   _recalc() {
     this.synList = [];
     this.sameAdj = 0;
     this.synAdj = 0;
-
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const a = this.grid[r][c];
         if (!a) continue;
-        const pairs = [];
-        if (c + 1 < COLS && this.grid[r][c + 1]) pairs.push({ b: this.grid[r][c + 1], dir: 'h', r, c });
-        if (r + 1 < ROWS && this.grid[r + 1][c]) pairs.push({ b: this.grid[r + 1][c], dir: 'v', r, c });
-
-        for (const { b, dir, r: pr, c: pc } of pairs) {
-          if (a.pid === b.pid) continue; // skip within-piece
+        const nb = [];
+        if (c + 1 < COLS && this.grid[r][c + 1]) nb.push({ b: this.grid[r][c + 1], dir: 'h', r, c });
+        if (r + 1 < ROWS && this.grid[r + 1][c]) nb.push({ b: this.grid[r + 1][c], dir: 'v', r, c });
+        for (const { b, dir, r: pr, c: pc } of nb) {
           if (a.cat === b.cat) {
             this.sameAdj += 2;
             this.synList.push({ name: '同種隣接', pts: 2, icon: '🔗', r: pr, c: pc, dir });
           } else {
             const s = getSyn(a.cat, b.cat);
-            if (s) {
-              this.synAdj += s.pts;
-              this.synList.push({ ...s, r: pr, c: pc, dir });
-            }
+            if (s) { this.synAdj += s.pts; this.synList.push({ ...s, r: pr, c: pc, dir }); }
           }
         }
       }
     }
-
     this.allPlaced = this.pieces.every(p => p.placed);
     this.score = this.sameAdj + this.synAdj + (this.allPlaced ? COMPLETE_BONUS : 0);
   }
@@ -249,9 +235,7 @@ export class CraftingPuzzle {
     return t;
   }
 
-  /* ═══════════════════════════════════════════
-     UI
-     ═══════════════════════════════════════════ */
+  /* ═══ UI build ═══ */
 
   _build() {
     this.overlay = document.createElement('div');
@@ -266,7 +250,7 @@ export class CraftingPuzzle {
       <div class="puzzle-container">
         <div class="puzzle-header">
           <h3>⚗️ ブロック配置 — ${this.recipeName}</h3>
-          <span class="pz-swap-hint">ピースを選んで配置しよう</span>
+          <span class="pz-swap-hint">ホイール / 右クリック / R で回転</span>
         </div>
         <div class="puzzle-body">
           <div class="pz-left">
@@ -305,36 +289,37 @@ export class CraftingPuzzle {
   _renderPieces() {
     const el = this.overlay.querySelector('#pz-pieces');
     el.innerHTML = this.pieces.map(p => {
-      const cat = MaterialCategories[p.cat];
-      const clr = CAT_COLOR[p.cat];
+      const label = p.isEssence ? '✨ エッセンス' : '素材ブロック';
       return `
-        <div class="pz-piece${p.placed ? ' pz-piece-placed' : ''}${this.selPiece === p ? ' pz-piece-sel' : ''}" data-pid="${p.id}">
-          <div class="pz-piece-shape">${this._miniShape(p, clr)}</div>
+        <div class="pz-piece${p.placed ? ' pz-piece-placed' : ''}${this.selPiece === p ? ' pz-piece-sel' : ''}${p.isEssence ? ' pz-piece-ess' : ''}" data-pid="${p.id}">
+          <div class="pz-piece-shape">${this._miniShape(p)}</div>
           <div class="pz-piece-info">
-            <span class="pz-piece-cat" style="color:${clr}">${cat.icon} ${cat.name}</span>
+            <span class="pz-piece-cat">${label}</span>
           </div>
           <button class="pz-rot-btn" data-pid="${p.id}" title="回転">↻</button>
         </div>`;
     }).join('');
   }
 
-  _miniShape(piece, color) {
+  _miniShape(piece) {
     const cells = this._pCells(piece);
     const maxR = Math.max(...cells.map(([r]) => r)) + 1;
     const maxC = Math.max(...cells.map(([, c]) => c)) + 1;
-    const set = new Set(cells.map(([r, c]) => `${r},${c}`));
+    const map = new Map();
+    cells.forEach(([r, c], i) => map.set(`${r},${c}`, piece.tiles[i]));
     let html = `<div class="pz-mini" style="grid-template-columns:repeat(${maxC},14px);grid-template-rows:repeat(${maxR},14px)">`;
     for (let r = 0; r < maxR; r++)
-      for (let c = 0; c < maxC; c++)
-        html += set.has(`${r},${c}`)
-          ? `<div class="pz-mini-on" style="background:${color}"></div>`
+      for (let c = 0; c < maxC; c++) {
+        const t = map.get(`${r},${c}`);
+        html += t
+          ? `<div class="pz-mini-on" style="background:${CAT_COLOR[t.cat]}" title="${MaterialCategories[t.cat]?.name || ''}"></div>`
           : `<div class="pz-mini-off"></div>`;
+      }
     return html + '</div>';
   }
 
   _bindEvents() {
     const gridEl = this.overlay.querySelector('#pz-grid');
-
     gridEl.addEventListener('click', e => {
       const cell = e.target.closest('.pz-gcell');
       if (cell) this._onGridClick(+cell.dataset.r, +cell.dataset.c);
@@ -344,6 +329,36 @@ export class CraftingPuzzle {
       if (cell) this._showGhost(+cell.dataset.r, +cell.dataset.c);
     });
     gridEl.addEventListener('mouseleave', () => this._clearGhost());
+
+    // Wheel rotation
+    gridEl.addEventListener('wheel', e => {
+      if (!this.selPiece || this.selPiece.placed) return;
+      e.preventDefault();
+      this.selPiece.rot = (this.selPiece.rot + (e.deltaY > 0 ? 1 : 3)) % 4;
+      this._renderPieces();
+      if (this._lastHR != null) this._showGhost(this._lastHR, this._lastHC);
+    }, { passive: false });
+
+    // Right-click rotation
+    gridEl.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      if (!this.selPiece || this.selPiece.placed) return;
+      this.selPiece.rot = (this.selPiece.rot + 1) % 4;
+      this._renderPieces();
+      if (this._lastHR != null) this._showGhost(this._lastHR, this._lastHC);
+    });
+
+    // Keyboard rotation
+    this._onKey = e => {
+      if (!this.selPiece || this.selPiece.placed) return;
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        this.selPiece.rot = (this.selPiece.rot + 1) % 4;
+        this._renderPieces();
+        if (this._lastHR != null) this._showGhost(this._lastHR, this._lastHC);
+      }
+    };
+    document.addEventListener('keydown', this._onKey);
 
     this.overlay.querySelector('#pz-pieces').addEventListener('click', e => {
       const rotBtn = e.target.closest('.pz-rot-btn');
@@ -356,99 +371,91 @@ export class CraftingPuzzle {
     this.overlay.querySelector('#pz-skip').addEventListener('click', () => this._finish(true));
   }
 
-  /* ═══════════════════════════════════════════
-     Interaction
-     ═══════════════════════════════════════════ */
+  /* ═══ Interaction ═══ */
 
   _onPieceClick(pid) {
     const p = this.pieces.find(x => x.id === pid);
     if (!p) return;
-    if (p.placed) {
-      this._remove(pid);
-      this.selPiece = p;
-    } else {
-      this.selPiece = (this.selPiece === p) ? null : p;
-    }
-    this._recalc();
-    this._renderPieces();
-    this._updateUI();
+    if (p.placed) { this._remove(pid); this.selPiece = p; }
+    else { this.selPiece = (this.selPiece === p) ? null : p; }
+    this._recalc(); this._renderPieces(); this._updateUI();
   }
 
   _onRotate(pid) {
     const p = this.pieces.find(x => x.id === pid);
     if (!p || p.placed) return;
     p.rot = (p.rot + 1) % 4;
-    this._renderPieces();
-    this._clearGhost();
+    this._renderPieces(); this._clearGhost();
   }
 
   _onGridClick(r, c) {
-    if (this.selPiece && !this.selPiece.placed && this._canPlace(this.selPiece, r, c)) {
-      this._place(this.selPiece, r, c);
-      this.selPiece = null;
-      this._clearGhost();
-      this._recalc();
-      this._renderPieces();
-      this._updateUI();
+    if (this.selPiece && !this.selPiece.placed) {
+      const [ar, ac] = this._anchorFor(this.selPiece, r, c);
+      if (this._canPlace(this.selPiece, ar, ac)) {
+        this._place(this.selPiece, ar, ac);
+        this.selPiece = null;
+        this._ghostAnchor = null;
+        this._clearGhost();
+        this._recalc(); this._renderPieces(); this._updateUI();
+      }
     } else if (!this.selPiece && this.grid[r][c]) {
-      // Remove clicked piece
       this._remove(this.grid[r][c].pid);
-      this._recalc();
-      this._renderPieces();
-      this._updateUI();
+      this._recalc(); this._renderPieces(); this._updateUI();
     }
   }
 
   _showGhost(r, c) {
     this._clearGhost();
+    this._lastHR = r; this._lastHC = c;
     if (!this.selPiece || this.selPiece.placed) return;
-    const cells = this._pCells(this.selPiece);
-    const ok = this._canPlace(this.selPiece, r, c);
-    const clr = CAT_COLOR[this.selPiece.cat];
+    const [ar, ac] = this._anchorFor(this.selPiece, r, c);
+    this._ghostAnchor = [ar, ac];
+    const ok = this._canPlace(this.selPiece, ar, ac);
+    const pcells = this._pCells(this.selPiece);
     this.ghostCells = [];
-    for (const [dr, dc] of cells) {
-      const gr = r + dr, gc = c + dc;
+    for (let i = 0; i < pcells.length; i++) {
+      const [dr, dc] = pcells[i];
+      const gr = ar + dr, gc = ac + dc;
       if (gr >= 0 && gr < ROWS && gc >= 0 && gc < COLS) {
         const el = this.overlay.querySelector(`.pz-gcell[data-r="${gr}"][data-c="${gc}"]`);
         if (!this.grid[gr][gc]) {
           el.classList.add(ok ? 'pz-ghost-ok' : 'pz-ghost-ng');
-          if (ok) el.style.setProperty('--ghost-clr', clr);
+          if (ok) {
+            const clr = CAT_COLOR[this.selPiece.tiles[i].cat];
+            el.style.setProperty('--ghost-clr', clr);
+            el.innerHTML = `<span class="pz-ghost-icon">${CAT_ICON[this.selPiece.tiles[i].cat] || ''}</span>`;
+          }
           this.ghostCells.push(el);
         }
       }
     }
-    this.ghostOk = ok;
   }
 
   _clearGhost() {
     for (const el of this.ghostCells) {
       el.classList.remove('pz-ghost-ok', 'pz-ghost-ng');
       el.style.removeProperty('--ghost-clr');
+      if (!this.grid[+el.dataset.r]?.[+el.dataset.c]) el.innerHTML = '';
     }
     this.ghostCells = [];
   }
 
-  /* ═══════════════════════════════════════════
-     UI update
-     ═══════════════════════════════════════════ */
+  /* ═══ UI update ═══ */
 
   _updateUI() {
-    // Grid cells
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const el = this.overlay.querySelector(`.pz-gcell[data-r="${r}"][data-c="${c}"]`);
         const g = this.grid[r][c];
         if (g) {
-          const clr = CAT_COLOR[g.cat];
-          const cat = MaterialCategories[g.cat];
+          const clr = CAT_COLOR[g.cat]; const icon = CAT_ICON[g.cat] || '';
           el.className = 'pz-gcell pz-gcell-filled';
           el.style.background = clr + '33';
           el.style.borderColor = clr;
-          el.innerHTML = `<span class="pz-gcell-icon">${cat.icon}</span>`;
+          el.innerHTML = `<span class="pz-gcell-icon">${icon}</span>`;
         } else {
           el.className = 'pz-gcell pz-gcell-empty';
-          el.style.background = '';
-          el.style.borderColor = '';
+          el.style.background = ''; el.style.borderColor = '';
           el.innerHTML = '';
         }
       }
@@ -456,22 +463,23 @@ export class CraftingPuzzle {
 
     // Synergy tags
     const listEl = this.overlay.querySelector('#pz-syn-list');
-    if (this.synList.length) {
-      listEl.innerHTML = this.synList.map(s => {
-        const sc = synColors(s.pts);
-        return `<span class="pz-syn-tag" style="background:${sc.bg};color:${sc.fg};border-color:${sc.bd}">${s.icon} ${s.name} ${s.pts > 0 ? '+' : ''}${s.pts}</span>`;
-      }).join('');
-      if (this.allPlaced) {
-        listEl.innerHTML += `<span class="pz-syn-tag pz-line-tag">🏆 全配置 +${COMPLETE_BONUS}</span>`;
-      }
-    } else {
-      listEl.innerHTML = '<span class="pz-syn-empty">ピースを配置するとシナジーが表示されます</span>';
-    }
+    const pos = this.synList.filter(s => s.pts > 0);
+    const neg = this.synList.filter(s => s.pts < 0);
+    let html = '';
+    for (const s of pos) { const sc = synColors(s.pts); html += `<span class="pz-syn-tag" style="background:${sc.bg};color:${sc.fg};border-color:${sc.bd}">${s.icon} ${s.name} +${s.pts}</span>`; }
+    for (const s of neg) { const sc = synColors(s.pts); html += `<span class="pz-syn-tag" style="background:${sc.bg};color:${sc.fg};border-color:${sc.bd}">${s.icon} ${s.name} ${s.pts}</span>`; }
+    if (this.allPlaced) html += `<span class="pz-syn-tag pz-line-tag">🏆 全配置 +${COMPLETE_BONUS}</span>`;
+    listEl.innerHTML = html || '<span class="pz-syn-empty">ピースを配置するとシナジーが表示されます</span>';
 
     // Score
     const tier = this._getTier();
-    this.overlay.querySelector('#pz-score').textContent = this.score;
-    this.overlay.querySelector('#pz-score').style.color = tier.color;
+    const scoreEl = this.overlay.querySelector('#pz-score');
+    scoreEl.textContent = this.score;
+    scoreEl.style.color = tier.color;
+    scoreEl.classList.remove('pz-score-pop');
+    void scoreEl.offsetWidth; // reflow
+    scoreEl.classList.add('pz-score-pop');
+
     const max = SCORE_TIERS[SCORE_TIERS.length - 1].min;
     const fill = this.overlay.querySelector('#pz-bonus-fill');
     fill.style.width = `${Math.min(100, Math.max(0, this.score / max) * 100)}%`;
@@ -483,24 +491,17 @@ export class CraftingPuzzle {
     // Breakdown
     const bd = this.overlay.querySelector('#pz-breakdown');
     bd.innerHTML =
-      `<div class="pz-bd-row"><span>同種隣接</span><span style="color:#7daa68">${this.sameAdj > 0 ? '+' + this.sameAdj : '—'}</span></div>` +
-      `<div class="pz-bd-row"><span>シナジー</span><span style="color:${this.synAdj >= 0 ? '#e8b84b' : '#c46a5a'}">${this.synAdj !== 0 ? (this.synAdj > 0 ? '+' : '') + this.synAdj : '—'}</span></div>` +
-      `<div class="pz-bd-row"><span>全配置</span><span style="color:#7ab0c4">${this.allPlaced ? '+' + COMPLETE_BONUS : '—'}</span></div>`;
+      `<div class="pz-bd-row"><span>同種隣接</span><span style="color:#7daa68">${this.sameAdj > 0 ? '+'+this.sameAdj : '—'}</span></div>` +
+      `<div class="pz-bd-row"><span>シナジー</span><span style="color:${this.synAdj >= 0 ? '#e8b84b' : '#c46a5a'}">${this.synAdj !== 0 ? (this.synAdj>0?'+':'')+this.synAdj : '—'}</span></div>` +
+      `<div class="pz-bd-row"><span>全配置</span><span style="color:#7ab0c4">${this.allPlaced ? '+'+COMPLETE_BONUS : '—'}</span></div>`;
   }
 
-  /* ═══════════════════════════════════════════
-     Finish & result
-     ═══════════════════════════════════════════ */
+  /* ═══ Finish & result ═══ */
 
   _finish(skipped) {
+    document.removeEventListener('keydown', this._onKey);
     const tier = skipped ? SCORE_TIERS[0] : this._getTier();
-    this._showResult({
-      bonus: tier.bonus,
-      score: skipped ? 0 : this.score,
-      rank: skipped ? 'スキップ' : tier.rank,
-      rankColor: tier.color,
-      skipped,
-    });
+    this._showResult({ bonus: tier.bonus, score: skipped ? 0 : this.score, rank: skipped ? 'スキップ' : tier.rank, rankColor: tier.color, skipped });
   }
 
   _showResult(result) {
@@ -531,7 +532,6 @@ export class CraftingPuzzle {
         <button class="btn primary puzzle-result-btn" id="puzzle-done">OK</button>
       </div>
     `;
-
     this.overlay.querySelector('#puzzle-done').addEventListener('click', () => {
       this.overlay.classList.remove('puzzle-visible');
       setTimeout(() => { this.overlay.remove(); this.overlay = null; }, 300);
