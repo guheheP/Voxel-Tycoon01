@@ -203,8 +203,8 @@
   .reputation-display { display: none; }
   .day-display { min-width: 120px; }
   .gold-display { display: flex; }
-  .puzzle-body { flex-direction: column; }
-  .puzzle-sidebar { flex-direction: row; flex-wrap: wrap; min-width: auto; }
+  .puzzle-body { flex-direction: column; align-items: center; }
+  .puzzle-sidebar { min-width: auto; }
   .stats-two-col { grid-template-columns: 1fr; }
   .stats-achievements { grid-template-columns: 1fr; }
   .shop-columns { flex-direction: column; }
