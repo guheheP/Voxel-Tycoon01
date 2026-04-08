@@ -12,12 +12,15 @@ import { isCategorySlot, getCategoryId } from '../ItemSystem.js';
 
 const ROWS = 4, COLS = 4;
 
+const INERT = '_inert'; // 効果なしブロック
+
 const CAT_COLOR = {
   wood_type: '#8b7355', stone_type: '#8a8a7a', ore_type: '#c4a87a',
   herb_type: '#7daa68', cloth_type: '#b48cb4', crystal_type: '#7ab0c4',
   monster_type: '#c46a5a', gem_type: '#a08cc8', essence_type: '#e8b84b',
+  [INERT]: '#555',
 };
-const CAT_ICON = {};
+const CAT_ICON = { [INERT]: '⬜' };
 for (const [k, v] of Object.entries(MaterialCategories)) CAT_ICON[k] = v.icon;
 
 const TETROS = [
@@ -138,11 +141,18 @@ export class CraftingPuzzle {
     const allCats = Object.keys(MaterialCategories).filter(c => c !== 'essence_type');
     while (recipeCats.length < 2) recipeCats.push(allCats[Math.floor(Math.random() * allCats.length)]);
 
+    // Inert tiles: fewer unique recipe cats → more inert to prevent easy same-type matches
+    const uniqueCount = new Set(recipeCats).size;
+    const inertCount = uniqueCount <= 1 ? 4 : uniqueCount <= 2 ? 3 : 1;
+
     // Build tile pool for recipe pieces (4+4+3 = 11 cells)
     const pool = [];
-    while (pool.length < 11) {
-      for (const cat of recipeCats) { if (pool.length < 11) pool.push(cat); }
+    // Fill with recipe cats first
+    while (pool.length < 11 - inertCount) {
+      for (const cat of recipeCats) { if (pool.length < 11 - inertCount) pool.push(cat); }
     }
+    // Add inert tiles
+    for (let i = 0; i < inertCount; i++) pool.push(INERT);
     shuffle(pool);
 
     const ts = [...TETROS]; shuffle(ts);
@@ -215,6 +225,7 @@ export class CraftingPuzzle {
         if (c + 1 < COLS && this.grid[r][c + 1]) nb.push({ b: this.grid[r][c + 1], dir: 'h', r, c });
         if (r + 1 < ROWS && this.grid[r + 1][c]) nb.push({ b: this.grid[r + 1][c], dir: 'v', r, c });
         for (const { b, dir, r: pr, c: pc } of nb) {
+          if (a.cat === INERT || b.cat === INERT) continue; // inert = no synergy
           if (a.cat === b.cat) {
             this.sameAdj += 2;
             this.synList.push({ name: '同種隣接', pts: 2, icon: '🔗', r: pr, c: pc, dir });
@@ -279,6 +290,23 @@ export class CraftingPuzzle {
     `;
 
     document.body.appendChild(this.overlay);
+
+    // Cache DOM references for performance
+    this._$grid = [];
+    for (let r = 0; r < ROWS; r++) {
+      this._$grid[r] = [];
+      for (let c = 0; c < COLS; c++) {
+        this._$grid[r][c] = this.overlay.querySelector(`.pz-gcell[data-r="${r}"][data-c="${c}"]`);
+      }
+    }
+    this._$score = this.overlay.querySelector('#pz-score');
+    this._$fill = this.overlay.querySelector('#pz-bonus-fill');
+    this._$tier = this.overlay.querySelector('#pz-tier');
+    this._$synList = this.overlay.querySelector('#pz-syn-list');
+    this._$bd = this.overlay.querySelector('#pz-breakdown');
+    this._$pieces = this.overlay.querySelector('#pz-pieces');
+    this._prevScore = -1;
+
     this._renderPieces();
     this._bindEvents();
     this._recalc();
@@ -287,7 +315,7 @@ export class CraftingPuzzle {
   }
 
   _renderPieces() {
-    const el = this.overlay.querySelector('#pz-pieces');
+    const el = this._$pieces || this.overlay.querySelector('#pz-pieces');
     el.innerHTML = this.pieces.map(p => {
       const label = p.isEssence ? '✨ エッセンス' : '素材ブロック';
       return `
@@ -417,25 +445,25 @@ export class CraftingPuzzle {
       const [dr, dc] = pcells[i];
       const gr = ar + dr, gc = ac + dc;
       if (gr >= 0 && gr < ROWS && gc >= 0 && gc < COLS) {
-        const el = this.overlay.querySelector(`.pz-gcell[data-r="${gr}"][data-c="${gc}"]`);
+        const el = this._$grid[gr][gc];
         if (!this.grid[gr][gc]) {
           el.classList.add(ok ? 'pz-ghost-ok' : 'pz-ghost-ng');
           if (ok) {
             const clr = CAT_COLOR[this.selPiece.tiles[i].cat];
             el.style.setProperty('--ghost-clr', clr);
-            el.innerHTML = `<span class="pz-ghost-icon">${CAT_ICON[this.selPiece.tiles[i].cat] || ''}</span>`;
+            el.textContent = CAT_ICON[this.selPiece.tiles[i].cat] || '';
           }
-          this.ghostCells.push(el);
+          this.ghostCells.push({ el, gr, gc });
         }
       }
     }
   }
 
   _clearGhost() {
-    for (const el of this.ghostCells) {
+    for (const { el, gr, gc } of this.ghostCells) {
       el.classList.remove('pz-ghost-ok', 'pz-ghost-ng');
       el.style.removeProperty('--ghost-clr');
-      if (!this.grid[+el.dataset.r]?.[+el.dataset.c]) el.innerHTML = '';
+      if (!this.grid[gr]?.[gc]) el.textContent = '';
     }
     this.ghostCells = [];
   }
@@ -443,54 +471,57 @@ export class CraftingPuzzle {
   /* ═══ UI update ═══ */
 
   _updateUI() {
+    // Grid cells — use cached refs
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        const el = this.overlay.querySelector(`.pz-gcell[data-r="${r}"][data-c="${c}"]`);
+        const el = this._$grid[r][c];
         const g = this.grid[r][c];
         if (g) {
           const clr = CAT_COLOR[g.cat]; const icon = CAT_ICON[g.cat] || '';
           el.className = 'pz-gcell pz-gcell-filled';
           el.style.background = clr + '33';
           el.style.borderColor = clr;
-          el.innerHTML = `<span class="pz-gcell-icon">${icon}</span>`;
+          el.textContent = '';
+          const span = el.firstElementChild?.tagName === 'SPAN' ? el.firstElementChild : el.appendChild(document.createElement('span'));
+          span.className = 'pz-gcell-icon';
+          span.textContent = icon;
         } else {
           el.className = 'pz-gcell pz-gcell-empty';
           el.style.background = ''; el.style.borderColor = '';
-          el.innerHTML = '';
+          el.textContent = '';
         }
       }
     }
 
-    // Synergy tags
-    const listEl = this.overlay.querySelector('#pz-syn-list');
-    const pos = this.synList.filter(s => s.pts > 0);
-    const neg = this.synList.filter(s => s.pts < 0);
-    let html = '';
-    for (const s of pos) { const sc = synColors(s.pts); html += `<span class="pz-syn-tag" style="background:${sc.bg};color:${sc.fg};border-color:${sc.bd}">${s.icon} ${s.name} +${s.pts}</span>`; }
-    for (const s of neg) { const sc = synColors(s.pts); html += `<span class="pz-syn-tag" style="background:${sc.bg};color:${sc.fg};border-color:${sc.bd}">${s.icon} ${s.name} ${s.pts}</span>`; }
-    if (this.allPlaced) html += `<span class="pz-syn-tag pz-line-tag">🏆 全配置 +${COMPLETE_BONUS}</span>`;
-    listEl.innerHTML = html || '<span class="pz-syn-empty">ピースを配置するとシナジーが表示されます</span>';
+    // Synergy tags (only rebuild string, assign once)
+    let synHtml = '';
+    for (let i = 0; i < this.synList.length; i++) {
+      const s = this.synList[i];
+      const sc = synColors(s.pts);
+      synHtml += `<span class="pz-syn-tag" style="background:${sc.bg};color:${sc.fg};border-color:${sc.bd}">${s.icon} ${s.name} ${s.pts > 0 ? '+' : ''}${s.pts}</span>`;
+    }
+    if (this.allPlaced) synHtml += `<span class="pz-syn-tag pz-line-tag">🏆 全配置 +${COMPLETE_BONUS}</span>`;
+    this._$synList.innerHTML = synHtml || '<span class="pz-syn-empty">ピースを配置するとシナジーが表示されます</span>';
 
-    // Score
+    // Score — only animate on change
     const tier = this._getTier();
-    const scoreEl = this.overlay.querySelector('#pz-score');
-    scoreEl.textContent = this.score;
-    scoreEl.style.color = tier.color;
-    scoreEl.classList.remove('pz-score-pop');
-    void scoreEl.offsetWidth; // reflow
-    scoreEl.classList.add('pz-score-pop');
+    this._$score.textContent = this.score;
+    this._$score.style.color = tier.color;
+    if (this._prevScore !== this.score) {
+      this._$score.classList.remove('pz-score-pop');
+      void this._$score.offsetWidth;
+      this._$score.classList.add('pz-score-pop');
+      this._prevScore = this.score;
+    }
 
     const max = SCORE_TIERS[SCORE_TIERS.length - 1].min;
-    const fill = this.overlay.querySelector('#pz-bonus-fill');
-    fill.style.width = `${Math.min(100, Math.max(0, this.score / max) * 100)}%`;
-    fill.style.background = tier.color;
-    const tierEl = this.overlay.querySelector('#pz-tier');
-    tierEl.textContent = `品質ボーナス: +${tier.bonus}`;
-    tierEl.style.color = tier.color;
+    this._$fill.style.width = `${Math.min(100, Math.max(0, this.score / max) * 100)}%`;
+    this._$fill.style.background = tier.color;
+    this._$tier.textContent = `品質ボーナス: +${tier.bonus}`;
+    this._$tier.style.color = tier.color;
 
     // Breakdown
-    const bd = this.overlay.querySelector('#pz-breakdown');
-    bd.innerHTML =
+    this._$bd.innerHTML =
       `<div class="pz-bd-row"><span>同種隣接</span><span style="color:#7daa68">${this.sameAdj > 0 ? '+'+this.sameAdj : '—'}</span></div>` +
       `<div class="pz-bd-row"><span>シナジー</span><span style="color:${this.synAdj >= 0 ? '#e8b84b' : '#c46a5a'}">${this.synAdj !== 0 ? (this.synAdj>0?'+':'')+this.synAdj : '—'}</span></div>` +
       `<div class="pz-bd-row"><span>全配置</span><span style="color:#7ab0c4">${this.allPlaced ? '+'+COMPLETE_BONUS : '—'}</span></div>`;

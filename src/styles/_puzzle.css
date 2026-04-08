@@ -233,10 +233,10 @@
   box-shadow: 0 0 14px rgba(232, 184, 75, 0.3);
 }
 
-/* Ghost icon */
-.pz-ghost-icon {
+/* Ghost preview text */
+.pz-ghost-ok {
   font-size: 18px;
-  opacity: 0.5;
+  color: rgba(255,255,255,0.4);
 }
 
 /* ── Score ── */
