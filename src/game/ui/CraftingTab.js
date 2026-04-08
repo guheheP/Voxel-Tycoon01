@@ -10,6 +10,7 @@ import { ShopSystem } from '../ShopSystem.js';
 import { getQualityTier, getTypeInfo, createItemCardHTML, createTraitBadgeHTML } from './UIHelpers.js';
 import { CraftingPuzzle } from './CraftingPuzzle.js';
 import { assetPath } from '../core/assetPath.js';
+import { StatsTracker } from '../StatsTracker.js';
 
 function traitColorClass(traitName) {
   const def = TraitDefs[traitName];
@@ -637,6 +638,7 @@ export class CraftingTab {
     const puzzle = new CraftingPuzzle();
     const result = await puzzle.start(recipeName, recipeId);
     eventBus.emit('game:resume');
+    if (!result.skipped) StatsTracker.recordPuzzle(result.score);
     this._executeCrafting(recipeId, materials, result.bonus);
   }
 
