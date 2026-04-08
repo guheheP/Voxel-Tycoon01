@@ -85,16 +85,14 @@
   line-height: 1;
 }
 
-/* Ghost preview */
+/* Ghost preview — color-only, no icons */
 .pz-ghost-ok {
-  background: var(--ghost-clr, rgba(125,170,104,0.2)) !important;
-  border: 2px dashed var(--ghost-clr, rgba(125,170,104,0.5)) !important;
-  opacity: 0.7;
+  background: var(--ghost-clr, rgba(125,170,104,0.25)) !important;
+  border: 2px solid var(--ghost-clr, rgba(125,170,104,0.5)) !important;
 }
 .pz-ghost-ng {
-  background: rgba(196, 106, 90, 0.15) !important;
-  border: 2px dashed rgba(196, 106, 90, 0.4) !important;
-  opacity: 0.6;
+  background: rgba(196, 106, 90, 0.18) !important;
+  border: 2px dashed rgba(196, 106, 90, 0.45) !important;
 }
 
 /* ── Synergy tag list ── */
@@ -230,12 +228,6 @@
 }
 .pz-piece-ess.pz-piece-sel {
   box-shadow: 0 0 14px rgba(232, 184, 75, 0.3);
-}
-
-/* Ghost preview text */
-.pz-ghost-ok {
-  font-size: 18px;
-  color: rgba(255,255,255,0.4);
 }
 
 /* ── Score ── */
