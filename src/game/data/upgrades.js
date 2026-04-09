@@ -25,11 +25,11 @@ export const UpgradeDefs = [
   { id: 'shop_slots_4',   category: 'shop',     name: '販売棚 拡張IV',    description: '陳列枠 +2',           icon: '🏪', cost: 3000, requiredRank: 7, effect: { type: 'display_slots', value: 2 } },
 
   // ===== 📦 倉庫拡張 =====
-  { id: 'storage_1',      category: 'storage',  name: '倉庫 拡張I',       description: '倉庫容量 +10',        icon: '📦', cost: 100,  requiredRank: 1, effect: { type: 'inventory_capacity', value: 10 } },
-  { id: 'storage_2',      category: 'storage',  name: '倉庫 拡張II',      description: '倉庫容量 +10',        icon: '📦', cost: 300,  requiredRank: 2, effect: { type: 'inventory_capacity', value: 10 } },
-  { id: 'storage_3',      category: 'storage',  name: '倉庫 拡張III',     description: '倉庫容量 +15',        icon: '📦', cost: 800,  requiredRank: 4, effect: { type: 'inventory_capacity', value: 15 } },
-  { id: 'storage_4',      category: 'storage',  name: '倉庫 拡張IV',      description: '倉庫容量 +15',        icon: '📦', cost: 2000, requiredRank: 6, effect: { type: 'inventory_capacity', value: 15 } },
-  { id: 'storage_5',      category: 'storage',  name: '倉庫 拡張V',       description: '倉庫容量 +20',        icon: '📦', cost: 5000, requiredRank: 8, effect: { type: 'inventory_capacity', value: 20 } },
+  { id: 'storage_1',      category: 'storage',  name: '倉庫 拡張I',       description: '倉庫容量 +20',        icon: '📦', cost: 100,  requiredRank: 1, effect: { type: 'inventory_capacity', value: 20 } },
+  { id: 'storage_2',      category: 'storage',  name: '倉庫 拡張II',      description: '倉庫容量 +20',        icon: '📦', cost: 300,  requiredRank: 2, effect: { type: 'inventory_capacity', value: 20 } },
+  { id: 'storage_3',      category: 'storage',  name: '倉庫 拡張III',     description: '倉庫容量 +25',        icon: '📦', cost: 800,  requiredRank: 4, effect: { type: 'inventory_capacity', value: 25 } },
+  { id: 'storage_4',      category: 'storage',  name: '倉庫 拡張IV',      description: '倉庫容量 +25',        icon: '📦', cost: 2000, requiredRank: 6, effect: { type: 'inventory_capacity', value: 25 } },
+  { id: 'storage_5',      category: 'storage',  name: '倉庫 拡張V',       description: '倉庫容量 +30',        icon: '📦', cost: 5000, requiredRank: 8, effect: { type: 'inventory_capacity', value: 30 } },
 
   // ===== 🔨 工房設備 =====
   { id: 'craft_quality_1',category: 'workshop', name: '品質管理台',        description: '調合品質 +5',         icon: '🔨', cost: 400,  requiredRank: 2, effect: { type: 'quality_bonus', value: 5 } },
