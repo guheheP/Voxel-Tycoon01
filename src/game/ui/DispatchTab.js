@@ -112,12 +112,13 @@ export class DispatchTab {
         `;
       }).join('');
 
-      // 全装備のトレイトをまとめて表示
-      const allTraits = [];
+      // 全装備のトレイトをまとめて表示（重複排除）
+      const allTraitSet = new Set();
       for (const slot of GameConfig.equipmentSlots) {
         const eq = adv.equipment[slot];
-        if (eq?.traits) allTraits.push(...eq.traits);
+        if (eq?.traits) eq.traits.forEach(t => allTraitSet.add(t));
       }
+      const uniqueTraits = [...allTraitSet];
 
       return `
         <div class="disp-adv-card" data-adv-id="${adv.id}">
@@ -155,7 +156,7 @@ export class DispatchTab {
           <div class="disp-equip-slots-row">
             ${equipSlots}
           </div>
-          ${allTraits.length > 0 ? this._renderAllTraitEffects(allTraits) : ''}
+          ${uniqueTraits.length > 0 ? this._renderAllTraitEffects(uniqueTraits) : ''}
 
           <div class="disp-area-select">
             ${areaBtns}

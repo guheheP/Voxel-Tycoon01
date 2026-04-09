@@ -4277,12 +4277,12 @@ void main() {
         </div>
         <div class="disp-area-grid">${i}</div>
       </div>
-    `,r=e.map(l=>{const c=l.status==="exploring",d=c&&l.maxTimer>0?Math.max(0,(1-l.timer/l.maxTimer)*100):0,u=ee[l.assignedArea],f=t.map(v=>`<button class="disp-area-btn ${l.assignedArea===v.id?"disp-area-btn-active":""}" data-adv-id="${l.id}" data-area-id="${v.id}" title="${v.name}">${v.icon}</button>`).join(""),m=St.equipmentSlots.map(v=>{const p=l.equipment[v];return`
-          <div class="disp-equip-slot" data-adv-id="${l.id}" data-slot="${v}">
-            <span class="disp-equip-slot-label">${Bl[v]||v}</span>
-            ${this._renderEquipSlot(p,v)}
+    `,r=e.map(l=>{const c=l.status==="exploring",d=c&&l.maxTimer>0?Math.max(0,(1-l.timer/l.maxTimer)*100):0,u=ee[l.assignedArea],f=t.map(p=>`<button class="disp-area-btn ${l.assignedArea===p.id?"disp-area-btn-active":""}" data-adv-id="${l.id}" data-area-id="${p.id}" title="${p.name}">${p.icon}</button>`).join(""),m=St.equipmentSlots.map(p=>{const h=l.equipment[p];return`
+          <div class="disp-equip-slot" data-adv-id="${l.id}" data-slot="${p}">
+            <span class="disp-equip-slot-label">${Bl[p]||p}</span>
+            ${this._renderEquipSlot(h,p)}
           </div>
-        `}).join(""),g=[];for(const v of St.equipmentSlots){const p=l.equipment[v];p!=null&&p.traits&&g.push(...p.traits)}return`
+        `}).join(""),g=new Set;for(const p of St.equipmentSlots){const h=l.equipment[p];h!=null&&h.traits&&h.traits.forEach(_=>g.add(_))}const v=[...g];return`
         <div class="disp-adv-card" data-adv-id="${l.id}">
           <div class="disp-adv-header">
             <div class="disp-adv-identity">
@@ -4318,7 +4318,7 @@ void main() {
           <div class="disp-equip-slots-row">
             ${m}
           </div>
-          ${g.length>0?this._renderAllTraitEffects(g):""}
+          ${v.length>0?this._renderAllTraitEffects(v):""}
 
           <div class="disp-area-select">
             ${f}
