@@ -139,7 +139,9 @@ export class BattleCanvas {
     let last = performance.now();
     const tick = (now) => {
       if (this._disposed) return;
-      const dt = (now - last) / 1000;
+      // タブ復帰時の巨大dt防止 + 非表示中はスキップ
+      if (document.hidden) { last = now; this._animId = requestAnimationFrame(tick); return; }
+      const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
       this._time += dt;
       this._update(dt);
