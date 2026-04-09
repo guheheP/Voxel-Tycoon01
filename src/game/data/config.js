@@ -20,7 +20,7 @@ export const GameConfig = {
   customerBonusMultiplier: 1.5,
 
   // --- インベントリ ---
-  initialInventoryCapacity: 20,
+  initialInventoryCapacity: 40,
 
   // --- 冒険者 ---
   exploreDropCountMin: 1,
