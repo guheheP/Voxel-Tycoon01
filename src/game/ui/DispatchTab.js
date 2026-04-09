@@ -14,6 +14,14 @@ import { assetPath } from '../core/assetPath.js';
 const SLOT_LABELS = { weapon: '⚔️ 武器', armor: '🛡️ 防具', accessory: '💎 装飾' };
 const SLOT_ICONS  = { weapon: '⚔️', armor: '🛡️', accessory: '💎' };
 
+// 装備時に効果を発揮するトレイト効果キー（これ以外は非表示）
+const EQUIP_VISIBLE_KEYS = new Set([
+  // バトル系
+  'battleAtk', 'battleDef', 'battleSpd', 'battleHp', 'battleRegen', 'battleDmgReduction', 'startAtb',
+  // 探索系
+  'speedBonus', 'exploreSuccess', 'dropBonus', 'qualityBonus', 'traitChanceBonus',
+]);
+
 // 冒険者定義ルックアップ
 const _allAdvDefs = [...AdventurerDefs, ...UnlockableAdventurers];
 function _getAdvDef(id) { return _allAdvDefs.find(d => d.id === id); }
@@ -112,13 +120,18 @@ export class DispatchTab {
         `;
       }).join('');
 
-      // 全装備のトレイトをまとめて表示（重複排除）
+      // 全装備のトレイトをまとめて表示（重複排除 + 装備無効トレイト非表示）
       const allTraitSet = new Set();
       for (const slot of GameConfig.equipmentSlots) {
         const eq = adv.equipment[slot];
         if (eq?.traits) eq.traits.forEach(t => allTraitSet.add(t));
       }
-      const uniqueTraits = [...allTraitSet];
+      const uniqueTraits = [...allTraitSet].filter(t => {
+        const def = TraitDefs[t];
+        if (!def?.effects) return false;
+        // 装備時に効果を発揮するキーが1つでもあれば表示
+        return Object.keys(def.effects).some(k => EQUIP_VISIBLE_KEYS.has(k));
+      });
 
       return `
         <div class="disp-adv-card" data-adv-id="${adv.id}">

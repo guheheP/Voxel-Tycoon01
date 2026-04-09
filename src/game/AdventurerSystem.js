@@ -123,9 +123,16 @@ export class AdventurerSystem {
     return Math.min(100, Math.max(10, rate));
   }
 
-  /** 全装備スロットの特性効果を集計 */
+  // 探索系の効果キー — 複数スロットで重複しても1スロット分のみ有効
+  static EXPLORE_EFFECT_KEYS = new Set([
+    'speedBonus', 'exploreSuccess', 'dropBonus', 'qualityBonus', 'traitChanceBonus',
+  ]);
+
+  /** 全装備スロットの特性効果を集計（探索系は重複なし） */
   _getEquipmentTraitEffects(adv) {
     const result = {};
+    // 探索系: 各キーについてトレイト名ごとに1回だけ加算
+    const appliedExploreTrait = new Set(); // "traitName:effectKey" の組み合わせ
     for (const slot of GameConfig.equipmentSlots) {
       const eq = adv.equipment[slot];
       if (!eq || !eq.traits) continue;
@@ -133,6 +140,11 @@ export class AdventurerSystem {
         const def = TraitDefs[traitName];
         if (!def || !def.effects) continue;
         for (const [key, val] of Object.entries(def.effects)) {
+          if (AdventurerSystem.EXPLORE_EFFECT_KEYS.has(key)) {
+            const comboKey = `${traitName}:${key}`;
+            if (appliedExploreTrait.has(comboKey)) continue;
+            appliedExploreTrait.add(comboKey);
+          }
           result[key] = (result[key] || 0) + val;
         }
       }
