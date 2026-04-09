@@ -233,6 +233,21 @@
   margin: 0 2px;
 }
 
+/* ===== Auto-Dispose Panel ===== */
+.auto-dispose-panel {
+  border-color: rgba(180, 90, 90, 0.2);
+  background: rgba(180, 90, 90, 0.03);
+}
+.auto-dispose-panel .autosell-toggle-label {
+  color: #e0a0a0;
+}
+.autosell-hint {
+  font-size: 10px;
+  color: rgba(245, 230, 200, 0.35);
+  display: block;
+  margin-top: 2px;
+}
+
 /* ===== Collection Tab ===== */
 .coll-header {
   display: flex;

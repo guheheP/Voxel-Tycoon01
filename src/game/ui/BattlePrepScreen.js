@@ -48,6 +48,7 @@ export class BattlePrepScreen {
    */
   show(rankIndex, bossDef) {
     this._pendingBattle = { rankIndex, bossDef };
+    this._pendingChallengeId = null; // 通常バトル用。showChallenge()は後から上書き
     this.selectedItems = [];
     // ランク枠数を再計算
     const rankIdx = this.dayCycle?.currentRankIndex ?? 0;
@@ -129,14 +130,13 @@ export class BattlePrepScreen {
     }
     if (!firstBoss) return;
 
-    // 通常のshow()を仮想ボス情報で呼び出し
-    this._pendingChallengeId = challengeId;
+    // 通常のshow()を仮想ボス情報で呼び出し、その後チャレンジIDを設定
     const virtualBoss = {
       ...firstBoss,
       name: `${challenge.name}（${challenge.waves.length}ウェーブ）`,
     };
-    this._pendingBattle = { rankIndex: 0, bossDef: virtualBoss };
     this.show(0, virtualBoss);
+    this._pendingChallengeId = challengeId; // show()のリセット後に設定
   }
 
   _renderAdvCard(adv) {
@@ -151,12 +151,13 @@ export class BattlePrepScreen {
     // 装備ボーナス計算 (全スロット)
     let eqAtk = 0, eqDef = 0, eqSpd = 0, eqHp = 0;
     const eqCoeffs = GameConfig.equipStatCoefficients || {};
-    for (const slot of (GameConfig.equipmentSlots || ['weapon'])) {
+    for (const slot of GameConfig.equipmentSlots) {
       const eq = adv.equipment?.[slot];
       if (!eq) continue;
       const coeff = eqCoeffs[slot];
       if (coeff) {
-        const bonus = Math.floor((eq.value || 0) / coeff.divisor);
+        const eqValue = eq.value || (ItemBlueprints[eq.blueprintId]?.baseValue || 0);
+        const bonus = Math.floor(eqValue / coeff.divisor);
         if (coeff.stat === 'atk') eqAtk += bonus;
         else if (coeff.stat === 'def') eqDef += bonus;
         else if (coeff.stat === 'spd') eqSpd += bonus;
