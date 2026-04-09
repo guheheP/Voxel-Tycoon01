@@ -656,8 +656,8 @@ export class BattleScreen {
     if (bossIconEl) {
       bossIconEl.textContent = s.boss.icon;
     }
-    // 3Dシーン: 新ボスのプリセットをロード
-    if (this._load3DBoss) this._load3DBoss();
+    // 3Dシーン: 新ボスのプリセットで再構築
+    this._init3DScene(s);
   }
 
   /** チャレンジモード: 全ウェーブクリア */

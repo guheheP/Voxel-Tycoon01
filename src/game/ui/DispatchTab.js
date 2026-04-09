@@ -257,7 +257,6 @@ export class DispatchTab {
           <span class="disp-equip-name">${equip.name}</span>
           <span class="disp-equip-quality" style="color:${tier.color}">${tier.icon} Q${equip.quality}</span>
         </div>
-        <span class="disp-equip-change">変更 ▾</span>
       </div>
     `;
   }

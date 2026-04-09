@@ -38,13 +38,14 @@ export class BattleSystem {
       let eqAtk = 0, eqDef = 0, eqSpd = 0, eqHp = 0;
       let initialAtb = 0, regen = 0, dmgReduction = 0;
       const eqCoeffs = GameConfig.equipStatCoefficients || {};
-      for (const slot of (GameConfig.equipmentSlots || ['weapon'])) {
+      for (const slot of GameConfig.equipmentSlots) {
         const eq = a.equipment?.[slot];
         if (!eq) continue;
-        // スロット固有のベースステータスボーナス
+        // スロット固有のベースステータスボーナス（valueが未設定の場合はbaseValueから算出）
         const coeff = eqCoeffs[slot];
         if (coeff) {
-          const bonus = Math.floor((eq.value || 0) / coeff.divisor);
+          const eqValue = eq.value || (ItemBlueprints[eq.blueprintId]?.baseValue || 0);
+          const bonus = Math.floor(eqValue / coeff.divisor);
           if (coeff.stat === 'atk') eqAtk += bonus;
           else if (coeff.stat === 'def') eqDef += bonus;
           else if (coeff.stat === 'spd') eqSpd += bonus;
@@ -348,6 +349,7 @@ export class BattleSystem {
     this._log('逃走した...');
     this.state.phase = 'lose';
     this.active = false;
+    this._challengeState = null;
     this._discardBattleItems();
     eventBus.emit('battle:lose', { reason: 'flee' });
   }
@@ -722,6 +724,7 @@ export class BattleSystem {
       this._log('パーティは全滅した...');
       this.state.phase = 'lose';
       this.active = false;
+      this._challengeState = null; // チャレンジ中の敗北時もステートをクリア
       this._discardBattleItems();
       eventBus.emit('battle:lose', { reason: 'wipeout' });
     }
