@@ -2,21 +2,30 @@
  * DispatchTab — 冒険者の派遣タブ（2カラム分割レイアウト版）
  * 左: エリア情報カード / 右: 冒険者カード
  */
-import { LevelExpTable, LevelBonuses } from '../data/adventurers.js';
+import { LevelExpTable, LevelBonuses, AdventurerDefs, UnlockableAdventurers } from '../data/adventurers.js';
 import { GameConfig } from '../data/config.js';
 import { AreaDefs } from '../data/areas.js';
 import { ItemBlueprints, TraitDefs, getEquipSlot } from '../data/items.js';
+import { ShopSystem } from '../ShopSystem.js';
 import { eventBus } from '../core/EventBus.js';
 import { getQualityTier, createTraitBadgeHTML } from './UIHelpers.js';
 import { assetPath } from '../core/assetPath.js';
 
 const SLOT_LABELS = { weapon: '⚔️ 武器', armor: '🛡️ 防具', accessory: '💎 装飾' };
+const SLOT_ICONS  = { weapon: '⚔️', armor: '🛡️', accessory: '💎' };
+
+// 冒険者定義ルックアップ
+const _allAdvDefs = [...AdventurerDefs, ...UnlockableAdventurers];
+function _getAdvDef(id) { return _allAdvDefs.find(d => d.id === id); }
 
 export class DispatchTab {
   constructor(adventurerSystem, inventorySystem) {
     this.adventurers = adventurerSystem;
     this.inventory = inventorySystem;
     this.el = document.querySelector('#tab-dispatch');
+
+    // 装備パネル状態（オーバーレイ中のrender()スキップ用）
+    this._equipOverlay = null;
 
     // レベルアップ演出用: 対象冒険者ID を保持
     this._pendingLevelUps = new Set();
@@ -26,6 +35,9 @@ export class DispatchTab {
   }
 
   render() {
+    // 装備パネルが開いている間はDOM再構築をスキップ（強制クローズ防止）
+    if (this._equipOverlay && document.body.contains(this._equipOverlay)) return;
+
     const areas = this.adventurers.getUnlockedAreas();
     const advs = this.adventurers.getAdventurers();
 
@@ -261,17 +273,63 @@ export class DispatchTab {
     `;
   }
 
+  // ===== 装備選択パネル（リッチUI） =====
+
+  /** 冒険者のバトルステータスを計算（装備を仮差し替え可能） */
+  _calcBattleStats(adv, overrideSlot = null, overrideItem = null) {
+    const def = _getAdvDef(adv.id);
+    const bat = def?.battle || { maxHp: 100, atk: 10, def: 5, spd: 50 };
+    const level = adv.level || 1;
+    let hp = bat.maxHp + (level - 1) * 5;
+    let atk = bat.atk + (level - 1) * 2;
+    let defStat = bat.def + (level - 1) * 1;
+    let spd = bat.spd + (level - 1) * 2;
+
+    const eqCoeffs = GameConfig.equipStatCoefficients || {};
+    for (const slot of GameConfig.equipmentSlots) {
+      const eq = (slot === overrideSlot) ? overrideItem : adv.equipment[slot];
+      if (!eq) continue;
+      const coeff = eqCoeffs[slot];
+      if (coeff) {
+        const eqValue = eq.value || (ItemBlueprints[eq.blueprintId]?.baseValue || 0);
+        const bonus = Math.floor(eqValue / coeff.divisor);
+        if (coeff.stat === 'atk') atk += bonus;
+        else if (coeff.stat === 'def') defStat += bonus;
+        else if (coeff.stat === 'spd') spd += bonus;
+      }
+      for (const traitName of (eq.traits || [])) {
+        const td = TraitDefs[traitName];
+        if (!td?.effects) continue;
+        atk     += td.effects.battleAtk || 0;
+        defStat += td.effects.battleDef || 0;
+        spd     += td.effects.battleSpd || 0;
+        hp      += td.effects.battleHp  || 0;
+      }
+    }
+    return { hp, atk, def: defStat, spd };
+  }
+
+  /** ステータスバーHTML */
+  _renderStatBar(label, value, maxVal, color) {
+    const pct = Math.min(100, (value / maxVal) * 100);
+    return `
+      <div class="ep-stat-row">
+        <span class="ep-stat-label">${label}</span>
+        <div class="ep-stat-bar"><div class="ep-stat-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+        <span class="ep-stat-value" data-stat="${label}">${value}</span>
+      </div>
+    `;
+  }
+
   _showEquipmentPanel(advId, slot = 'weapon') {
     const adv = this.adventurers.getAdventurers().find(a => a.id === advId);
     if (!adv) return;
     const slotLabel = SLOT_LABELS[slot] || slot;
+    const currentStats = this._calcBattleStats(adv);
 
     // スロットに対応するアイテムをフィルタリング
     const candidates = this.inventory.getItems()
-      .filter(i => {
-        const itemSlot = getEquipSlot(i);
-        return itemSlot === slot;
-      })
+      .filter(i => getEquipSlot(i) === slot)
       .sort((a, b) => {
         const aOk = this.adventurers.canEquip(advId, a) ? 0 : 1;
         const bOk = this.adventurers.canEquip(advId, b) ? 0 : 1;
@@ -279,70 +337,185 @@ export class DispatchTab {
         return b.quality - a.quality;
       });
 
-    let itemsHtml = '';
-    if (adv.equipment[slot]) {
-      itemsHtml += `<button class="disp-equip-option disp-equip-unequip" data-adv-id="${advId}" data-slot="${slot}">❌ 装備を外す</button>`;
-    }
-    if (candidates.length === 0 && !adv.equipment[slot]) {
-      itemsHtml = `<p class="text-dim" style="padding:12px;text-align:center;">装備可能なアイテムがありません</p>`;
+    // 現在装備中のアイテム
+    const currentEquip = adv.equipment[slot];
+
+    // 装備中アイテム表示
+    let currentEquipHtml = '';
+    if (currentEquip) {
+      const bp = ItemBlueprints[currentEquip.blueprintId];
+      const tier = getQualityTier(currentEquip.quality);
+      const imgUrl = bp?.image ? assetPath(bp.image) : null;
+      const traitBadges = (currentEquip.traits || []).map(t => createTraitBadgeHTML(t)).join('');
+      currentEquipHtml = `
+        <div class="ep-current-equip ${tier.css}">
+          ${imgUrl ? `<img class="ep-current-img" src="${imgUrl}" />` : `<span class="ep-current-emoji">${SLOT_ICONS[slot]}</span>`}
+          <div class="ep-current-info">
+            <span class="ep-current-name">${currentEquip.name}</span>
+            <span class="ep-current-quality" style="color:${tier.color}">${tier.icon} Q${currentEquip.quality}</span>
+          </div>
+        </div>
+        ${traitBadges ? `<div class="ep-current-traits">${traitBadges}</div>` : ''}
+      `;
     } else {
-      const defaultEmoji = slot === 'weapon' ? '⚔️' : slot === 'armor' ? '🛡️' : '💎';
+      currentEquipHtml = `<div class="ep-current-none">装備なし</div>`;
+    }
+
+    // アイテムリスト
+    let itemListHtml = '';
+    if (currentEquip) {
+      itemListHtml += `<button class="ep-item-btn ep-item-unequip" data-adv-id="${advId}" data-slot="${slot}">❌ 装備を外す</button>`;
+    }
+    if (candidates.length === 0 && !currentEquip) {
+      itemListHtml = `<p class="ep-empty-msg">装備可能なアイテムがありません</p>`;
+    } else {
       candidates.forEach(w => {
         const bp = ItemBlueprints[w.blueprintId];
         const tier = getQualityTier(w.quality);
         const canEquip = this.adventurers.canEquip(advId, w);
-        const imgUrl = bp && bp.image ? assetPath(bp.image) : null;
-        const imgHtml = imgUrl
-          ? `<img class="disp-equip-opt-img" src="${imgUrl}" alt="${w.name}" />`
-          : `<span class="disp-equip-opt-emoji">${defaultEmoji}</span>`;
+        const imgUrl = bp?.image ? assetPath(bp.image) : null;
+        const traitBadges = (w.traits || []).map(t => createTraitBadgeHTML(t)).join('');
+        const sellValue = w.value || ShopSystem.calcValue(w);
 
-        itemsHtml += `
-          <button class="disp-equip-option ${tier.css} ${canEquip ? '' : 'disp-equip-incompatible'}" data-adv-id="${advId}" data-uid="${w.uid}" ${canEquip ? '' : 'disabled'}>
-            ${imgHtml}
-            <div class="disp-equip-opt-info">
-              <span class="disp-equip-opt-name">${w.name}</span>
-              <span class="disp-equip-opt-quality" style="color:${tier.color}">${tier.icon} Q${w.quality}</span>
-              ${canEquip ? '' : '<span class="disp-equip-lock">装備不可</span>'}
+        itemListHtml += `
+          <button class="ep-item-btn ${tier.css} ${canEquip ? '' : 'ep-item-disabled'}" data-adv-id="${advId}" data-uid="${w.uid}" ${canEquip ? '' : 'disabled'}>
+            <div class="ep-item-main">
+              ${imgUrl ? `<img class="ep-item-img" src="${imgUrl}" />` : `<span class="ep-item-emoji">${SLOT_ICONS[slot]}</span>`}
+              <div class="ep-item-info">
+                <span class="ep-item-name">${w.name}</span>
+                <div class="ep-item-meta">
+                  <span class="ep-item-quality" style="color:${tier.color}">${tier.icon} Q${w.quality}</span>
+                  <span class="ep-item-value">💰${sellValue}</span>
+                </div>
+              </div>
+              ${canEquip ? '' : '<span class="ep-item-lock">装備不可</span>'}
             </div>
+            ${traitBadges ? `<div class="ep-item-traits">${traitBadges}</div>` : ''}
           </button>
         `;
       });
     }
 
-    const html = `
-      <div class="disp-equip-panel">
-        <div class="disp-equip-panel-header">
-          <h4>${slotLabel} 装備選択 — ${adv.name}</h4>
-          <button class="disp-equip-panel-close">✕</button>
+    // パネル全体
+    const overlay = document.createElement('div');
+    overlay.className = 'ep-overlay';
+    overlay.innerHTML = `
+      <div class="ep-panel">
+        <div class="ep-header">
+          <h3>${adv.icon} ${adv.name} — ${slotLabel}</h3>
+          <button class="ep-close">✕</button>
         </div>
-        <div class="disp-equip-panel-list">${itemsHtml}</div>
+        <div class="ep-body">
+          <div class="ep-left">
+            <div class="ep-section">
+              <div class="ep-section-title">現在の装備</div>
+              ${currentEquipHtml}
+            </div>
+            <div class="ep-section">
+              <div class="ep-section-title">ステータス</div>
+              <div class="ep-stats" id="ep-stats-area">
+                ${this._renderStatBar('❤️ HP', currentStats.hp, 250, '#e05555')}
+                ${this._renderStatBar('⚔️ ATK', currentStats.atk, 80, '#e8b84b')}
+                ${this._renderStatBar('🛡️ DEF', currentStats.def, 60, '#6aadcf')}
+                ${this._renderStatBar('💨 SPD', currentStats.spd, 150, '#7dca65')}
+              </div>
+              <div class="ep-preview-hint" id="ep-preview-hint"></div>
+            </div>
+          </div>
+          <div class="ep-right">
+            <div class="ep-section-title">装備候補 <span class="ep-count">${candidates.length}個</span></div>
+            <div class="ep-item-list">${itemListHtml}</div>
+          </div>
+        </div>
       </div>
     `;
 
-    const overlay = document.createElement('div');
-    overlay.className = 'disp-equip-overlay';
-    overlay.innerHTML = html;
-    this.el.appendChild(overlay);
+    document.body.appendChild(overlay);
+    this._equipOverlay = overlay;
 
-    // 装備選択
-    overlay.querySelectorAll('.disp-equip-option[data-uid]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        this.adventurers.equipItem(e.currentTarget.dataset.advId, e.currentTarget.dataset.uid);
-        overlay.remove();
-        this.render();
+    // ─── ステータスプレビュー（ホバー） ───
+    const statsArea = overlay.querySelector('#ep-stats-area');
+    const previewHint = overlay.querySelector('#ep-preview-hint');
+
+    overlay.querySelectorAll('.ep-item-btn[data-uid]').forEach(btn => {
+      btn.addEventListener('mouseenter', () => {
+        const uid = btn.dataset.uid;
+        const item = this.inventory.getItems().find(i => i.uid === uid);
+        if (!item) return;
+        const previewStats = this._calcBattleStats(adv, slot, item);
+        this._updateStatsPreview(statsArea, currentStats, previewStats);
+        previewHint.textContent = `${item.name} 装備時のステータス変化`;
+      });
+      btn.addEventListener('mouseleave', () => {
+        this._clearStatsPreview(statsArea, currentStats);
+        previewHint.textContent = '';
       });
     });
-    // 装備解除
-    overlay.querySelectorAll('.disp-equip-unequip').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        this.adventurers.unequipItem(e.currentTarget.dataset.advId, e.currentTarget.dataset.slot);
-        overlay.remove();
-        this.render();
+
+    // 装備解除ホバー
+    overlay.querySelectorAll('.ep-item-unequip').forEach(btn => {
+      btn.addEventListener('mouseenter', () => {
+        const previewStats = this._calcBattleStats(adv, slot, null);
+        this._updateStatsPreview(statsArea, currentStats, previewStats);
+        previewHint.textContent = '装備を外した時のステータス変化';
+      });
+      btn.addEventListener('mouseleave', () => {
+        this._clearStatsPreview(statsArea, currentStats);
+        previewHint.textContent = '';
       });
     });
-    // 閉じる
-    overlay.querySelector('.disp-equip-panel-close')?.addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+    // ─── クリックイベント ───
+    const closePanel = () => {
+      overlay.remove();
+      this._equipOverlay = null;
+      this.render();
+    };
+
+    overlay.querySelectorAll('.ep-item-btn[data-uid]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.adventurers.equipItem(btn.dataset.advId, btn.dataset.uid);
+        closePanel();
+      });
+    });
+    overlay.querySelectorAll('.ep-item-unequip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.adventurers.unequipItem(btn.dataset.advId, btn.dataset.slot);
+        closePanel();
+      });
+    });
+    overlay.querySelector('.ep-close')?.addEventListener('click', closePanel);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closePanel(); });
+  }
+
+  /** ステータスプレビューを反映 */
+  _updateStatsPreview(statsArea, currentStats, previewStats) {
+    const statMap = { '❤️ HP': 'hp', '⚔️ ATK': 'atk', '🛡️ DEF': 'def', '💨 SPD': 'spd' };
+    statsArea.querySelectorAll('.ep-stat-value').forEach(el => {
+      const key = el.dataset.stat;
+      const prop = statMap[key];
+      if (!prop) return;
+      const cur = currentStats[prop];
+      const next = previewStats[prop];
+      const diff = next - cur;
+      if (diff > 0) {
+        el.innerHTML = `${next} <span class="ep-diff ep-diff-up">+${diff}</span>`;
+      } else if (diff < 0) {
+        el.innerHTML = `${next} <span class="ep-diff ep-diff-down">${diff}</span>`;
+      } else {
+        el.textContent = `${next}`;
+      }
+    });
+  }
+
+  /** ステータスプレビューをリセット */
+  _clearStatsPreview(statsArea, currentStats) {
+    const statMap = { '❤️ HP': 'hp', '⚔️ ATK': 'atk', '🛡️ DEF': 'def', '💨 SPD': 'spd' };
+    statsArea.querySelectorAll('.ep-stat-value').forEach(el => {
+      const key = el.dataset.stat;
+      const prop = statMap[key];
+      if (prop) el.textContent = `${currentStats[prop]}`;
+    });
   }
 
   /** プログレスバーのリアルタイム更新 */
