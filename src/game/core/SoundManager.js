@@ -44,6 +44,12 @@ class SoundManagerClass {
     this.proceduralActive = false;
     this._bgmTimeout = null;
 
+    // --- Audio ノード管理（メモリリーク防止） ---
+    this._noiseBufferCache = null;   // ノイズバッファのキャッシュ
+    this._activeSeNodes = [];        // アクティブなSEノード追跡
+    this._maxSeNodes = 12;           // 同時SE上限
+    this._activeBgmNodes = [];       // プロシージャルBGMノード追跡
+
     // Load saved settings
     const saved = localStorage.getItem('voxelshop_sound');
     if (saved) {
@@ -281,6 +287,8 @@ class SoundManagerClass {
   stopBattleBGM() {
     if (!this.isBattleBGM) return;
     this.isBattleBGM = false;
+    // バトル終了時に全アクティブSEノードを強制切断
+    this._forceCleanupAllSeNodes();
     this._fadeOutThen(() => {
       if (this.audioEl) this.audioEl.loop = false;
       // 保存していた曲を再開、または次の曲を再生
@@ -404,6 +412,15 @@ class SoundManagerClass {
       clearTimeout(this._bgmTimeout);
       this._bgmTimeout = null;
     }
+    // プロシージャルBGMノードを全切断
+    for (const n of this._activeBgmNodes) {
+      try {
+        if (n.source) { n.source.stop?.(); n.source.disconnect(); }
+        if (n.filter) n.filter.disconnect();
+        if (n.gain) n.gain.disconnect();
+      } catch { /* already disconnected */ }
+    }
+    this._activeBgmNodes.length = 0;
   }
 
   _playProceduralLoop() {
@@ -436,7 +453,13 @@ class SoundManagerClass {
     gain.connect(this.bgmGain);
     osc.start(startTime);
     osc.stop(startTime + duration + 0.1);
-    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+    const node = { source: osc, gain };
+    this._activeBgmNodes.push(node);
+    osc.onended = () => {
+      osc.disconnect(); gain.disconnect();
+      const idx = this._activeBgmNodes.indexOf(node);
+      if (idx !== -1) this._activeBgmNodes.splice(idx, 1);
+    };
   }
 
   _playPad(rootFreq, startTime, duration) {
@@ -459,7 +482,13 @@ class SoundManagerClass {
       gain.connect(this.bgmGain);
       osc.start(startTime);
       osc.stop(startTime + duration + 0.1);
-      osc.onended = () => { osc.disconnect(); filter.disconnect(); gain.disconnect(); };
+      const node = { source: osc, filter, gain };
+      this._activeBgmNodes.push(node);
+      osc.onended = () => {
+        osc.disconnect(); filter.disconnect(); gain.disconnect();
+        const idx = this._activeBgmNodes.indexOf(node);
+        if (idx !== -1) this._activeBgmNodes.splice(idx, 1);
+      };
     });
   }
 
@@ -741,17 +770,24 @@ class SoundManagerClass {
     this._playSENote(110, now + 1.0, 1.2, 'sine', 0.12);
   }
 
-  /** ノイズバースト（打撃音のインパクト補助） */
+  /** ノイズバースト（打撃音のインパクト補助） — バッファキャッシュ + ノード上限 */
   _playNoiseBurst(startTime, duration, volume = 0.05) {
     if (!this.ctx) return;
-    const bufferSize = this.ctx.sampleRate * duration;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1);
+
+    // アクティブノード上限チェック — 古いノードを強制切断
+    this._cleanupSeNodes();
+    if (this._activeSeNodes.length >= this._maxSeNodes) return;
+
+    // ノイズバッファをキャッシュ（毎回生成しない）
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.15); // 固定長バッファ
+    if (!this._noiseBufferCache) {
+      this._noiseBufferCache = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = this._noiseBufferCache.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
     }
+
     const source = this.ctx.createBufferSource();
-    source.buffer = buffer;
+    source.buffer = this._noiseBufferCache;
     const gain = this.ctx.createGain();
     gain.gain.setValueAtTime(volume, startTime);
     gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
@@ -764,7 +800,40 @@ class SoundManagerClass {
     gain.connect(this.seGain);
     source.start(startTime);
     source.stop(startTime + duration + 0.05);
-    source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
+
+    const nodeGroup = { source, filter, gain };
+    this._activeSeNodes.push(nodeGroup);
+    source.onended = () => {
+      source.disconnect(); filter.disconnect(); gain.disconnect();
+      const idx = this._activeSeNodes.indexOf(nodeGroup);
+      if (idx !== -1) this._activeSeNodes.splice(idx, 1);
+    };
+  }
+
+  /** 全SEノードを即座に切断・解放 */
+  _forceCleanupAllSeNodes() {
+    for (const n of this._activeSeNodes) {
+      try {
+        if (n.source) { n.source.stop?.(); n.source.disconnect(); }
+        if (n.filter) n.filter.disconnect();
+        if (n.gain) n.gain.disconnect();
+      } catch { /* already disconnected */ }
+    }
+    this._activeSeNodes.length = 0;
+  }
+
+  /** 古い/停止済みSEノードを強制クリーンアップ */
+  _cleanupSeNodes() {
+    // onendedが発火しなかったノードを安全に除去
+    const now = this.ctx?.currentTime || 0;
+    const stale = this._activeSeNodes.filter(n => {
+      try { return n.source.playbackState === 3; } catch { return false; } // ended
+    });
+    for (const n of stale) {
+      try { n.source.disconnect(); n.filter.disconnect(); n.gain.disconnect(); } catch { /* */ }
+      const idx = this._activeSeNodes.indexOf(n);
+      if (idx !== -1) this._activeSeNodes.splice(idx, 1);
+    }
   }
 
   /** ボタンホバー — 極軽いコツッ */
@@ -777,6 +846,11 @@ class SoundManagerClass {
   // ===== 共通ユーティリティ =====
 
   _playSENote(freq, startTime, duration, type = 'sine', volume = 0.1) {
+    if (!this.ctx) return;
+    // アクティブノード上限チェック
+    this._cleanupSeNodes();
+    if (this._activeSeNodes.length >= this._maxSeNodes) return;
+
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = type;
@@ -788,7 +862,14 @@ class SoundManagerClass {
     gain.connect(this.seGain);
     osc.start(startTime);
     osc.stop(startTime + duration + 0.1);
-    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+
+    const nodeGroup = { source: osc, gain };
+    this._activeSeNodes.push(nodeGroup);
+    osc.onended = () => {
+      osc.disconnect(); gain.disconnect();
+      const idx = this._activeSeNodes.indexOf(nodeGroup);
+      if (idx !== -1) this._activeSeNodes.splice(idx, 1);
+    };
   }
 }
 

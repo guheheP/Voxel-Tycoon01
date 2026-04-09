@@ -50,8 +50,12 @@ export const UpgradeDefs = [
   // ===== 🏕️ 冒険者支援 =====
   { id: 'explore_speed_1', category: 'expedition', name: '探索地図',        description: '探索時間 -10%',       icon: '🏕️', cost: 300,  requiredRank: 2, effect: { type: 'explore_speed', value: 0.10 } },
   { id: 'explore_speed_2', category: 'expedition', name: '冒険者ギルド提携', description: '探索時間 -10%',      icon: '🏕️', cost: 1200, requiredRank: 5, effect: { type: 'explore_speed', value: 0.10 } },
-  { id: 'battle_slots_1',  category: 'expedition', name: '携帯用ポーチ',    description: '持ち込み枠 +1',       icon: '🏕️', cost: 800,  requiredRank: 3, effect: { type: 'battle_item_slots', value: 1 } },
-  { id: 'battle_slots_2',  category: 'expedition', name: '魔法のカバン',    description: '持ち込み枠 +1',       icon: '🏕️', cost: 3000, requiredRank: 6, effect: { type: 'battle_item_slots', value: 1 } },
+  { id: 'battle_slots_1',  category: 'expedition', name: '携帯用ポーチ',    description: '持ち込み枠 +1',       icon: '🎒', cost: 200,  requiredRank: 2, effect: { type: 'battle_item_slots', value: 1 } },
+  { id: 'battle_slots_2',  category: 'expedition', name: '冒険者の鞄',     description: '持ち込み枠 +1',       icon: '🎒', cost: 500,  requiredRank: 3, effect: { type: 'battle_item_slots', value: 1 } },
+  { id: 'battle_slots_3',  category: 'expedition', name: '革のバックパック', description: '持ち込み枠 +1',      icon: '🎒', cost: 1000, requiredRank: 4, effect: { type: 'battle_item_slots', value: 1 } },
+  { id: 'battle_slots_4',  category: 'expedition', name: '強化リュック',    description: '持ち込み枠 +1',       icon: '🎒', cost: 2000, requiredRank: 5, effect: { type: 'battle_item_slots', value: 1 } },
+  { id: 'battle_slots_5',  category: 'expedition', name: '魔法のカバン',    description: '持ち込み枠 +1',       icon: '🎒', cost: 3500, requiredRank: 6, effect: { type: 'battle_item_slots', value: 1 } },
+  { id: 'battle_slots_6',  category: 'expedition', name: '異次元収納袋',   description: '持ち込み枠 +1',       icon: '🎒', cost: 5000, requiredRank: 7, effect: { type: 'battle_item_slots', value: 1 } },
 ];
 
 // カテゴリの表示名

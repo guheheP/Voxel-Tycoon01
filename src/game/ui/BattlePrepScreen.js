@@ -11,6 +11,7 @@ import { GameConfig } from '../data/config.js';
 import { ChallengeDefs } from '../data/challenges.js';
 import { AreaDefs } from '../data/areas.js';
 import { assetPath } from '../core/assetPath.js';
+import { getQualityTier, createTraitBadgeHTML } from './UIHelpers.js';
 
 const _allAdvDefs = [...AdventurerDefs, ...UnlockableAdventurers];
 function _getAdvDef(id) {
@@ -211,16 +212,46 @@ export class BattlePrepScreen {
     const imgHtml = imgUrl
       ? `<img class="prep-item-img" src="${imgUrl}" alt="${item.name}" />`
       : `<span class="prep-item-emoji">💊</span>`;
+    const tier = getQualityTier(item.quality);
+    const traitBadges = (item.traits || []).map(t => createTraitBadgeHTML(t)).join('');
+
+    // 品質に応じた使用回数・効果の説明
+    const quality = item.quality ?? 50;
+    const qualityMult = (0.7 + (quality / 100) * 0.8).toFixed(1);
 
     return `
-      <button class="prep-item-option" data-uid="${item.uid}" title="${effectText}">
+      <button class="prep-item-option" data-uid="${item.uid}">
         ${imgHtml}
         <div class="prep-item-info">
           <span class="prep-item-name">${item.name}</span>
+          <span class="prep-item-quality" style="color:${tier.color}">${tier.icon} Q${item.quality}</span>
           <span class="prep-item-effect">${effectText}</span>
+        </div>
+        <div class="prep-item-tooltip">
+          <div class="prep-tt-header">${item.name} <span style="color:${tier.color}">${tier.icon} Q${item.quality}</span></div>
+          <div class="prep-tt-effect">効果: ${effectText}</div>
+          <div class="prep-tt-mult">品質補正: ×${qualityMult}</div>
+          ${traitBadges ? `<div class="prep-tt-traits">${traitBadges}</div>` : ''}
+          ${item.traits?.length > 0 ? `<div class="prep-tt-trait-desc">${this._getTraitEffectSummary(item.traits)}</div>` : ''}
         </div>
       </button>
     `;
+  }
+
+  /** トレイトのバトル効果をまとめて説明文にする */
+  _getTraitEffectSummary(traits) {
+    const lines = [];
+    for (const t of traits) {
+      const def = TraitDefs[t];
+      if (!def?.effects) continue;
+      const fx = def.effects;
+      if (fx.battleHealBonus) lines.push(`回復量+${fx.battleHealBonus}%`);
+      if (fx.battleHealFlat) lines.push(`使用時全体回復+${fx.battleHealFlat}`);
+      if (fx.battleItemUses) lines.push(`使用回数+${fx.battleItemUses}`);
+      if (fx.battleAtk) lines.push(`攻撃力+${fx.battleAtk}`);
+      if (fx.battleDef) lines.push(`防御力+${fx.battleDef}`);
+    }
+    return lines.length > 0 ? lines.join(' / ') : '';
   }
 
   _getEffectText(effect) {

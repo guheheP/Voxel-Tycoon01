@@ -143,11 +143,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 72px;
-  padding: 6px 4px;
+  width: 96px;
+  padding: 8px 6px;
   background: linear-gradient(180deg, #1e1e2e, #16162a);
   border: 1px solid #3a3a50;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
   position: relative;
@@ -158,18 +158,18 @@
   transform: translateY(-2px);
 }
 .btl-card-img {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   object-fit: contain;
   border-radius: 4px;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
 }
 .btl-card-emoji {
-  font-size: 28px;
-  line-height: 36px;
+  font-size: 32px;
+  line-height: 44px;
 }
 .btl-card-name {
-  font-size: 9px;
+  font-size: 10px;
   color: #ccc;
   font-weight: 600;
   text-align: center;
@@ -184,8 +184,8 @@
   margin-top: 3px;
 }
 .btl-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: #2a2a3e;
   border: 1px solid #3a3a50;
@@ -463,8 +463,8 @@
   .btl-root { max-height: 100vh; }
   .btl-bottom { height: 280px; }
   .btl-party { width: 160px; }
-  .btl-card { width: 60px; }
-  .btl-card-img { width: 28px; height: 28px; }
+  .btl-card { width: 80px; }
+  .btl-card-img { width: 36px; height: 36px; }
 }
 
 /* ── Battle Prep Screen ── */
@@ -690,6 +690,7 @@
   transition: all 0.2s;
   color: white;
   text-align: left;
+  position: relative;
 }
 
 .prep-item-option:hover {
@@ -701,6 +702,57 @@
   background: rgba(252, 163, 17, 0.15);
   border-color: #fca311;
   box-shadow: 0 0 8px rgba(252, 163, 17, 0.3);
+}
+
+/* ── Item Tooltip ── */
+.prep-item-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(145deg, #1e1e2e, #14141e);
+  border: 1px solid rgba(232, 184, 75, 0.4);
+  border-radius: 8px;
+  padding: 10px 12px;
+  z-index: 200;
+  min-width: 220px;
+  max-width: 280px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+  pointer-events: none;
+  animation: btlFadeIn 0.15s ease;
+}
+.prep-item-option:hover .prep-item-tooltip { display: block; }
+.prep-tt-header {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #f5e6c8;
+}
+.prep-tt-effect {
+  font-size: 12px;
+  color: #8bd;
+  margin-bottom: 4px;
+}
+.prep-tt-mult {
+  font-size: 11px;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+.prep-tt-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+.prep-tt-trait-desc {
+  font-size: 10px;
+  color: #9a9;
+}
+.prep-item-quality {
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: block;
 }
 
 .prep-item-img {
