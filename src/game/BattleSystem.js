@@ -2,6 +2,8 @@ import { eventBus } from './core/EventBus.js';
 import { GameConfig } from './data/config.js';
 import { ItemBlueprints, TraitDefs } from './data/items.js';
 import { AdventurerDefs, UnlockableAdventurers } from './data/adventurers.js';
+import { AreaDefs } from './data/areas.js';
+import { ChallengeDefs } from './data/challenges.js';
 
 // 全冒険者定義を結合して高速ルックアップ
 const _allAdvDefs = [...AdventurerDefs, ...UnlockableAdventurers];
@@ -32,13 +34,23 @@ export class BattleSystem {
       const atk = bat.atk + (level - 1) * 2;
       const defStat = bat.def + (level - 1) * 1;
       
-      // equipment bonus (weapon value + trait passive effects)
+      // equipment bonus — 全スロット (weapon/armor/accessory) のステータスとトレイトを集計
       let eqAtk = 0, eqDef = 0, eqSpd = 0, eqHp = 0;
       let initialAtb = 0, regen = 0, dmgReduction = 0;
-      if (a.equipment?.weapon) {
-        const wVal = a.equipment.weapon.value || 0;
-        eqAtk += Math.floor(wVal / 10);
-        for (const traitName of (a.equipment.weapon.traits || [])) {
+      const eqCoeffs = GameConfig.equipStatCoefficients || {};
+      for (const slot of (GameConfig.equipmentSlots || ['weapon'])) {
+        const eq = a.equipment?.[slot];
+        if (!eq) continue;
+        // スロット固有のベースステータスボーナス
+        const coeff = eqCoeffs[slot];
+        if (coeff) {
+          const bonus = Math.floor((eq.value || 0) / coeff.divisor);
+          if (coeff.stat === 'atk') eqAtk += bonus;
+          else if (coeff.stat === 'def') eqDef += bonus;
+          else if (coeff.stat === 'spd') eqSpd += bonus;
+        }
+        // トレイト効果
+        for (const traitName of (eq.traits || [])) {
           const td = TraitDefs[traitName];
           if (!td?.effects) continue;
           eqAtk        += td.effects.battleAtk         || 0;
@@ -76,11 +88,11 @@ export class BattleSystem {
 
     // パーティ平均レベルに応じたボスステータスのスケーリング
     const avgLevel = participants.reduce((sum, a) => sum + a.level, 0) / participants.length;
-    const levelScale = 1 + (avgLevel - 1) * 0.05; // Lv1=1.0, Lv7=1.30, Lv10=1.45
+    const levelScale = 1 + (avgLevel - 1) * 0.06; // Lv1=1.0, Lv7=1.36, Lv10=1.54 (装備3スロット対応)
     const scaledMaxHp = Math.floor(bossDef.maxHp * levelScale);
     const scaledAtk = Math.floor(bossDef.atk * levelScale);
     const scaledDef = Math.floor(bossDef.def * levelScale);
-    const scaledSpd = Math.floor(bossDef.spd * (1 + (avgLevel - 1) * 0.025)); // SPDは控えめにスケール
+    const scaledSpd = Math.floor(bossDef.spd * (1 + (avgLevel - 1) * 0.03)); // SPDは控えめにスケール
 
     this.state = {
       rankIndex: rankIndex,
@@ -344,6 +356,131 @@ export class BattleSystem {
     return this.state;
   }
 
+  // ===== チャレンジモード =====
+
+  /** チャレンジを開始 */
+  startChallenge(challengeId, selectedItems = null) {
+    const challenge = ChallengeDefs.find(c => c.id === challengeId);
+    if (!challenge || challenge.waves.length === 0) return false;
+
+    this._challengeState = {
+      challengeId,
+      challenge,
+      currentWave: 0,
+      totalWaves: challenge.waves.length,
+      selectedItems,
+    };
+
+    // 第1ウェーブのボスで通常バトルを開始
+    const waveDef = challenge.waves[0];
+    const bossDef = this._findBossDef(waveDef.bossId);
+    if (!bossDef) return false;
+
+    // ステータス倍率を適用した仮想ボス定義
+    const scaledBoss = this._applyWaveMultiplier(bossDef, waveDef.statMultiplier);
+    const result = this.startBattle(0, scaledBoss, selectedItems);
+    if (!result) {
+      this._challengeState = null;
+      return false;
+    }
+
+    // チャレンジ用フラグをstateに追加
+    this.state.isChallenge = true;
+    this.state.challengeWave = 1;
+    this.state.challengeTotalWaves = challenge.waves.length;
+    this.state.challengeName = challenge.name;
+
+    eventBus.emit('challenge:waveStart', { wave: 1, totalWaves: challenge.waves.length, bossName: scaledBoss.name });
+    return true;
+  }
+
+  /** チャレンジの次ウェーブに進む（_doWin から呼ばれる） */
+  _advanceChallengeWave() {
+    const cs = this._challengeState;
+    if (!cs) return false;
+
+    cs.currentWave++;
+    if (cs.currentWave >= cs.totalWaves) {
+      // チャレンジ全クリア
+      this._challengeState = null;
+      eventBus.emit('challenge:complete', {
+        challengeId: cs.challengeId,
+        rewards: cs.challenge.rewards,
+      });
+      return false; // もうウェーブがないので通常のwin処理へ
+    }
+
+    // 次ウェーブ準備 — パーティのHP/バフを保持して新しいボスに切り替え
+    const waveDef = cs.challenge.waves[cs.currentWave];
+    const bossDef = this._findBossDef(waveDef.bossId);
+    if (!bossDef) return false;
+
+    const scaledBoss = this._applyWaveMultiplier(bossDef, waveDef.statMultiplier);
+
+    // ボスを差し替え
+    const avgLevel = this.state.adventurers.reduce((sum, a) => sum + a.level, 0) / this.state.adventurers.length;
+    const levelScale = 1 + (avgLevel - 1) * 0.06;
+
+    this.state.boss = {
+      id: scaledBoss.id,
+      name: scaledBoss.name,
+      icon: scaledBoss.icon,
+      preset: scaledBoss.preset || null,
+      hp: Math.floor(scaledBoss.maxHp * levelScale),
+      maxHp: Math.floor(scaledBoss.maxHp * levelScale),
+      baseAtk: Math.floor(scaledBoss.atk * levelScale),
+      baseDef: Math.floor(scaledBoss.def * levelScale),
+      baseSpd: Math.floor(scaledBoss.spd * (1 + (avgLevel - 1) * 0.03)),
+      atbGauge: 0,
+      activeBuffs: [],
+      stunTimer: 0,
+      phases: scaledBoss.phases || [],
+      triggeredPhases: [],
+      currentPhaseName: null,
+      skills: scaledBoss.skills || [],
+      healCooldownTimer: 0,
+    };
+
+    this.state.phase = 'fighting';
+    this.active = true;
+    this.state.challengeWave = cs.currentWave + 1;
+
+    this._log(`── Wave ${cs.currentWave + 1}/${cs.totalWaves} ──`);
+    this._log(`${scaledBoss.name}が現れた！`);
+
+    eventBus.emit('challenge:waveStart', {
+      wave: cs.currentWave + 1,
+      totalWaves: cs.totalWaves,
+      bossName: scaledBoss.name,
+    });
+    eventBus.emit('battle:tick', this.state);
+    return true;
+  }
+
+  /** AreaDefsからボスIDでボス定義を検索 */
+  _findBossDef(bossId) {
+    for (const area of Object.values(AreaDefs)) {
+      if (area.boss && area.boss.id === bossId) return area.boss;
+    }
+    return null;
+  }
+
+  /** ウェーブのステータス倍率を適用した仮想ボス定義を作成 */
+  _applyWaveMultiplier(bossDef, multiplier) {
+    return {
+      ...bossDef,
+      maxHp: Math.floor(bossDef.maxHp * multiplier),
+      atk: Math.floor(bossDef.atk * multiplier),
+      def: Math.floor(bossDef.def * multiplier),
+      spd: Math.floor(bossDef.spd * (1 + (multiplier - 1) * 0.5)), // SPDは控えめにスケール
+    };
+  }
+
+  /** チャレンジモード中かどうか */
+  get isInChallenge() {
+    return !!this._challengeState;
+  }
+
   dispose() { /* no EventBus subscriptions */ }
 
   // --- Private ---
@@ -592,6 +729,20 @@ export class BattleSystem {
 
   _doWin() {
     if (this.state.phase !== 'fighting') return; // already resolved
+
+    // チャレンジモード: 次ウェーブがあれば進行
+    if (this._challengeState) {
+      this._log('ボスを撃破した！');
+      eventBus.emit('challenge:waveComplete', {
+        wave: this._challengeState.currentWave + 1,
+        totalWaves: this._challengeState.totalWaves,
+      });
+      if (this._advanceChallengeWave()) {
+        return; // 次ウェーブに進んだ
+      }
+      // 全ウェーブクリア — 通常のwin処理へ
+    }
+
     this._log('ボスを撃破した！！');
     this.state.phase = 'win';
     this.active = false;

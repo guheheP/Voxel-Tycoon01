@@ -28,10 +28,24 @@ export class ShopSystem {
     };
     this.autoSellTimer = 0;
 
+    // 素材自動処分設定
+    this.autoDisposeEnabled = false;
+    this.autoDisposeMaxQuality = 30;  // この品質以下の素材を自動処分
+
+    // 探索帰還時に自動処分を実行
+    this._unsubAdventurerReturn = eventBus.on('adventurer:return', () => {
+      this.tryAutoDispose();
+    });
+
     // 他システムからアップグレードボーナスを同期取得するリスナー
     this._unsubUpgradeQuery = eventBus.on('upgrade:queryBonus', (query) => {
       query.result = this.getUpgradeBonus(query.effectType);
     });
+  }
+
+  dispose() {
+    this._unsubUpgradeQuery?.();
+    this._unsubAdventurerReturn?.();
   }
 
   /** 毎フレーム更新 — 自動販売チェック + オートセル */
@@ -247,6 +261,32 @@ export class ShopSystem {
       totalPrice += this.quickSell(uid, inventorySystem);
     }
     return totalPrice;
+  }
+
+  /** 素材自動処分 — 品質しきい値以下の素材を自動売却 */
+  tryAutoDispose() {
+    if (!this.autoDisposeEnabled) return;
+
+    const targets = this.inventory.items.filter(item =>
+      item.type === 'material' &&
+      !item.locked &&
+      item.quality <= this.autoDisposeMaxQuality
+    );
+    if (targets.length === 0) return;
+
+    let totalPrice = 0;
+    const uids = targets.map(i => i.uid);
+    for (const uid of uids) {
+      totalPrice += this.quickSell(uid, this.inventory);
+    }
+
+    if (totalPrice > 0) {
+      eventBus.emit('toast', {
+        message: `🗑 低品質素材を ${uids.length} 個自動処分しました（+${totalPrice}G）`,
+        type: 'info',
+      });
+      eventBus.emit('inventory:changed');
+    }
   }
 }
 

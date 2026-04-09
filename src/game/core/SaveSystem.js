@@ -7,8 +7,8 @@ import { AreaDefs } from '../data/areas.js';
 import { eventBus } from './EventBus.js';
 import { StatsTracker } from '../StatsTracker.js';
 
-const SAVE_KEY = 'voxelshop_save_v5';
-const LEGACY_KEYS = ['voxelshop_save_v4', 'voxelshop_save_v3', 'voxelshop_save_v2', 'voxelshop_save_v1'];
+const SAVE_KEY = 'voxelshop_save_v6';
+const LEGACY_KEYS = ['voxelshop_save_v5', 'voxelshop_save_v4', 'voxelshop_save_v3', 'voxelshop_save_v2', 'voxelshop_save_v1'];
 const AUTOSAVE_INTERVAL = 30;
 
 export class SaveSystem {
@@ -35,7 +35,7 @@ export class SaveSystem {
   save() {
     try {
       const data = {
-        version: 5,
+        version: 6,
         timestamp: Date.now(),
         gold: this.inventory.gold,
         maxCapacity: this.inventory.maxCapacity,
@@ -52,17 +52,25 @@ export class SaveSystem {
         })),
         maxSlots: this.shop.maxSlots,
         purchasedUpgrades: this.shop.purchasedUpgrades,
-        adventurers: this.adventurers.adventurers.map(a => ({
-          id: a.id,
-          level: a.level,
-          exp: a.exp,
-          assignedArea: a.assignedArea,
-          weapon: a.equipment.weapon ? {
-            blueprintId: a.equipment.weapon.blueprintId,
-            quality: a.equipment.weapon.quality,
-            traits: a.equipment.weapon.traits,
-          } : null,
-        })),
+        adventurers: this.adventurers.adventurers.map(a => {
+          const equipSave = {};
+          for (const slot of ['weapon', 'armor', 'accessory']) {
+            equipSave[slot] = a.equipment[slot] ? {
+              blueprintId: a.equipment[slot].blueprintId,
+              quality: a.equipment[slot].quality,
+              traits: a.equipment[slot].traits,
+            } : null;
+          }
+          return {
+            id: a.id,
+            level: a.level,
+            exp: a.exp,
+            assignedArea: a.assignedArea,
+            equipment: equipSave,
+            // 後方互換: v5ロード用
+            weapon: equipSave.weapon,
+          };
+        }),
         day: this.dayCycle.day,
         dayTimer: this.dayCycle.dayTimer,
         totalSales: this.dayCycle.totalSales,
@@ -74,13 +82,16 @@ export class SaveSystem {
         quest: this.quest ? this.quest.toSaveData() : null,
         rankBossAvailable: this.dayCycle.rankBossAvailable,
         defeatedBosses: this.dayCycle.defeatedBosses || [],
+        clearedChallenges: this.dayCycle.clearedChallenges || [],
         autoSellEnabled: this.shop.autoSellEnabled || false,
         autoSellRules: this.shop.autoSellRules || null,
+        autoDisposeEnabled: this.shop.autoDisposeEnabled || false,
+        autoDisposeMaxQuality: this.shop.autoDisposeMaxQuality ?? 30,
         collection: this.collection ? this.collection.toSaveData() : null,
         autoCraft: this.autoCraft ? this.autoCraft.toSaveData() : null,
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-      console.log('[Save] ゲームを保存しました (v5)');
+      console.log('[Save] ゲームを保存しました (v6)');
       eventBus.emit('save:completed');
     } catch (e) {
       console.error('[Save] 保存失敗:', e);
@@ -147,10 +158,27 @@ export class SaveSystem {
              data.rankBossAvailable = data.rankBossAvailable ?? false;
              data.defeatedBosses = data.defeatedBosses || [];
           }
-          data.version = 5;
+          // v6未満 → v6 フィールド補完 (3スロット装備 + 自動処分)
+          if (data.version < 6) {
+             // 冒険者の装備データを3スロット形式にマイグレーション
+             if (data.adventurers) {
+               for (const adv of data.adventurers) {
+                 if (!adv.equipment) {
+                   adv.equipment = {
+                     weapon: adv.weapon || null,
+                     armor: null,
+                     accessory: null,
+                   };
+                 }
+               }
+             }
+             data.autoDisposeEnabled = data.autoDisposeEnabled ?? false;
+             data.autoDisposeMaxQuality = data.autoDisposeMaxQuality ?? 30;
+          }
+          data.version = 6;
           localStorage.removeItem(key);
           localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-          console.log(`[Save] ${key} → v5 マイグレーション完了`);
+          console.log(`[Save] ${key} → v6 マイグレーション完了`);
           return data;
         }
       }

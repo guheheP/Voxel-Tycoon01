@@ -38,6 +38,9 @@ export class BattleScreen {
       eventBus.on('battle:se:stun', () => this._animateItemFx('stun')),
       eventBus.on('battle:se:buff', () => this._animateItemFx('buff')),
       eventBus.on('battle:se:debuff', () => this._animateItemFx('debuff')),
+      // チャレンジモード: ウェーブ進行時にボスUIを更新
+      eventBus.on('challenge:waveStart', (d) => this._onChallengeWaveStart(d)),
+      eventBus.on('challenge:complete', (d) => this._onChallengeComplete(d)),
     ];
   }
 
@@ -88,7 +91,8 @@ export class BattleScreen {
         <div class="battle-header">
            <div class="boss-info">
              <div class="boss-icon" id="boss-icon">${state.boss.icon}</div>
-             <div class="boss-name">${state.boss.name}</div>
+             <div class="boss-name">${state.boss.name}${state.isChallenge ? ` <span class="challenge-wave-badge">Wave ${state.challengeWave}/${state.challengeTotalWaves}</span>` : ''}</div>
+             ${state.isChallenge ? `<div class="challenge-name-badge">${state.challengeName}</div>` : ''}
              <div class="bar-container">
                <div class="bar-fill hp-fill boss-hp" id="boss-hp-fill" style="width:100%"></div>
              </div>
@@ -635,6 +639,39 @@ export class BattleScreen {
     });
     selectOverlay.querySelector('.target-select-cancel').addEventListener('click', () => {
       selectOverlay.remove();
+    });
+  }
+
+  /** チャレンジモード: 新ウェーブ開始時にボスUI更新 */
+  _onChallengeWaveStart(data) {
+    if (!this.overlay || !this.state) return;
+    const s = this.state;
+    // ボス名更新
+    const bossNameEl = this.overlay.querySelector('.boss-name');
+    if (bossNameEl) {
+      bossNameEl.innerHTML = `${s.boss.name} <span class="challenge-wave-badge">Wave ${data.wave}/${data.totalWaves}</span>`;
+    }
+    // ボスアイコン更新
+    const bossIconEl = this.overlay.querySelector('#boss-icon');
+    if (bossIconEl) {
+      bossIconEl.textContent = s.boss.icon;
+    }
+    // 3Dシーン: 新ボスのプリセットをロード
+    if (this._load3DBoss) this._load3DBoss();
+  }
+
+  /** チャレンジモード: 全ウェーブクリア */
+  _onChallengeComplete(data) {
+    if (!this.overlay) return;
+    const rewards = data.rewards || {};
+    const goldReward = rewards.gold || 0;
+    // 報酬付与
+    if (goldReward > 0 && this.inventory) {
+      this.inventory.addGold(goldReward);
+    }
+    eventBus.emit('toast', {
+      message: `👑 チャレンジクリア！ 報酬: ${goldReward}G`,
+      type: 'success',
     });
   }
 

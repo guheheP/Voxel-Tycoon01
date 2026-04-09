@@ -4,7 +4,7 @@
  */
 import { GameConfig } from './data/config.js';
 import { AreaDefs } from './data/areas.js';
-import { ItemBlueprints, TraitDefs } from './data/items.js';
+import { ItemBlueprints, TraitDefs, getEquipSlot } from './data/items.js';
 import { AdventurerDefs, LevelExpTable, LevelBonuses } from './data/adventurers.js';
 import { eventBus } from './core/EventBus.js';
 import { StatsTracker } from './StatsTracker.js';
@@ -28,7 +28,7 @@ export class AdventurerSystem {
         maxTimer: 0,
         assignedArea: 'plains',
         currentArea: null,
-        equipment: { weapon: null },
+        equipment: { weapon: null, armor: null, accessory: null },
       });
     });
 
@@ -44,7 +44,7 @@ export class AdventurerSystem {
         exploreTimeMultiplier: def.exploreTimeMultiplier,
         assignedArea: 'plains',
         currentArea: null, level: 1, exp: 0,
-        equipment: { weapon: null },
+        equipment: { weapon: null, armor: null, accessory: null },
       };
       this.adventurers.push(adv);
       eventBus.emit('adventurer:joined', { adventurer: adv });
@@ -123,18 +123,26 @@ export class AdventurerSystem {
     return Math.min(100, Math.max(10, rate));
   }
 
-  /** 装備の特性効果を集計 */
-  _getWeaponTraitEffects(adv) {
+  /** 全装備スロットの特性効果を集計 */
+  _getEquipmentTraitEffects(adv) {
     const result = {};
-    if (!adv.equipment.weapon || !adv.equipment.weapon.traits) return result;
-    for (const traitName of adv.equipment.weapon.traits) {
-      const def = TraitDefs[traitName];
-      if (!def || !def.effects) continue;
-      for (const [key, val] of Object.entries(def.effects)) {
-        result[key] = (result[key] || 0) + val;
+    for (const slot of GameConfig.equipmentSlots) {
+      const eq = adv.equipment[slot];
+      if (!eq || !eq.traits) continue;
+      for (const traitName of eq.traits) {
+        const def = TraitDefs[traitName];
+        if (!def || !def.effects) continue;
+        for (const [key, val] of Object.entries(def.effects)) {
+          result[key] = (result[key] || 0) + val;
+        }
       }
     }
     return result;
+  }
+
+  /** 後方互換: 旧名 _getWeaponTraitEffects → _getEquipmentTraitEffects */
+  _getWeaponTraitEffects(adv) {
+    return this._getEquipmentTraitEffects(adv);
   }
 
   /** 探索完了 */
@@ -174,17 +182,20 @@ export class AdventurerSystem {
         const bp = ItemBlueprints[selectedItemId];
         if (!bp) continue;
 
-        // ── 品質計算（装備品質がメインドライバー） ──
+        // ── 品質計算（全装備品質の平均がメインドライバー） ──
         const areaMinQ = area.qualityMin || GameConfig.exploreQualityMin || 10;
         const areaMaxQ = area.qualityMax || GameConfig.exploreQualityMax || 50;
         let quality;
 
-        if (adv.equipment.weapon) {
-          // 装備あり: 装備品質を基準にエリア範囲内でスケール
-          // weaponQ=1→ areaMin付近, weaponQ=100→ areaMax付近
-          const weaponQ = adv.equipment.weapon.quality;
-          const baseQ = areaMinQ + (areaMaxQ - areaMinQ) * (weaponQ / 100);
-          // ランダム揺らぎ ±10%
+        // 全装備の品質平均を計算
+        const eqQualities = [];
+        for (const slot of GameConfig.equipmentSlots) {
+          if (adv.equipment[slot]) eqQualities.push(adv.equipment[slot].quality);
+        }
+
+        if (eqQualities.length > 0) {
+          const avgEqQ = eqQualities.reduce((s, q) => s + q, 0) / eqQualities.length;
+          const baseQ = areaMinQ + (areaMaxQ - areaMinQ) * (avgEqQ / 100);
           const spread = (areaMaxQ - areaMinQ) * 0.1;
           quality = Math.round(baseQ + (Math.random() * spread * 2 - spread));
         } else {
@@ -294,42 +305,59 @@ export class AdventurerSystem {
     }
   }
 
+  /** アイテムの装備スロットを判定 */
+  getItemSlot(item) {
+    return getEquipSlot(item);
+  }
+
   /** 冒険者がアイテムを装備可能か判定 */
   canEquip(advId, item) {
     const adv = this.adventurers.find(a => a.id === advId);
     if (!adv) return false;
-    if (!adv.allowedEquipTypes || adv.allowedEquipTypes.length === 0) return true;
     const bp = ItemBlueprints[item.blueprintId];
-    if (!bp || !bp.equipType) return true; // equipType未定義のアイテムは誰でも装備可
+    if (!bp) return false;
+    const slot = getEquipSlot(item);
+    if (!slot) return false;
+    // アクセサリは全職業装備可能
+    if (slot === 'accessory') return true;
+    // weapon/armorはallowedEquipTypesでチェック
+    if (!adv.allowedEquipTypes || adv.allowedEquipTypes.length === 0) return true;
     return adv.allowedEquipTypes.includes(bp.equipType);
   }
 
-  /** 装備 */
-  equipWeapon(advId, itemUid) {
+  /** 汎用装備 — スロットを自動判定して装備 */
+  equipItem(advId, itemUid) {
     const adv = this.adventurers.find(a => a.id === advId);
     if (!adv) return false;
-    // 装備タイプ制限チェック
     const candidate = this.inventory.items.find(i => i.uid === itemUid);
-    if (candidate && !this.canEquip(advId, candidate)) return false;
+    if (!candidate || !this.canEquip(advId, candidate)) return false;
+    const slot = getEquipSlot(candidate);
+    if (!slot) return false;
     const item = this.inventory.removeItem(itemUid);
     if (!item) return false;
 
-    if (adv.equipment.weapon) {
-      this.inventory.addItem(adv.equipment.weapon);
+    // 既に装備中のアイテムをインベントリに戻す
+    if (adv.equipment[slot]) {
+      this.inventory.addItem(adv.equipment[slot]);
     }
-    adv.equipment.weapon = item;
+    adv.equipment[slot] = item;
     eventBus.emit('inventory:changed');
     return true;
   }
 
-  unequipWeapon(advId) {
+  /** 汎用解除 */
+  unequipItem(advId, slot) {
     const adv = this.adventurers.find(a => a.id === advId);
-    if (!adv || !adv.equipment.weapon) return false;
-    this.inventory.addItem(adv.equipment.weapon);
-    adv.equipment.weapon = null;
+    if (!adv || !adv.equipment[slot]) return false;
+    this.inventory.addItem(adv.equipment[slot]);
+    adv.equipment[slot] = null;
     eventBus.emit('inventory:changed');
     return true;
   }
+
+  /** 後方互換: 旧API */
+  equipWeapon(advId, itemUid) { return this.equipItem(advId, itemUid); }
+  unequipWeapon(advId) { return this.unequipItem(advId, 'weapon'); }
 
   getAdventurers() { return this.adventurers; }
   getUnlockedAreas() { return Object.values(AreaDefs).filter(a => a.unlocked); }
