@@ -34,7 +34,6 @@ export class BattleCanvas {
     this.H = 160;
     this._advs = [];
     this._boss = null;
-    this._popups = [];
     this._time = 0;
     this._animId = null;
     this._disposed = false;
@@ -92,15 +91,14 @@ export class BattleCanvas {
   }
 
   // ── ポップアップ ──
-  spawnPopup(text, x, y, color = '#fff') {
-    this._popups.push({ text, x, y, vy: -0.8, life: 60, maxLife: 60, color });
-  }
-  spawnBossPopup(text, color = '#ffaa33') {
-    this.spawnPopup(text, this._boss.x, this._boss.y - 36, color);
-  }
-  spawnAdvPopup(advId, text, color = '#ff4444') {
+  /** 冒険者の画面上の相対位置を返す（DOMポップアップ配置用） */
+  getAdvPosition(advId) {
     const e = this._advs.find(a => a.id === advId);
-    if (e) this.spawnPopup(text, e.x + 4, e.y - 28, color);
+    if (!e) return null;
+    return { xPct: e.x / this.W, yPct: (e.y - 20) / this.H };
+  }
+  getBossPosition() {
+    return { xPct: this._boss.x / this.W, yPct: (this._boss.y - 30) / this.H };
   }
 
   // ── アニメーション ──
@@ -160,12 +158,6 @@ export class BattleCanvas {
       if (a.flash > 0) a.flash = Math.max(0, a.flash - dt * 20);
       if (a.attackAnim > 0) a.attackAnim = Math.max(0, a.attackAnim - dt * 24);
     }
-    // ポップアップ
-    for (const p of this._popups) {
-      p.y += p.vy;
-      p.life--;
-    }
-    this._popups = this._popups.filter(p => p.life > 0);
   }
 
   _draw() {
@@ -239,20 +231,6 @@ export class BattleCanvas {
     this._drawBoss(ctx, bx, by, this._boss.palette);
     ctx.globalAlpha = 1;
 
-    // ── ポップアップ ──
-    for (const p of this._popups) {
-      const alpha = Math.min(1, p.life / 15);
-      const scale = p.life > p.maxLife - 8 ? 1 + (p.maxLife - p.life) * 0.02 : 1;
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = '#000';
-      ctx.font = `bold ${Math.round(8 * scale)}px monospace`;
-      ctx.textAlign = 'center';
-      ctx.fillText(p.text, p.x + 1, p.y + 1);
-      ctx.fillStyle = p.color;
-      ctx.fillText(p.text, p.x, p.y);
-    }
-    ctx.globalAlpha = 1;
-    ctx.textAlign = 'start';
   }
 
   // ── 冒険者スプライト ──
