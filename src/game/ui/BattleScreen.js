@@ -17,7 +17,7 @@ export class BattleScreen {
     this.state = null;
     this.itemsWithEffects = [];
     this._lastUsesKey = '';
-    this._lastLogLength = 0;
+    this._lastLogTime = 0; // ログ追跡: タイムスタンプベース
     this._els = {};
     this._lastBuffKeys = {};
     this._resultShown = false;
@@ -58,7 +58,7 @@ export class BattleScreen {
   // ══════════════════════════════════════════════
   show(state) {
     this.state = state;
-    this._lastLogLength = 0;
+    this._lastLogTime = 0;
     this._lastUsesKey = '';
     this._resultShown = false;
     this._clearAllTimers();
@@ -264,11 +264,13 @@ export class BattleScreen {
       }
     }
 
-    // ── ログからポップアップ生成 ──
-    if (state.log.length !== this._lastLogLength) {
-      const newEntries = state.log.slice(0, state.log.length - this._lastLogLength);
-      this._lastLogLength = state.log.length;
-      for (const entry of newEntries) this._processLogForPopup(entry.msg);
+    // ── ログからポップアップ生成（タイムスタンプで新着を検知） ──
+    if (state.log.length > 0) {
+      const newEntries = state.log.filter(e => e.time > this._lastLogTime);
+      if (newEntries.length > 0) {
+        this._lastLogTime = Math.max(...newEntries.map(e => e.time));
+        for (const entry of newEntries) this._processLogForPopup(entry.msg);
+      }
     }
 
     // ── アイテムカード更新 ──
@@ -294,12 +296,14 @@ export class BattleScreen {
   //  ログ → ポップアップ変換
   // ══════════════════════════════════════════════
   _processLogForPopup(msg) {
-    if (!this._canvas) return;
+    const scene = this.overlay?.querySelector('#btl-scene');
+    if (!scene || !this._canvas) return;
 
     // ボスへのダメージ
     const bossDmg = msg.match(/ボスに (\d+) (?:のダメージ|ダメージ)/);
     if (bossDmg) {
-      this._canvas.spawnBossPopup(`-${bossDmg[1]}`, '#ffaa33');
+      const pos = this._canvas.getBossPosition();
+      this._spawnDomPopup(scene, `-${bossDmg[1]}`, pos, 'btl-pop-dmg');
       return;
     }
 
@@ -308,7 +312,10 @@ export class BattleScreen {
     if (advDmg) {
       const name = advDmg[1].replace(/^.*?！ /, '');
       const adv = this.state?.adventurers.find(a => a.name === name);
-      if (adv) this._canvas.spawnAdvPopup(adv.id, `-${advDmg[2]}`, '#ff4444');
+      if (adv) {
+        const pos = this._canvas.getAdvPosition(adv.id);
+        if (pos) this._spawnDomPopup(scene, `-${advDmg[2]}`, pos, 'btl-pop-hit');
+      }
       return;
     }
 
@@ -316,15 +323,22 @@ export class BattleScreen {
     const heal = msg.match(/(.+?)のHPが (\d+) 回復/);
     if (heal) {
       const adv = this.state?.adventurers.find(a => a.name === heal[1]);
-      if (adv) this._canvas.spawnAdvPopup(adv.id, `+${heal[2]}`, '#44ff66');
-      return;
+      if (adv) {
+        const pos = this._canvas.getAdvPosition(adv.id);
+        if (pos) this._spawnDomPopup(scene, `+${heal[2]}`, pos, 'btl-pop-heal');
+      }
     }
+  }
 
-    // チェイン
-    const chain = msg.match(/(\d+) Chain/);
-    if (chain) {
-      this._canvas.spawnBossPopup(`${chain[1]}Chain!`, '#ffd700');
-    }
+  /** DOMベースのダメージポップアップを生成 */
+  _spawnDomPopup(container, text, pos, cls) {
+    const el = document.createElement('div');
+    el.className = `btl-popup ${cls}`;
+    el.textContent = text;
+    el.style.left = `${pos.xPct * 100}%`;
+    el.style.top = `${pos.yPct * 100}%`;
+    container.appendChild(el);
+    this._trackedTimeout(() => el.remove(), 900);
   }
 
   // ══════════════════════════════════════════════
@@ -384,6 +398,7 @@ export class BattleScreen {
     if (!this.overlay || this._resultShown) return;
     this._resultShown = true;
     this._clearAllTimers();
+    this._disposeCanvas(); // バトル終了時にキャンバスを即座に破棄（OOM防止）
 
     let titleHtml, detailHtml = '', confetti = '';
 
@@ -424,7 +439,7 @@ export class BattleScreen {
     this.overlay.appendChild(res);
 
     res.querySelector('#btn-close-result').addEventListener('click', () => {
-      this._disposeCanvas();
+      this._disposeCanvas(); // 既に破棄済みでも安全
       eventBus.emit('game:resume');
       this.overlay.remove();
       this.overlay = null;
