@@ -44,10 +44,11 @@ class SoundManagerClass {
     this.proceduralActive = false;
     this._bgmTimeout = null;
 
-    // --- SE ノード管理（メモリリーク防止） ---
+    // --- Audio ノード管理（メモリリーク防止） ---
     this._noiseBufferCache = null;   // ノイズバッファのキャッシュ
     this._activeSeNodes = [];        // アクティブなSEノード追跡
     this._maxSeNodes = 12;           // 同時SE上限
+    this._activeBgmNodes = [];       // プロシージャルBGMノード追跡
 
     // Load saved settings
     const saved = localStorage.getItem('voxelshop_sound');
@@ -411,6 +412,15 @@ class SoundManagerClass {
       clearTimeout(this._bgmTimeout);
       this._bgmTimeout = null;
     }
+    // プロシージャルBGMノードを全切断
+    for (const n of this._activeBgmNodes) {
+      try {
+        if (n.source) { n.source.stop?.(); n.source.disconnect(); }
+        if (n.filter) n.filter.disconnect();
+        if (n.gain) n.gain.disconnect();
+      } catch { /* already disconnected */ }
+    }
+    this._activeBgmNodes.length = 0;
   }
 
   _playProceduralLoop() {
@@ -443,7 +453,13 @@ class SoundManagerClass {
     gain.connect(this.bgmGain);
     osc.start(startTime);
     osc.stop(startTime + duration + 0.1);
-    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+    const node = { source: osc, gain };
+    this._activeBgmNodes.push(node);
+    osc.onended = () => {
+      osc.disconnect(); gain.disconnect();
+      const idx = this._activeBgmNodes.indexOf(node);
+      if (idx !== -1) this._activeBgmNodes.splice(idx, 1);
+    };
   }
 
   _playPad(rootFreq, startTime, duration) {
@@ -466,7 +482,13 @@ class SoundManagerClass {
       gain.connect(this.bgmGain);
       osc.start(startTime);
       osc.stop(startTime + duration + 0.1);
-      osc.onended = () => { osc.disconnect(); filter.disconnect(); gain.disconnect(); };
+      const node = { source: osc, filter, gain };
+      this._activeBgmNodes.push(node);
+      osc.onended = () => {
+        osc.disconnect(); filter.disconnect(); gain.disconnect();
+        const idx = this._activeBgmNodes.indexOf(node);
+        if (idx !== -1) this._activeBgmNodes.splice(idx, 1);
+      };
     });
   }
 
