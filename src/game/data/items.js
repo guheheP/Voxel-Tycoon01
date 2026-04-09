@@ -113,7 +113,7 @@ export const ItemBlueprints = {
   potion: { id: 'potion', name: '回復薬', type: 'consumable', baseValue: 18, image: '/art/items/potion.png', battleEffect: { type: 'heal', target: 'ally', value: 40 } },
   wooden_bow: { id: 'wooden_bow', name: '木の弓', type: 'equipment', equipType: 'bow', baseValue: 30, image: '/art/items/wooden_bow.png' },
   herb_tea: { id: 'herb_tea', name: 'ハーブティー', type: 'consumable', baseValue: 12, image: '/art/items/herb_tea.png', battleEffect: { type: 'heal', target: 'ally', value: 20 } },
-  stone_axe: { id: 'stone_axe', name: '石斧', type: 'equipment', equipType: 'dagger', baseValue: 28, image: '/art/items/stone_axe.png' },
+  stone_axe: { id: 'stone_axe', name: '石斧', type: 'equipment', equipType: 'sword', baseValue: 28, image: '/art/items/stone_axe.png' },
   clay_pot: { id: 'clay_pot', name: '粘土の壺', type: 'accessory', baseValue: 22, image: '/art/items/clay_pot.png' },
   antidote_basic: { id: 'antidote_basic', name: '毒消し薬', type: 'consumable', baseValue: 20, image: '/art/items/antidote.png', battleEffect: { type: 'buff', target: 'ally', stat: 'def', amount: 5, duration: 15 } },
   mud_ball: { id: 'mud_ball', name: '泥団子', type: 'consumable', baseValue: 8, image: '/art/items/mud_ball.png', battleEffect: { type: 'debuff', target: 'enemy', stat: 'spd', amount: -10, duration: 10 } },
