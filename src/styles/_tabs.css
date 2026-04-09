@@ -1024,20 +1024,38 @@
   box-shadow: 0 0 6px rgba(125, 170, 104, 0.2);
 }
 
+/* ── Equipment Slots Row (3-slot layout) ── */
+.disp-equip-slots-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.disp-equip-slot-label {
+  display: block;
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
 /* ── Equipment Slot ── */
 .disp-equip-slot {
   cursor: pointer;
-  margin-bottom: 6px;
+  margin-bottom: 0;
 }
 .disp-equip-empty {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 6px;
   border: 1px dashed rgba(160, 132, 92, 0.25);
   border-radius: var(--radius-sm);
   background: rgba(0, 0, 0, 0.1);
   transition: all 0.15s;
+  min-height: 36px;
 }
 .disp-equip-slot:hover .disp-equip-empty {
   border-color: rgba(232, 184, 75, 0.35);

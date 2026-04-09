@@ -188,7 +188,7 @@ async function startGame(saveData) {
   // UI初期化（前回のインスタンスをクリーンアップ）
   if (uiManager) uiManager.dispose();
   if (toastManager) toastManager.dispose();
-  uiManager = new UIManager(inventorySystem, shopSystem, adventurerSystem, customerSystem, dayCycleSystem, randomEventSystem, reputationSystem, questSystem, collectionSystem);
+  uiManager = new UIManager(inventorySystem, shopSystem, adventurerSystem, customerSystem, dayCycleSystem, randomEventSystem, reputationSystem, questSystem, collectionSystem, battleSystem);
   toastManager = new ToastManager();
   gameOverScreen = new GameOverScreen();
 
@@ -218,7 +218,18 @@ async function startGame(saveData) {
       }
     }),
     eventBus.on('battle:prepComplete', (d) => {
-      battleSystem.startBattle(d.rankIndex, d.bossDef, d.selectedItems);
+      // チャレンジモードの場合はstartChallengeを使用
+      if (d.challengeId) {
+        battleSystem.startChallenge(d.challengeId, d.selectedItems);
+      } else {
+        battleSystem.startBattle(d.rankIndex, d.bossDef, d.selectedItems);
+      }
+    }),
+    // チャレンジモード開始リクエスト → BattlePrepScreen表示
+    eventBus.on('challenge:requestStart', (d) => {
+      if (battlePrepScreen) {
+        battlePrepScreen.showChallenge(d.challengeId);
+      }
     }),
     eventBus.on('battle:command', (d) => {
       if (d.action === 'flee') battleSystem.flee();
@@ -310,6 +321,7 @@ function _applySaveData(data) {
   dayCycleSystem.currentRankIndex = data.currentRankIndex || 0;
   dayCycleSystem.rankBossAvailable = data.rankBossAvailable || false;
   dayCycleSystem.defeatedBosses = data.defeatedBosses || [];
+  dayCycleSystem.clearedChallenges = data.clearedChallenges || [];
 
   // アップグレード復元
   if (data.purchasedUpgrades) {
@@ -336,6 +348,14 @@ function _applySaveData(data) {
     Object.assign(shopSystem.autoSellRules, data.autoSellRules);
   }
 
+  // 素材自動処分の復元
+  if (data.autoDisposeEnabled != null) {
+    shopSystem.autoDisposeEnabled = data.autoDisposeEnabled;
+  }
+  if (data.autoDisposeMaxQuality != null) {
+    shopSystem.autoDisposeMaxQuality = data.autoDisposeMaxQuality;
+  }
+
   // オート調合の復元
   if (data.autoCraft && autoCraftSystem) {
     autoCraftSystem.loadSaveData(data.autoCraft);
@@ -356,7 +376,7 @@ function _applySaveData(data) {
             exploreTimeMultiplier: def.exploreTimeMultiplier,
             assignedArea: 'plains',
             currentArea: null, level: 1, exp: 0,
-            equipment: { weapon: null },
+            equipment: { weapon: null, armor: null, accessory: null },
           };
           adventurerSystem.adventurers.push(adv);
         }
@@ -366,12 +386,20 @@ function _applySaveData(data) {
         adv.level = savedAdv.level || 1;
         adv.exp = savedAdv.exp || 0;
         adv.assignedArea = savedAdv.assignedArea || 'plains';
-        if (savedAdv.weapon) {
-          try {
-            adv.equipment.weapon = createItemInstance(savedAdv.weapon.blueprintId, savedAdv.weapon.quality, savedAdv.weapon.traits);
-          } catch (e) {
-            console.warn('[Load] 不明な武器をスキップ:', savedAdv.weapon.blueprintId, e.message);
-            adv.equipment.weapon = null;
+
+        // 3スロット装備の復元 (v6+: equipment オブジェクト, v5: weapon のみ)
+        const eqData = savedAdv.equipment || { weapon: savedAdv.weapon || null, armor: null, accessory: null };
+        for (const slot of ['weapon', 'armor', 'accessory']) {
+          const slotData = eqData[slot];
+          if (slotData) {
+            try {
+              adv.equipment[slot] = createItemInstance(slotData.blueprintId, slotData.quality, slotData.traits);
+            } catch (e) {
+              console.warn(`[Load] 不明な装備をスキップ (${slot}):`, slotData.blueprintId, e.message);
+              adv.equipment[slot] = null;
+            }
+          } else {
+            adv.equipment[slot] = null;
           }
         }
       }

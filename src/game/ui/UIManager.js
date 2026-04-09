@@ -25,7 +25,7 @@ const TIME_SUNSET_END = 0.80;  // 〜80%: 夕方
 const AMBIENT_PARTICLE_COUNT = 15;  // 環境パーティクル数
 
 export class UIManager {
-  constructor(inventorySystem, shopSystem, adventurerSystem, customerSystem, dayCycleSystem, randomEventSystem, reputationSystem, questSystem, collectionSystem) {
+  constructor(inventorySystem, shopSystem, adventurerSystem, customerSystem, dayCycleSystem, randomEventSystem, reputationSystem, questSystem, collectionSystem, battleSystem) {
     this.inventory = inventorySystem;
     this.shop = shopSystem;
     this.customer = customerSystem;
@@ -69,7 +69,7 @@ export class UIManager {
       'tab-shop':      new ShopTab(inventorySystem, shopSystem, customerSystem),
       'tab-dispatch':  new DispatchTab(adventurerSystem, inventorySystem),
       'tab-stats':     new StatsTab(dayCycleSystem, reputationSystem),
-      'tab-upgrade':   new UpgradeTab(inventorySystem, shopSystem, dayCycleSystem),
+      'tab-upgrade':   new UpgradeTab(inventorySystem, shopSystem, dayCycleSystem, battleSystem),
       'tab-quest':     new QuestTab(dayCycleSystem, questSystem, adventurerSystem),
       'tab-collection': collectionSystem ? new CollectionTab(collectionSystem) : null,
     };

@@ -8,6 +8,8 @@ import { eventBus } from '../core/EventBus.js';
 import { ItemBlueprints, TraitDefs } from '../data/items.js';
 import { AdventurerDefs, UnlockableAdventurers } from '../data/adventurers.js';
 import { GameConfig } from '../data/config.js';
+import { ChallengeDefs } from '../data/challenges.js';
+import { AreaDefs } from '../data/areas.js';
 import { assetPath } from '../core/assetPath.js';
 
 const _allAdvDefs = [...AdventurerDefs, ...UnlockableAdventurers];
@@ -27,6 +29,7 @@ export class BattlePrepScreen {
     const rankDef = GameConfig.ranks[rankIdx];
     this.maxSlots = this._calcMaxSlots(rankIdx);
     this._pendingBattle = null; // { rankIndex, bossDef }
+    this._pendingChallengeId = null; // チャレンジモード用
   }
 
   /** 持ち込み枠数を計算（ランク基準 + アップグレードボーナス） */
@@ -110,6 +113,32 @@ export class BattlePrepScreen {
     this._bindEvents(battleItems);
   }
 
+  /** チャレンジモード用の準備画面表示 */
+  showChallenge(challengeId) {
+    const challenge = ChallengeDefs.find(c => c.id === challengeId);
+    if (!challenge || challenge.waves.length === 0) return;
+
+    // 最初のウェーブのボス情報を表示用に取得
+    const firstWave = challenge.waves[0];
+    let firstBoss = null;
+    for (const area of Object.values(AreaDefs)) {
+      if (area.boss && area.boss.id === firstWave.bossId) {
+        firstBoss = area.boss;
+        break;
+      }
+    }
+    if (!firstBoss) return;
+
+    // 通常のshow()を仮想ボス情報で呼び出し
+    this._pendingChallengeId = challengeId;
+    const virtualBoss = {
+      ...firstBoss,
+      name: `${challenge.name}（${challenge.waves.length}ウェーブ）`,
+    };
+    this._pendingBattle = { rankIndex: 0, bossDef: virtualBoss };
+    this.show(0, virtualBoss);
+  }
+
   _renderAdvCard(adv) {
     const def = _getAdvDef(adv.id);
     const bat = (def && def.battle) || { maxHp: 100, atk: 10, def: 5, spd: 50 };
@@ -119,12 +148,20 @@ export class BattlePrepScreen {
     const baseDef = bat.def + (level - 1) * 1;
     const baseSpd = bat.spd + (level - 1) * 2;
 
-    // 装備ボーナス計算
+    // 装備ボーナス計算 (全スロット)
     let eqAtk = 0, eqDef = 0, eqSpd = 0, eqHp = 0;
-    if (adv.equipment?.weapon) {
-      const wVal = adv.equipment.weapon.value || 0;
-      eqAtk += Math.floor(wVal / 10);
-      for (const traitName of (adv.equipment.weapon.traits || [])) {
+    const eqCoeffs = GameConfig.equipStatCoefficients || {};
+    for (const slot of (GameConfig.equipmentSlots || ['weapon'])) {
+      const eq = adv.equipment?.[slot];
+      if (!eq) continue;
+      const coeff = eqCoeffs[slot];
+      if (coeff) {
+        const bonus = Math.floor((eq.value || 0) / coeff.divisor);
+        if (coeff.stat === 'atk') eqAtk += bonus;
+        else if (coeff.stat === 'def') eqDef += bonus;
+        else if (coeff.stat === 'spd') eqSpd += bonus;
+      }
+      for (const traitName of (eq.traits || [])) {
         const td = TraitDefs[traitName];
         if (!td?.effects) continue;
         eqAtk += td.effects.battleAtk  || 0;
@@ -142,7 +179,12 @@ export class BattlePrepScreen {
     const formatStat = (total, bonus) => bonus > 0
       ? `${total} <span class="prep-stat-bonus">(+${bonus})</span>` : `${total}`;
 
-    const weaponName = adv.equipment?.weapon ? adv.equipment.weapon.name : null;
+    // 装備名一覧
+    const equipNames = [];
+    for (const slot of (GameConfig.equipmentSlots || ['weapon'])) {
+      const eq = adv.equipment?.[slot];
+      if (eq) equipNames.push(eq.name);
+    }
 
     return `
       <div class="prep-adv-card">
@@ -155,7 +197,7 @@ export class BattlePrepScreen {
             <span>🛡 ${formatStat(totalDef, eqDef)}</span>
             <span>💨 ${formatStat(totalSpd, eqSpd)}</span>
           </div>
-          ${weaponName ? `<div class="prep-adv-equip">🗡️ ${weaponName}</div>` : '<div class="prep-adv-equip prep-no-equip">装備なし</div>'}
+          ${equipNames.length > 0 ? `<div class="prep-adv-equip">🗡️ ${equipNames.join(' / ')}</div>` : '<div class="prep-adv-equip prep-no-equip">装備なし</div>'}
         </div>
       </div>
     `;
@@ -222,8 +264,10 @@ export class BattlePrepScreen {
       if (!this._pendingBattle) return;
       const { rankIndex, bossDef } = this._pendingBattle;
       const selectedUids = [...this.selectedItems];
+      const challengeId = this._pendingChallengeId;
+      this._pendingChallengeId = null;
       this._close();
-      eventBus.emit('battle:prepComplete', { rankIndex, bossDef, selectedItems: selectedUids });
+      eventBus.emit('battle:prepComplete', { rankIndex, bossDef, selectedItems: selectedUids, challengeId });
     });
 
     // オーバーレイ背景クリックで閉じない（意図しない操作防止）

@@ -24,6 +24,7 @@ export class DayCycleSystem {
     this.currentRankIndex = 0;
     this.rankBossAvailable = false;
     this.defeatedBosses = [];
+    this.clearedChallenges = []; // チャレンジモードのクリア状況
 
     // 売上追跡
     this._unsubs = [];
@@ -53,6 +54,13 @@ export class DayCycleSystem {
        if (d.rankIndex != null) {
          this._doRankUp(d.rankIndex);
        }
+    }));
+
+    // チャレンジクリアイベント
+    this._unsubs.push(eventBus.on('challenge:complete', (d) => {
+      if (d.challengeId && !this.clearedChallenges.includes(d.challengeId)) {
+        this.clearedChallenges.push(d.challengeId);
+      }
     }));
   }
 

@@ -64,6 +64,21 @@
   margin-bottom: 0.5rem;
   color: #ffb703;
 }
+.challenge-wave-badge {
+  font-size: 0.75rem;
+  background: rgba(255, 183, 3, 0.2);
+  border: 1px solid rgba(255, 183, 3, 0.4);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+  vertical-align: middle;
+  color: #ffb703;
+}
+.challenge-name-badge {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 4px;
+}
 
 .battle-main {
   flex: 1;

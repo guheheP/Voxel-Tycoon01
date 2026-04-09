@@ -133,12 +133,36 @@ export class ShopTab {
       </div>
     `;
 
+    // ── 素材自動処分パネル ──
+    const autoDisposePanel = `
+      <div class="autosell-panel auto-dispose-panel">
+        <div class="autosell-header">
+          <label class="autosell-toggle">
+            <input type="checkbox" id="autodispose-enabled" ${this.shop.autoDisposeEnabled ? 'checked' : ''} />
+            <span class="autosell-toggle-label">🗑 素材自動処分</span>
+          </label>
+          <span class="autosell-desc">探索帰還時に低品質素材を自動売却（売値20%）</span>
+        </div>
+        <div class="autosell-rules ${this.shop.autoDisposeEnabled ? '' : 'autosell-rules-disabled'}">
+          <div class="autosell-rule">
+            <span class="autosell-rule-label">品質しきい値:</span>
+            <input type="range" id="autodispose-max-q" min="0" max="100" step="5" value="${this.shop.autoDisposeMaxQuality}" class="autosell-range" />
+            <span id="autodispose-max-q-val" class="autosell-range-val">Q${this.shop.autoDisposeMaxQuality}以下</span>
+          </div>
+          <div class="autosell-rule">
+            <span class="autosell-hint">※ ロック済みアイテムは除外されます</span>
+          </div>
+        </div>
+      </div>
+    `;
+
     // ── 組み立て ──
     this.el.innerHTML = `
       <div class="shop-layout">
         ${customerBar}
         <div class="shop-columns">${leftPanel}${rightPanel}</div>
         ${autoSellPanel}
+        ${autoDisposePanel}
       </div>
     `;
 
@@ -229,6 +253,24 @@ export class ShopTab {
     if (excludeTraits) {
       excludeTraits.addEventListener('change', () => {
         this.shop.autoSellRules.excludeTraits = excludeTraits.checked;
+      });
+    }
+
+    // 素材自動処分設定
+    const adEnabled = this.el.querySelector('#autodispose-enabled');
+    if (adEnabled) {
+      adEnabled.addEventListener('change', () => {
+        this.shop.autoDisposeEnabled = adEnabled.checked;
+        this.render();
+      });
+    }
+    const adMaxQ = this.el.querySelector('#autodispose-max-q');
+    const adMaxQVal = this.el.querySelector('#autodispose-max-q-val');
+    if (adMaxQ) {
+      adMaxQ.addEventListener('input', () => {
+        const val = parseInt(adMaxQ.value);
+        this.shop.autoDisposeMaxQuality = val;
+        if (adMaxQVal) adMaxQVal.textContent = `Q${val}以下`;
       });
     }
   }

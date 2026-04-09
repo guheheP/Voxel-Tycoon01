@@ -3,11 +3,14 @@
  * 左: エリア情報カード / 右: 冒険者カード
  */
 import { LevelExpTable, LevelBonuses } from '../data/adventurers.js';
+import { GameConfig } from '../data/config.js';
 import { AreaDefs } from '../data/areas.js';
-import { ItemBlueprints, TraitDefs } from '../data/items.js';
+import { ItemBlueprints, TraitDefs, getEquipSlot } from '../data/items.js';
 import { eventBus } from '../core/EventBus.js';
 import { getQualityTier, createTraitBadgeHTML } from './UIHelpers.js';
 import { assetPath } from '../core/assetPath.js';
+
+const SLOT_LABELS = { weapon: '⚔️ 武器', armor: '🛡️ 防具', accessory: '💎 装飾' };
 
 export class DispatchTab {
   constructor(adventurerSystem, inventorySystem) {
@@ -79,13 +82,30 @@ export class DispatchTab {
       const progressPct = isExploring && adv.maxTimer > 0
         ? Math.max(0, (1 - adv.timer / adv.maxTimer) * 100) : 0;
       const assignedArea = AreaDefs[adv.assignedArea];
-      const weapon = adv.equipment.weapon;
 
       // エリア選択ボタン
       const areaBtns = areas.map(area => {
         const selected = adv.assignedArea === area.id;
         return `<button class="disp-area-btn ${selected ? 'disp-area-btn-active' : ''}" data-adv-id="${adv.id}" data-area-id="${area.id}" title="${area.name}">${area.icon}</button>`;
       }).join('');
+
+      // 3スロット装備表示
+      const equipSlots = GameConfig.equipmentSlots.map(slot => {
+        const eq = adv.equipment[slot];
+        return `
+          <div class="disp-equip-slot" data-adv-id="${adv.id}" data-slot="${slot}">
+            <span class="disp-equip-slot-label">${SLOT_LABELS[slot] || slot}</span>
+            ${this._renderEquipSlot(eq, slot)}
+          </div>
+        `;
+      }).join('');
+
+      // 全装備のトレイトをまとめて表示
+      const allTraits = [];
+      for (const slot of GameConfig.equipmentSlots) {
+        const eq = adv.equipment[slot];
+        if (eq?.traits) allTraits.push(...eq.traits);
+      }
 
       return `
         <div class="disp-adv-card" data-adv-id="${adv.id}">
@@ -120,10 +140,10 @@ export class DispatchTab {
             ${assignedArea ? this._renderSuccessRate(adv, assignedArea) : ''}
           </div>
 
-          <div class="disp-equip-slot" data-adv-id="${adv.id}">
-            ${this._renderEquipSlot(weapon)}
+          <div class="disp-equip-slots-row">
+            ${equipSlots}
           </div>
-          ${weapon && weapon.traits && weapon.traits.length > 0 ? this._renderTraitEffects(weapon) : ''}
+          ${allTraits.length > 0 ? this._renderAllTraitEffects(allTraits) : ''}
 
           <div class="disp-area-select">
             ${areaBtns}
@@ -163,11 +183,12 @@ export class DispatchTab {
       });
     });
 
-    // 装備スロットクリック
-    this.el.querySelectorAll('.disp-equip-slot').forEach(slot => {
-      slot.addEventListener('click', (e) => {
-        const advId = slot.dataset.advId;
-        this._showEquipmentPanel(advId);
+    // 装備スロットクリック（スロット種別を渡す）
+    this.el.querySelectorAll('.disp-equip-slot').forEach(slotEl => {
+      slotEl.addEventListener('click', (e) => {
+        const advId = slotEl.dataset.advId;
+        const slot = slotEl.dataset.slot;
+        this._showEquipmentPanel(advId, slot);
       });
     });
   }
@@ -192,11 +213,10 @@ export class DispatchTab {
     `;
   }
 
-  _renderTraitEffects(weapon) {
-    const badges = weapon.traits.map(t => {
+  _renderAllTraitEffects(traits) {
+    const badges = traits.map(t => {
       const def = TraitDefs[t];
       if (!def) return '';
-      const rarityClass = `trait-rarity-${def.rarity || 'common'}`;
       return createTraitBadgeHTML(t);
     }).join('');
     return `<div class="disp-trait-row">${badges}</div>`;
@@ -213,40 +233,47 @@ export class DispatchTab {
   }
 
   /** 装備スロット表示 */
-  _renderEquipSlot(weapon) {
-    if (!weapon) {
+  _renderEquipSlot(equip, slot) {
+    const defaultEmoji = slot === 'weapon' ? '⚔️' : slot === 'armor' ? '🛡️' : '💎';
+    if (!equip) {
       return `
         <div class="disp-equip-empty">
           <span class="disp-equip-empty-icon">＋</span>
-          <span class="disp-equip-empty-text">装備なし — クリックで装備</span>
+          <span class="disp-equip-empty-text">なし</span>
         </div>
       `;
     }
-    const bp = ItemBlueprints[weapon.blueprintId];
-    const tier = getQualityTier(weapon.quality);
+    const bp = ItemBlueprints[equip.blueprintId];
+    const tier = getQualityTier(equip.quality);
     const imgUrl = bp && bp.image ? assetPath(bp.image) : null;
     const imgHtml = imgUrl
-      ? `<img class="disp-equip-img" src="${imgUrl}" alt="${weapon.name}" />`
-      : `<span class="disp-equip-emoji">⚔️</span>`;
+      ? `<img class="disp-equip-img" src="${imgUrl}" alt="${equip.name}" />`
+      : `<span class="disp-equip-emoji">${defaultEmoji}</span>`;
 
     return `
       <div class="disp-equip-item ${tier.css}">
         ${imgHtml}
         <div class="disp-equip-info">
-          <span class="disp-equip-name">${weapon.name}</span>
-          <span class="disp-equip-quality" style="color:${tier.color}">${tier.icon} Q${weapon.quality}</span>
+          <span class="disp-equip-name">${equip.name}</span>
+          <span class="disp-equip-quality" style="color:${tier.color}">${tier.icon} Q${equip.quality}</span>
         </div>
         <span class="disp-equip-change">変更 ▾</span>
       </div>
     `;
   }
 
-  _showEquipmentPanel(advId) {
+  _showEquipmentPanel(advId, slot = 'weapon') {
     const adv = this.adventurers.getAdventurers().find(a => a.id === advId);
     if (!adv) return;
-    const weapons = this.inventory.getItems().filter(i => i.type === 'equipment')
+    const slotLabel = SLOT_LABELS[slot] || slot;
+
+    // スロットに対応するアイテムをフィルタリング
+    const candidates = this.inventory.getItems()
+      .filter(i => {
+        const itemSlot = getEquipSlot(i);
+        return itemSlot === slot;
+      })
       .sort((a, b) => {
-        // 装備可能なものを先に、その中で品質降順
         const aOk = this.adventurers.canEquip(advId, a) ? 0 : 1;
         const bOk = this.adventurers.canEquip(advId, b) ? 0 : 1;
         if (aOk !== bOk) return aOk - bOk;
@@ -254,20 +281,21 @@ export class DispatchTab {
       });
 
     let itemsHtml = '';
-    if (adv.equipment.weapon) {
-      itemsHtml += `<button class="disp-equip-option disp-equip-unequip" data-adv-id="${advId}">❌ 装備を外す</button>`;
+    if (adv.equipment[slot]) {
+      itemsHtml += `<button class="disp-equip-option disp-equip-unequip" data-adv-id="${advId}" data-slot="${slot}">❌ 装備を外す</button>`;
     }
-    if (weapons.length === 0 && !adv.equipment.weapon) {
+    if (candidates.length === 0 && !adv.equipment[slot]) {
       itemsHtml = `<p class="text-dim" style="padding:12px;text-align:center;">装備可能なアイテムがありません</p>`;
     } else {
-      weapons.forEach(w => {
+      const defaultEmoji = slot === 'weapon' ? '⚔️' : slot === 'armor' ? '🛡️' : '💎';
+      candidates.forEach(w => {
         const bp = ItemBlueprints[w.blueprintId];
         const tier = getQualityTier(w.quality);
         const canEquip = this.adventurers.canEquip(advId, w);
         const imgUrl = bp && bp.image ? assetPath(bp.image) : null;
         const imgHtml = imgUrl
           ? `<img class="disp-equip-opt-img" src="${imgUrl}" alt="${w.name}" />`
-          : `<span class="disp-equip-opt-emoji">⚔️</span>`;
+          : `<span class="disp-equip-opt-emoji">${defaultEmoji}</span>`;
 
         itemsHtml += `
           <button class="disp-equip-option ${tier.css} ${canEquip ? '' : 'disp-equip-incompatible'}" data-adv-id="${advId}" data-uid="${w.uid}" ${canEquip ? '' : 'disabled'}>
@@ -285,7 +313,7 @@ export class DispatchTab {
     const html = `
       <div class="disp-equip-panel">
         <div class="disp-equip-panel-header">
-          <h4>⚔️ 装備選択 — ${adv.name}</h4>
+          <h4>${slotLabel} 装備選択 — ${adv.name}</h4>
           <button class="disp-equip-panel-close">✕</button>
         </div>
         <div class="disp-equip-panel-list">${itemsHtml}</div>
@@ -300,7 +328,7 @@ export class DispatchTab {
     // 装備選択
     overlay.querySelectorAll('.disp-equip-option[data-uid]').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        this.adventurers.equipWeapon(e.currentTarget.dataset.advId, e.currentTarget.dataset.uid);
+        this.adventurers.equipItem(e.currentTarget.dataset.advId, e.currentTarget.dataset.uid);
         overlay.remove();
         this.render();
       });
@@ -308,7 +336,7 @@ export class DispatchTab {
     // 装備解除
     overlay.querySelectorAll('.disp-equip-unequip').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        this.adventurers.unequipWeapon(e.currentTarget.dataset.advId);
+        this.adventurers.unequipItem(e.currentTarget.dataset.advId, e.currentTarget.dataset.slot);
         overlay.remove();
         this.render();
       });

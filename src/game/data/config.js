@@ -38,6 +38,14 @@ export const GameConfig = {
     legendary: 2,
   },
 
+  // --- 装備スロット ---
+  equipmentSlots: ['weapon', 'armor', 'accessory'],
+  equipStatCoefficients: {
+    weapon:    { stat: 'atk', divisor: 10 },   // value / 10 → ATK
+    armor:     { stat: 'def', divisor: 12 },   // value / 12 → DEF
+    accessory: { stat: 'spd', divisor: 15 },   // value / 15 → SPD
+  },
+
   // --- クラフト ---
   maxTraitSlots: 3,
 

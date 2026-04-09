@@ -1,10 +1,27 @@
 /**
  * アイテム・レシピのマスターデータ定義
- * 
+ *
  * type: 'material' | 'equipment' | 'consumable' | 'accessory'
  * tier: 1〜5 (素材の希少度。高いほどレア)
  * category: 素材カテゴリ（カテゴリ指定レシピで使用）
  */
+
+// equipType → 装備スロット のマッピング
+const WEAPON_TYPES = new Set(['sword', 'bow', 'staff', 'dagger', 'spear']);
+const ARMOR_TYPES  = new Set(['shield', 'armor', 'robe']);
+
+/** アイテム（またはBlueprint）の装備スロットを返す ('weapon' | 'armor' | 'accessory' | null) */
+export function getEquipSlot(item) {
+  if (!item) return null;
+  // blueprintId からブループリントを引く（item自体がBPの場合もある）
+  const bp = item.blueprintId ? (ItemBlueprints[item.blueprintId] || item) : item;
+  if (bp.type === 'accessory') return 'accessory';
+  if (bp.type === 'equipment' && bp.equipType) {
+    if (WEAPON_TYPES.has(bp.equipType)) return 'weapon';
+    if (ARMOR_TYPES.has(bp.equipType))  return 'armor';
+  }
+  return null;
+}
 
 // =====================================================================
 //  素材カテゴリ定義
