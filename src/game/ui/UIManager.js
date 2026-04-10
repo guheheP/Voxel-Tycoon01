@@ -69,7 +69,7 @@ export class UIManager {
 
     // タブコンポーネントの初期化
     this.tabs = {
-      'tab-inventory': new InventoryTab(inventorySystem, shopSystem),
+      'tab-inventory': new InventoryTab(inventorySystem, shopSystem, collectionSystem),
       'tab-crafting':  new CraftingTab(inventorySystem),
       'tab-shop':      new ShopTab(inventorySystem, shopSystem, customerSystem),
       'tab-dispatch':  new DispatchTab(adventurerSystem, inventorySystem),

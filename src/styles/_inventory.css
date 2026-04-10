@@ -323,6 +323,13 @@
   margin-left: auto;
 }
 
+.autolock-empty {
+  font-size: 11px;
+  color: rgba(245, 230, 200, 0.3);
+  font-style: italic;
+  padding: 4px 0;
+}
+
 /* ===== Collection Tab ===== */
 .coll-header {
   display: flex;

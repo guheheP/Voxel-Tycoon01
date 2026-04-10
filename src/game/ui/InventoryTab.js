@@ -6,9 +6,10 @@ import { createItemCardHTML, getTypeInfo, getQualityTier, openItemDetailModal, c
 import { eventBus } from '../core/EventBus.js';
 
 export class InventoryTab {
-  constructor(inventorySystem, shopSystem) {
+  constructor(inventorySystem, shopSystem, collectionSystem) {
     this.inventory = inventorySystem;
     this.shop = shopSystem;
+    this.collection = collectionSystem;
     this.el = document.getElementById('inventory-list');
     this.filter = 'all';        // 'all' | 'material' | 'equipment' | 'consumable' | 'accessory'
     this.sort = 'type';          // 'type' | 'quality' | 'name' | 'value'
@@ -136,12 +137,16 @@ export class InventoryTab {
     const lockCount = lockTraits.size;
     const isOpen = this._autoLockOpen;
     const rarityOrder = { legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
+    const discovered = this.collection ? this.collection.discoveredTraits : new Set();
     const sortedTraits = Object.entries(TraitDefs)
+      .filter(([name]) => discovered.has(name))
       .sort((a, b) => (rarityOrder[a[1].rarity] ?? 5) - (rarityOrder[b[1].rarity] ?? 5));
-    const traitBadges = sortedTraits.map(([name, def]) => {
-      const active = lockTraits.has(name);
-      return `<button class="autolock-trait-btn ${active ? 'autolock-trait-active' : ''}" data-autolock-trait="${name}" title="${def.description}">${createTraitBadgeHTML(name)}</button>`;
-    }).join('');
+    const traitBadges = sortedTraits.length > 0
+      ? sortedTraits.map(([name, def]) => {
+          const active = lockTraits.has(name);
+          return `<button class="autolock-trait-btn ${active ? 'autolock-trait-active' : ''}" data-autolock-trait="${name}" title="${def.description}">${createTraitBadgeHTML(name)}</button>`;
+        }).join('')
+      : `<span class="autolock-empty">素材を入手して特性を発見しましょう</span>`;
     html += `
       <div class="autolock-accordion ${isOpen ? 'autolock-open' : ''}">
         <button class="autolock-accordion-header" id="autolock-toggle">
