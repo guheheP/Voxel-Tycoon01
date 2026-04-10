@@ -501,7 +501,12 @@ export class BattleSystem {
           if (b.stat === 'spd') spd += b.amount;
        }
     }
-    return Math.max(10, spd);
+    spd = Math.max(10, spd);
+    // ソフトキャップ: 初期SPD(60~100)の約2倍=200以下はリニア、超過分は√カーブで強く減衰
+    // SPD 200→200, 300→247, 428→271, 1000→333(ボス比3.5倍)
+    const SOFT_CAP = 200;
+    if (spd <= SOFT_CAP) return spd;
+    return SOFT_CAP + Math.sqrt((spd - SOFT_CAP) * 22);
   }
 
   _getAtk(actor) {
@@ -522,6 +527,23 @@ export class BattleSystem {
        }
     }
     return Math.max(0, def);
+  }
+
+  /**
+   * ダメージ計算（共通）
+   * DEFが極端に高い場合でも ATK の15%は最低保証ダメージとして通る。
+   * @param {number} rawAtk  攻撃側のATK（バフ込み）
+   * @param {number} rawDef  防御側のDEF（バフ込み）
+   * @param {number} mult    スキル倍率（通常攻撃=1.0, AoE=0.6, Heavy=1.5 等）
+   * @param {number} dmgReduction  固定ダメージ軽減値
+   * @returns {number} 最終ダメージ（1以上保証）
+   */
+  _calcDamage(rawAtk, rawDef, mult = 1.0, dmgReduction = 0) {
+    const variation = 1 + Math.random() * 0.2;
+    const normalDmg = Math.floor(rawAtk * mult * variation - rawDef) - dmgReduction;
+    // 最低保証: ATK × 倍率 の 15% は防御を貫通する
+    const minDmg = Math.floor(rawAtk * mult * 0.15);
+    return Math.max(1, Math.max(normalDmg, minDmg));
   }
 
   _executeBossAction() {
@@ -549,7 +571,7 @@ export class BattleSystem {
       for (const target of aliveTargets) {
         const def = this._getDef(target);
         const dmgReduction = target.dmgReduction || 0;
-        const damage = Math.max(1, Math.floor(atk * mult * (1 + Math.random() * 0.2) - def) - dmgReduction);
+        const damage = this._calcDamage(atk, def, mult, dmgReduction);
         target.hp -= damage;
         this._log(`${target.name}に ${damage} のダメージ！`);
         if (target.hp <= 0) {
@@ -570,7 +592,7 @@ export class BattleSystem {
       const def = this._getDef(target);
       const mult = skill.damageMult || 1.5;
       const dmgReduction = target.dmgReduction || 0;
-      const damage = Math.max(1, Math.floor(atk * mult * (1 + Math.random() * 0.2) - def) - dmgReduction);
+      const damage = this._calcDamage(atk, def, mult, dmgReduction);
       target.hp -= damage;
       this._log(`ボスの${skill.name}！ ${target.name}に ${damage} の大ダメージ！`);
       eventBus.emit('battle:se:bossHeavy');
@@ -601,7 +623,7 @@ export class BattleSystem {
       const atk = this._getAtk(s.boss);
       const def = this._getDef(target);
       const dmgReduction = target.dmgReduction || 0;
-      const damage = Math.max(1, Math.floor(atk * (1 + Math.random() * 0.2) - def) - dmgReduction);
+      const damage = this._calcDamage(atk, def, 1.0, dmgReduction);
       target.hp -= damage;
       const skillName = skill ? skill.name : '攻撃';
       this._log(`ボスの${skillName}！ ${target.name}に ${damage} のダメージ！`);
@@ -662,7 +684,7 @@ export class BattleSystem {
 
     const atk = this._getAtk(adv);
     const def = this._getDef(s.boss);
-    const baseDamage = Math.max(1, Math.floor(atk * (1 + Math.random() * 0.2) - def));
+    const baseDamage = this._calcDamage(atk, def);
     const damage = Math.max(1, Math.floor(baseDamage * chainMult));
 
     s.boss.hp -= damage;
