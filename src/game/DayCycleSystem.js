@@ -35,15 +35,25 @@ export class DayCycleSystem {
       if (this.quest && typeof this.quest.updateTotalSales === 'function') {
         this.quest.updateTotalSales(this.totalSales);
       }
-      this._checkRankUp();
+      // _checkRankUp は debounced リスナーで統合処理
     }));
 
     // Bug#4: クエスト条件達成後すぐにランクアップを検知するため、
     // 調合完了・日替わり・アップグレード購入時にもチェック
-    this._unsubs.push(eventBus.on('item:crafted',       () => this._checkRankUp()));
-    this._unsubs.push(eventBus.on('day:newDay',          () => this._checkRankUp()));
-    this._unsubs.push(eventBus.on('upgrade:purchased',   () => this._checkRankUp()));
-    this._unsubs.push(eventBus.on('adventurer:return',   () => this._checkRankUp()));
+    // ※ 高頻度化防止: フレーム単位でデバウンス
+    const debouncedRankCheck = () => {
+      if (this._rankCheckScheduled) return;
+      this._rankCheckScheduled = true;
+      queueMicrotask(() => {
+        this._rankCheckScheduled = false;
+        this._checkRankUp();
+      });
+    };
+    this._unsubs.push(eventBus.on('item:sold',           debouncedRankCheck));
+    this._unsubs.push(eventBus.on('item:crafted',        debouncedRankCheck));
+    this._unsubs.push(eventBus.on('day:newDay',          debouncedRankCheck));
+    this._unsubs.push(eventBus.on('upgrade:purchased',   debouncedRankCheck));
+    this._unsubs.push(eventBus.on('adventurer:return',   debouncedRankCheck));
 
     // 一時停止イベント
     this._unsubs.push(eventBus.on('game:pause', () => { this.paused = true; }));
@@ -79,7 +89,6 @@ export class DayCycleSystem {
     if (this.isGameOver || this.paused) return;
 
     this.dayTimer += dt;
-    eventBus.emit('dayTimer:tick', { progress: this.dayProgress });
 
     if (this.dayTimer >= this.dayDuration) {
       this._advanceDay();

@@ -257,9 +257,6 @@ async function startGame(saveData) {
     eventBus.on('autoCraft:setRecipe', (d) => {
       if (autoCraftSystem) autoCraftSystem.setRecipe(d.recipeId);
     }),
-    eventBus.on('dayTimer:tick', (d) => {
-      mainSceneCanvas.setDayProgress(d.progress);
-    }),
   ];
 
   gameStarted = true;
@@ -379,6 +376,9 @@ function _applySaveData(data) {
             id: def.id, name: def.name, icon: def.icon,
             status: 'idle', timer: 0, maxTimer: 0,
             exploreTimeMultiplier: def.exploreTimeMultiplier,
+            preset: def.preset,
+            allowedEquipTypes: def.allowedEquipTypes || [],
+            battle: def.battle ? { ...def.battle } : { maxHp: 100, atk: 20, def: 10, spd: 70 },
             assignedArea: 'plains',
             currentArea: null, level: 1, exp: 0,
             equipment: { weapon: null, armor: null, accessory: null },
@@ -458,6 +458,10 @@ function animate(time) {
     if (customerSystem) customerSystem.update(dt);
     if (autoCraftSystem) autoCraftSystem.update(dt);
     if (saveSystem) saveSystem.update(dt);
+    // 日進行バーをイベントを介さず直接更新（毎フレームevent発火を避ける）
+    if (mainSceneCanvas && dayCycleSystem) {
+      mainSceneCanvas.setDayProgress(dayCycleSystem.dayProgress);
+    }
   }
   if (uiManager) uiManager.update(dt);
 }

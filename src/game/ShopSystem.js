@@ -223,7 +223,7 @@ export class ShopSystem {
     return this.purchasedUpgrades.includes(upgradeId);
   }
 
-  /** オートセル — ルールに合うアイテムを空き棚に自動陳列 */
+  /** オートセル — ルールに合うアイテムを空き棚へ自動陳列 */
   _tryAutoDisplay() {
     if (this.displayedItems.length >= this.maxSlots) return;
     const rules = this.autoSellRules;
@@ -242,12 +242,14 @@ export class ShopSystem {
       .sort((a, b) => b.value - a.value);
 
     // 空き棚分だけ陳列
+    let displayed = 0;
     for (const { item } of candidates) {
       if (this.displayedItems.length >= this.maxSlots) break;
       this.displayItem(item.uid);
+      displayed++;
     }
 
-    if (candidates.length > 0) {
+    if (displayed > 0) {
       eventBus.emit('inventory:changed');
     }
   }
@@ -264,16 +266,27 @@ export class ShopSystem {
     return price;
   }
 
-  /** 一括即時処分 — 複数アイテムを一度に処分 */
+  /** 一括即時処分 — 複数アイテムを一度に処分（イベント1回のみ発火）*/
   quickSellBulk(uids, inventorySystem) {
     let totalPrice = 0;
+    let count = 0;
     for (const uid of uids) {
-      totalPrice += this.quickSell(uid, inventorySystem);
+      const item = inventorySystem.removeItem(uid);
+      if (!item) continue;
+      const fullValue = this._calcValue(item);
+      const price = Math.max(1, Math.floor(fullValue * 0.2));
+      inventorySystem.addGold(price);
+      totalPrice += price;
+      count++;
+    }
+    if (count > 0) {
+      eventBus.emit('item:sold', { item: null, price: totalPrice, bulkCount: count });
+      StatsTracker.add('itemsSold', count);
     }
     return totalPrice;
   }
 
-  /** 素材自動処分 — 品質しきい値以下の素材を自動売却 */
+  /** 素材自動処分 — 品質しきい値以下の素材を自動売却（バッチ処理） */
   tryAutoDispose() {
     if (!this.autoDisposeEnabled) return;
 
@@ -284,11 +297,8 @@ export class ShopSystem {
     );
     if (targets.length === 0) return;
 
-    let totalPrice = 0;
     const uids = targets.map(i => i.uid);
-    for (const uid of uids) {
-      totalPrice += this.quickSell(uid, this.inventory);
-    }
+    const totalPrice = this.quickSellBulk(uids, this.inventory);
 
     if (totalPrice > 0) {
       eventBus.emit('toast', {
