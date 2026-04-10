@@ -10,7 +10,18 @@ import { assetPath } from './assetPath.js';
 // --- プレイリスト定義 ---
 const TITLE_TRACK = assetPath('/bgm/title_01.mp3');
 const ENDING_TRACK = assetPath('/bgm/Ending_01.mp3');
-const BATTLE_TRACK = assetPath('/bgm/battle_01.mp3');
+// ボスID → バトルBGMのマッピング（ステージ順）
+const BATTLE_TRACKS = {
+  boss_plains_slime:  assetPath('/bgm/battle_01.mp3'),
+  boss_cave_golem:    assetPath('/bgm/battle_02.mp3'),
+  boss_forest_treant: assetPath('/bgm/battle_03.mp3'),
+  boss_volcano_ifrit: assetPath('/bgm/battle_04.mp3'),
+  boss_sea_kraken:    assetPath('/bgm/battle_05.mp3'),
+  boss_elder_dragon:  assetPath('/bgm/battle_06.mp3'),
+  boss_sky_titan:     assetPath('/bgm/battle_07.mp3'),
+  boss_time_lord:     assetPath('/bgm/battle_08.mp3'),
+};
+const BATTLE_TRACK_DEFAULT = assetPath('/bgm/battle_EX.mp3');
 const GAME_TRACKS = Array.from({ length: 15 }, (_, i) =>
   assetPath(`/bgm/bgm_${String(i + 1).padStart(2, '0')}.mp3`)
 );
@@ -141,7 +152,11 @@ class SoundManagerClass {
     eventBus.on('game:clear', () => this.playEndingBGM());
 
     // --- バトルBGM & SE ---
-    eventBus.on('battle:start', () => this.startBattleBGM());
+    eventBus.on('battle:start', (state) => {
+      const bossId = state?.boss?.id;
+      const track = (bossId && BATTLE_TRACKS[bossId]) || BATTLE_TRACK_DEFAULT;
+      this.startBattleBGM(track);
+    });
     eventBus.on('battle:win', () => {
       this.playBattleVictory();
       // 少し待ってからゲームBGMに戻す
@@ -269,7 +284,8 @@ class SoundManagerClass {
   // ===== バトルBGM =====
 
   /** バトルBGM開始 — 現在のBGMをフェードアウトし、バトル曲へ切替 */
-  startBattleBGM() {
+  startBattleBGM(track) {
+    const battleTrack = track || BATTLE_TRACK_DEFAULT;
     // 現在の再生位置を保存して復帰できるようにする
     if (this.audioEl && !this.isBattleBGM) {
       this.preBattleTrackSrc = this.audioEl.src;
@@ -277,7 +293,7 @@ class SoundManagerClass {
     }
     this.isBattleBGM = true;
     this._fadeOutThen(() => {
-      this._playTrack(BATTLE_TRACK);
+      this._playTrack(battleTrack);
       // バトル曲はループ
       if (this.audioEl) this.audioEl.loop = true;
     }, 800);
