@@ -6,14 +6,14 @@ import { GameConfig } from './data/config.js';
 import { eventBus } from './core/EventBus.js';
 
 const CUSTOMER_NAMES = [
-  { name: '旅の商人', icon: '🧳', dialogue: '珍しいものはないかね？' },
-  { name: '見習い騎士', icon: '⚔️', dialogue: '武器を探しています！' },
-  { name: '森の薬師', icon: '🌿', dialogue: '良い薬草はある？' },
-  { name: 'お嬢様', icon: '👗', dialogue: 'キラキラしたものが欲しいわ' },
-  { name: '鍛冶屋の親方', icon: '🔨', dialogue: '素材を仕入れたい' },
-  { name: '冒険者', icon: '🗡️', dialogue: '冒険に必要なものを！' },
-  { name: '魔法使い', icon: '🧙', dialogue: '魔法の触媒を探している' },
-  { name: '村の子供', icon: '👦', dialogue: 'かっこいいの、ある？' },
+  { name: '旅の商人', icon: '🧳', type: 'villager', dialogues: ['珍しいものはないかね？', '商売繁盛してるかい？', '何か仕入れたいなあ'] },
+  { name: '見習い騎士', icon: '⚔️', type: 'knight', dialogues: ['強力な武器を探しています！', '鍛錬に耐えうる装備はないでしょうか', '任務に役立ちそうなものを頼む'] },
+  { name: '森の薬師', icon: '🌿', type: 'villager', dialogues: ['良い薬草は入った？', '調合の素材が足りなくてね', '新薬のヒントになりそうなものは…'] },
+  { name: 'お嬢様', icon: '👗', type: 'villager', dialogues: ['キラキラしたものが欲しいわ', '少し退屈なの', '何か珍しいものはある？'] },
+  { name: '鍛冶屋の親方', icon: '🔨', type: 'archer', dialogues: ['仕事で使う道具が欲しい', '良い鉱石はあるか？', '頑丈な武具の素材を探してる'] },
+  { name: '冒険者', icon: '🗡️', type: 'knight', dialogues: ['冒険に必要なものを頼む！', 'ダンジョンに潜る準備だ', '回復薬は必須だな'] },
+  { name: '魔法使い', icon: '🧙', type: 'mage', dialogues: ['魔法の触媒を探している', '知を深める魔導書はないか？', 'マナの込もった品が欲しい'] },
+  { name: '村の子供', icon: '👦', type: 'villager', dialogues: ['かっこいいの、ある？', 'すっごい武器が見たい！', 'おこづかいで買えたりするかなぁ'] },
 ];
 
 const DEMAND_SETS = [
@@ -93,10 +93,14 @@ export class CustomerSystem {
     const template = CUSTOMER_NAMES[Math.floor(Math.random() * CUSTOMER_NAMES.length)];
     const demands = DEMAND_SETS[Math.floor(Math.random() * DEMAND_SETS.length)];
     const patience = GameConfig.customerPatienceSeconds + this._getUpgradeBonus('customer_patience');
+    const selectedDialogue = template.dialogues[Math.floor(Math.random() * template.dialogues.length)];
 
     const customer = {
       id: crypto.randomUUID(),
-      ...template,
+      name: template.name,
+      icon: template.icon,
+      type: template.type,
+      dialogue: selectedDialogue,
       demandTypes: demands,
       timer: patience,
       maxTimer: patience,

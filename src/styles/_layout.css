@@ -91,3 +91,13 @@
     );
   }
 }
+
+/* ===== 2D Main Scene Canvas ===== */
+.main-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}

@@ -3,11 +3,8 @@
  * セーブ/ロード対応・イベントシステム統合版
  */
 
-import * as THREE from 'three';
-import { Renderer } from './core/Renderer.js';
 import { SaveSystem } from './core/SaveSystem.js';
 import { eventBus } from './core/EventBus.js';
-import { SceneManager } from './SceneManager.js';
 import { InventorySystem } from './InventorySystem.js';
 import { ShopSystem } from './ShopSystem.js';
 import { AdventurerSystem } from './AdventurerSystem.js';
@@ -33,14 +30,14 @@ import { BattlePrepScreen } from './ui/BattlePrepScreen.js';
 import { CollectionSystem } from './CollectionSystem.js';
 import { GameTooltip } from './ui/GameTooltip.js';
 import { AutoCraftSystem } from './AutoCraftSystem.js';
+import { MainSceneCanvas } from './ui/MainSceneCanvas.js';
 
 // ============================================================
 //  Systems
 // ============================================================
 
 const entities = [];
-let renderer = null;
-let sceneManager = null;
+let mainSceneCanvas = null;
 let inventorySystem = null;
 let shopSystem = null;
 let adventurerSystem = null;
@@ -66,16 +63,15 @@ let _gameEventUnsubs = null;
 //  Initialization
 // ============================================================
 
-async function initRenderer() {
-  renderer = new Renderer('game-canvas');
-  sceneManager = new SceneManager(renderer.scene, renderer.camera, entities, renderer);
-  await sceneManager.init();
+async function initGame() {
+  mainSceneCanvas = new MainSceneCanvas();
+  mainSceneCanvas.init('main-scene-container');
 }
 
 async function boot() {
   try {
     GameTooltip.init();
-    await initRenderer();
+    await initGame();
 
     // 「Click to Start」スプラッシュ画面 (ブラウザのオーディオポリシー対応)
     _showSplash(() => {
@@ -256,6 +252,9 @@ async function startGame(saveData) {
     eventBus.on('autoCraft:setRecipe', (d) => {
       if (autoCraftSystem) autoCraftSystem.setRecipe(d.recipeId);
     }),
+    eventBus.on('dayTimer:tick', (d) => {
+      mainSceneCanvas.setDayProgress(d.progress);
+    }),
   ];
 
   gameStarted = true;
@@ -431,28 +430,16 @@ boot();
 //  Game Loop
 // ============================================================
 
-const clock = new THREE.Clock();
+
 let gamePaused = false;
-let _gcTimer = 0;      // Three.js 内部キャッシュクリーン用タイマー
-const GC_INTERVAL = 60; // 60秒ごとにクリーンアップ
+let lastTime = 0;
 
-function animate() {
+function animate(time) {
   requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), 0.1); // タブ復帰時の巨大dt防止（最大100ms）
+  const dt = Math.min((time - lastTime) / 1000, 0.1);
+  lastTime = time;
 
-  const renderScene = renderer && !renderer._isMobile;
-
-  // Update all entity animations (3Dシーン用 — モバイルではスキップ)
-  if (renderScene) {
-    for (const entity of entities) {
-      entity.update(dt);
-    }
-  }
-
-  if (!gameStarted) {
-    if (renderScene) renderer.render();
-    return;
-  }
+  if (!gameStarted) return;
 
   if (battleSystem && battleSystem.active) {
     battleSystem.update(dt);
@@ -460,33 +447,14 @@ function animate() {
 
   // Update game logic (paused during puzzle)
   if (!gamePaused && !(battleSystem && battleSystem.active)) {
-    if (renderScene && sceneManager) sceneManager.update(dt);
     if (dayCycleSystem) dayCycleSystem.update(dt);
     if (shopSystem) shopSystem.update(dt);
     if (adventurerSystem) adventurerSystem.update(dt);
     if (customerSystem) customerSystem.update(dt);
     if (autoCraftSystem) autoCraftSystem.update(dt);
     if (saveSystem) saveSystem.update(dt);
-
-    // 日夜ライティング同期
-    if (renderScene && sceneManager && dayCycleSystem) {
-      sceneManager.setDayProgress(dayCycleSystem.dayProgress);
-    }
   }
   if (uiManager) uiManager.update(dt);
-
-  // Three.js 内部キャッシュの定期クリーンアップ（メモリリーク防止）
-  if (renderScene && gameStarted) {
-    _gcTimer += dt;
-    if (_gcTimer >= GC_INTERVAL) {
-      _gcTimer = 0;
-      if (renderer.renderer.renderLists) {
-        renderer.renderer.renderLists.dispose();
-      }
-    }
-  }
-
-  if (renderScene) renderer.render();
 }
 
 animate();

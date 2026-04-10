@@ -99,6 +99,7 @@ export class AdventurerSystem {
     adv.maxTimer = time;
 
     StatsTracker.add('expeditionsSent', 1);
+    eventBus.emit('adventurer:depart', { adventurer: adv });
   }
 
   /** 探索時間の計算 */

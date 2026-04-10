@@ -22,7 +22,7 @@
       style="color: rgba(200, 180, 140, 0.6); font-family: 'Outfit', sans-serif; font-size: 14px; letter-spacing: 4px; text-transform: uppercase; animation: splashPulse 2s ease-in-out infinite;">
       Loading...</p>
   </div>
-  <canvas id="game-canvas"></canvas>
+
   <div id="ui-root">
     <div class="ui-container">
       <!-- Status Bar -->
@@ -135,8 +135,8 @@
           </div>
         </div>
       </div>
-      <!-- 3D Scene Strip (desktop only, hidden on mobile via CSS) -->
-      <div class="scene-strip"></div>
+      <!-- Main Scene Strip -->
+      <div id="main-scene-container" class="scene-strip"></div>
     </div>
   </div>
   <script type="module" src="/src/game/main.js"></script>

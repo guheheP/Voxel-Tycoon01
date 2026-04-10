@@ -79,6 +79,8 @@ export class DayCycleSystem {
     if (this.isGameOver || this.paused) return;
 
     this.dayTimer += dt;
+    eventBus.emit('dayTimer:tick', { progress: this.dayProgress });
+
     if (this.dayTimer >= this.dayDuration) {
       this._advanceDay();
     }

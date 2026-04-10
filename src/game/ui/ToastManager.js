@@ -49,13 +49,8 @@ export class ToastManager {
       this.show(count > 1 ? `📜 新レシピ ${count}種 解放！` : `📜 新レシピ解放: ${d.name || ''}`, 'green');
     }));
     this._unsubs.push(eventBus.on('area:unlocked',    (d) => this.show(`🗺️ 新エリア解放: ${d.name}`, 'green')));
-    // customer:arrived / customer:left は高頻度なので間引き（3秒間隔）
-    this._unsubs.push(eventBus.on('customer:arrived', (d) => {
-      const now = Date.now();
-      if (now - this._lastCustomerToast < 3000) return;
-      this._lastCustomerToast = now;
-      this.show(`${d.customer.icon} ${d.customer.name}が来店！`, 'default');
-    }));
+    // お客さんの来店通知はサイドビューキャンバスの吹き出しで表現するため廃止
+    // this._unsubs.push(eventBus.on('customer:arrived', ...
     this._unsubs.push(eventBus.on('customer:left',    () => { /* 間引き: 帰宅通知は省略 */ }));
     this._unsubs.push(eventBus.on('customer:bought',  (d) => {
       // sold と統合済みなので bought は省略

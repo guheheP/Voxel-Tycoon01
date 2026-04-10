@@ -59,6 +59,12 @@ export class UIManager {
     this.elTabs = document.querySelectorAll('.tab-btn');
     this.elSections = document.querySelectorAll('.content-section');
 
+    // 初期ゴールド画面反映 (HTMLの直接の0書き換え対策)
+    if (this.elGold) {
+      this._cachedGoldText = this._formatGold(this._displayedGold);
+      this.elGold.textContent = this._cachedGoldText;
+    }
+
     // ランク進捗バーを動的に追加
     this._createRankProgressBar();
 
@@ -160,29 +166,8 @@ export class UIManager {
 
     // キーボードショートカット
     this._initKeyboardShortcuts();
-
-    // 環境パーティクル
-    this._initAmbientParticles();
   }
 
-  _initAmbientParticles() {
-    // モバイルではCSS環境パーティクルは _mobile.css で非表示にするため数を減らす
-    const count = window.innerWidth <= 768 ? 5 : AMBIENT_PARTICLE_COUNT;
-    const container = document.createElement('div');
-    container.className = 'ambient-particles';
-    document.body.insertBefore(container, document.body.firstChild);
-
-    for (let i = 0; i < count; i++) {
-      const p = document.createElement('div');
-      p.className = 'ambient-particle';
-      p.style.left = `${Math.random() * 100}%`;
-      p.style.animationDuration = `${12 + Math.random() * 18}s`;
-      p.style.animationDelay = `${Math.random() * 15}s`;
-      p.style.width = `${2 + Math.random() * 3}px`;
-      p.style.height = p.style.width;
-      container.appendChild(p);
-    }
-  }
 
   _addSettingsButton() {
     const statusBar = document.querySelector('.status-bar');
