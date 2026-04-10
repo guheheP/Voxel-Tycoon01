@@ -140,7 +140,7 @@ export class DayCycleSystem {
     if (this.currentRankIndex < ranks.length - 1) {
        const nextRank = ranks[this.currentRankIndex + 1];
        if (this.totalSales >= nextRank.requiredSales && 
-           (this.quest ? this.quest.isRankQuestSatisfied(this.currentRankIndex + 1) : true)) {
+           (this.quest ? this.quest.isRankQuestSatisfied(nextRank.rank) : true)) {
            
            if (!this.rankBossAvailable) {
                this.rankBossAvailable = true;

@@ -349,7 +349,7 @@ export class AdventurerSystem {
     if (!candidate || !this.canEquip(advId, candidate)) return false;
     const slot = getEquipSlot(candidate);
     if (!slot) return false;
-    const item = this.inventory.removeItem(itemUid);
+    const item = this.inventory.removeItem(itemUid, true); // force: ロック中でも装備可能
     if (!item) return false;
 
     // 既に装備中のアイテムをインベントリに戻す

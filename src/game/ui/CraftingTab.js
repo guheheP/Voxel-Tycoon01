@@ -612,7 +612,7 @@ export class CraftingTab {
       const upgradeQ = { effectType: 'quality_bonus', result: 0 };
       eventBus.emit('upgrade:queryBonus', upgradeQ);
       const newItem = craftItem(recipeId, materials, selectedTraits, qualityBonus + upgradeQ.result);
-      materials.forEach(m => this.inventory.removeItem(m.uid));
+      materials.forEach(m => this.inventory.removeItem(m.uid, true)); // force: ロック中でも調合可能
 
       // 融合が起きたかチェック（元のトレイトにない特性が結果に含まれている）
       for (const t of newItem.traits) {
