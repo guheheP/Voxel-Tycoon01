@@ -3,6 +3,7 @@
  * 大型カードデザイン・画像対応版
  */
 import { ItemBlueprints, TraitDefs } from '../data/items.js';
+import { AdventurerDefs, UnlockableAdventurers } from '../data/adventurers.js';
 import { assetPath } from '../core/assetPath.js';
 
 // ===== 品質ティア定義 =====
@@ -97,6 +98,26 @@ function renderImageArea(item, typeInfo) {
   }
   // 絵文字フォールバック
   return `<div class="item-card-image item-card-image-placeholder"><span class="item-card-emoji">${typeInfo.emoji}</span></div>`;
+}
+
+/** アイテムを装備できる冒険者一覧を返す */
+const ALL_ADVENTURERS = [...AdventurerDefs, ...UnlockableAdventurers];
+function getEquipableAdventurers(item) {
+  const bp = ItemBlueprints[item.blueprintId];
+  if (!bp) return [];
+  if (bp.type === 'accessory') return ALL_ADVENTURERS; // アクセサリーは全員装備可
+  if (bp.type !== 'equipment' || !bp.equipType) return [];
+  return ALL_ADVENTURERS.filter(adv => adv.allowedEquipTypes.includes(bp.equipType));
+}
+
+/** 装備可能者アイコン行 HTML */
+function renderEquipIcons(item) {
+  const advs = getEquipableAdventurers(item);
+  if (advs.length === 0) return '';
+  const icons = advs.map(a =>
+    `<span class="equip-adv-icon" title="${a.name}">${a.icon}</span>`
+  ).join('');
+  return `<div class="item-equip-icons">${icons}</div>`;
 }
 
 /**
@@ -248,6 +269,7 @@ export function createItemCardHTML(item) {
         <div class="item-quality-bar">
           <div class="item-quality-fill" style="width:${item.quality}%"></div>
         </div>
+        ${renderEquipIcons(item)}
         <div class="item-traits">${traitsHtml}</div>
         ${renderBattleEffectHTML(item)}
       </div>
@@ -288,6 +310,7 @@ export function createShopItemCardHTML(item) {
         <div class="item-quality-bar">
           <div class="item-quality-fill" style="width:${item.quality}%"></div>
         </div>
+        ${renderEquipIcons(item)}
         <div class="item-traits">${traitsHtml}</div>
         <div class="shop-display-hint">🏪 クリックで陳列</div>
       </div>
@@ -326,6 +349,7 @@ export function createDisplayedItemCardHTML(item) {
           <span class="item-quality">${tier.icon} Q: ${item.quality}</span>
           <span class="item-card-price">💰 ${item.value}G</span>
         </div>
+        ${renderEquipIcons(item)}
         <div class="item-traits">${traitsHtml}</div>
       </div>
     </div>

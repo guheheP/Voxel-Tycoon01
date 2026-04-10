@@ -19,7 +19,7 @@ export const AdventurerDefs = [
     icon: '🏹',
     exploreTimeMultiplier: 0.85,
     preset: '/presets/RPG_Characters/Archer.json',
-    allowedEquipTypes: ['bow', 'dagger', 'robe'],
+    allowedEquipTypes: ['bow', 'dagger', 'robe', "armor"],
     battle: { maxHp: 90, atk: 28, def: 8, spd: 90 },
   },
 ];
@@ -33,7 +33,7 @@ export const UnlockableAdventurers = [
     exploreTimeMultiplier: 1.1,
     unlockRank: 2,
     preset: '/presets/RPG_Characters/Mage.json',
-    allowedEquipTypes: ['staff', 'robe'],
+    allowedEquipTypes: ['staff', 'robe', 'spear'],
     battle: { maxHp: 80, atk: 35, def: 5, spd: 75 },
   },
   {
