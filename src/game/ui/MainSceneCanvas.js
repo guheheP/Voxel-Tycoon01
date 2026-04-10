@@ -70,7 +70,7 @@ export class MainSceneCanvas {
       eventBus.on('item:crafted', (d) => this._onItemCrafted(d.item)),
       eventBus.on('adventurer:return', (d) => this._onAdventurerReturn()),
       eventBus.on('adventurer:depart', (d) => this._onAdventurerDepart()),
-      eventBus.on('rank:up', (d) => this._onRankUp(d.rank.index))
+      eventBus.on('rank:up', (d) => this._onRankUp(d.index + 1))
     ];
 
     this._startLoop();
@@ -78,6 +78,10 @@ export class MainSceneCanvas {
 
   setDayProgress(p) {
     this.dayProgress = p;
+  }
+
+  setShopRank(rank) {
+    this.shopRank = rank;
   }
 
   _onRankUp(rank) {

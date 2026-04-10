@@ -22,8 +22,6 @@ const TIME_NOON_END   = 0.60;  // 〜60%: 昼
 const TIME_SUNSET_END = 0.80;  // 〜80%: 夕方
 // 〜100%: 夜
 
-const AMBIENT_PARTICLE_COUNT = 15;  // 環境パーティクル数
-
 export class UIManager {
   constructor(inventorySystem, shopSystem, adventurerSystem, customerSystem, dayCycleSystem, randomEventSystem, reputationSystem, questSystem, collectionSystem, battleSystem) {
     this.inventory = inventorySystem;

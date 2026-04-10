@@ -175,6 +175,11 @@ async function startGame(saveData) {
     _applySaveData(saveData);
   }
 
+  // メインシーンの初期ショップランクを同期（セーブ復元後）
+  if (mainSceneCanvas) {
+    mainSceneCanvas.setShopRank(dayCycleSystem.currentRankIndex + 1);
+  }
+
   // 図鑑システム
   collectionSystem = new CollectionSystem();
 
