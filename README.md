@@ -1,6 +1,6 @@
 # 🌿 ひだまり森の錬金工房
 
-Canvas2D ピクセルアート風サイドビューのメインシーンと、Three.js ボクセルによるボスバトル画面を組み合わせた、錬金工房シミュレーションゲーム。
+Canvas2D ピクセルアート風サイドビューで構築した、錬金工房シミュレーションゲーム。
 素材を集め、アイテムを調合し、冒険者を育て、ボスを倒して店を大きくしていこう。
 
 ## クイックスタート
@@ -53,7 +53,7 @@ http://localhost:3000 で起動します。
 ### 🎨 UI / その他
 - モバイル向けレスポンシブ対応・軽量化・タッチ最適化
 - BGM / SE プロシージャルサウンドエンジン搭載
-- 2Dサイドビューのメインシーンストリップ（Canvas2D ピクセルアート、店主・来客・冒険者・環境演出）／バトルのみ Three.js ボクセル描画
+- 2Dサイドビューのメインシーンストリップ（Canvas2D ピクセルアート、店主・来客・冒険者・環境演出）
 - メモリリーク対策による長時間の安定動作
 
 ---
@@ -62,7 +62,6 @@ http://localhost:3000 で起動します。
 
 ```
 src/
-├── engine/          ⛔ ボクセルレンダリングエンジン（変更禁止）
 ├── game/
 │   ├── main.js              ゲームエントリポイント
 │   ├── BattleSystem.js      ボスバトルロジック（ATB）
@@ -79,17 +78,14 @@ src/
 │   ├── StatsTracker.js      統計追跡
 │   ├── core/                EventBus / SaveSystem / SoundManager / AssetLoader
 │   ├── data/                config.js / items.js / areas.js / adventurers.js 等
-│   └── ui/                  UIManager / BattleScreen / 設備・クエストタブ 等
+│   └── ui/                  MainSceneCanvas / BattleCanvas / UIManager / 各タブ
 ├── styles/          CSS（_items.css / _battle.css / _tabs.css 等）
 public/
-├── presets/         ボクセルエンティティJSON（30種+）
 └── art/             ゲーム内アイテム画像
 docs/
 ├── BossBattleSystem_Spec.md  ボスバトル仕様書
 ├── BossBattleSystem_Concept.md  企画書
-├── engine-api.md    エンジンAPI（VoxelEntity / AnimationController）
-├── entity-format.md  エンティティJSONフォーマット仕様
-└── presets.md       利用可能プリセットカタログ
+└── （旧ボクセルエンジン関連ドキュメントはアーカイブ扱い）
 .agent/
 └── instructions.md  AIエージェント向けコンテキスト
 ```
@@ -101,14 +97,11 @@ docs/
 | ドキュメント | 内容 |
 |-------------|------|
 | [BossBattleSystem_Spec.md](docs/BossBattleSystem_Spec.md) | ボスバトル仕様・バトルアイテム・特性統合 |
-| [engine-api.md](docs/engine-api.md) | VoxelEntity & AnimationController API |
-| [entity-format.md](docs/entity-format.md) | エンティティJSON フォーマット仕様 |
-| [presets.md](docs/presets.md) | 利用可能プリセット一覧（40種+） |
 
 ---
 
 ## テックスタック
 
 - **ランタイム**: Vanilla JavaScript (ES Modules)
-- **3Dエンジン**: Three.js v0.172+
+- **描画**: HTML5 Canvas 2D（ピクセルアート、メインシーン & バトル）
 - **ビルドツール**: Vite 6
