@@ -170,6 +170,9 @@ async function startGame(saveData) {
   customerSystem = new CustomerSystem(inventorySystem, shopSystem, randomEventSystem, reputationSystem);
   autoCraftSystem = new AutoCraftSystem(inventorySystem);
 
+  // 図鑑システム（セーブロードより先に生成する必要がある）
+  collectionSystem = new CollectionSystem();
+
   // セーブデータのロード
   if (saveData) {
     _applySaveData(saveData);
@@ -179,9 +182,6 @@ async function startGame(saveData) {
   if (mainSceneCanvas) {
     mainSceneCanvas.setShopRank(dayCycleSystem.currentRankIndex + 1);
   }
-
-  // 図鑑システム
-  collectionSystem = new CollectionSystem();
 
   // セーブシステム
   saveSystem = new SaveSystem(inventorySystem, adventurerSystem, dayCycleSystem, shopSystem, reputationSystem, questSystem, collectionSystem, autoCraftSystem);

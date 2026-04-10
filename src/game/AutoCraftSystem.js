@@ -158,7 +158,7 @@ export class AutoCraftSystem {
       this.craftCount++;
 
       eventBus.emit('inventory:changed');
-      eventBus.emit('item:crafted', { item: newItem });
+      eventBus.emit('item:crafted', { item: newItem, auto: true });
       eventBus.emit('autoCraft:crafted', { item: newItem, recipeId, count: this.craftCount });
     } catch (e) {
       // 素材不足など — 無視

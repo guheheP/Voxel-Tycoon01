@@ -508,6 +508,8 @@ export class UIManager {
 
   _onItemCrafted(data) {
     if (!data?.item) return;
+    // オート調合による定期的なフラッシュを抑制
+    if (data.auto) return;
     const q = data.item.quality;
 
     if (q >= 81) {
