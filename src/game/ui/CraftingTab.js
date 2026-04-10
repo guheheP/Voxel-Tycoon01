@@ -28,6 +28,8 @@ export class CraftingTab {
     this.expandedSlot = null;
     this.recipeFilter = 'all';
     this.craftableOnly = false;
+    // 素材候補の特性フィルター（null = フィルタなし / traitName = その特性で絞り込み）
+    this._candidateTraitFilter = null;
   }
 
   render() {
@@ -288,8 +290,44 @@ export class CraftingTab {
 
       // 候補一覧（展開時）
       if (isExpanded) {
-        html += `<div class="craft-slot-candidates">`;
+        // 候補素材が持つ全特性を収集（レアリティ順にソート）
+        const traitCountMap = {};
         for (const item of available) {
+          for (const t of item.traits) {
+            traitCountMap[t] = (traitCountMap[t] || 0) + 1;
+          }
+        }
+        const rarityOrder = { legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
+        const allTraits = Object.keys(traitCountMap).sort((a, b) => {
+          const ra = rarityOrder[TraitDefs[a]?.rarity] ?? 5;
+          const rb = rarityOrder[TraitDefs[b]?.rarity] ?? 5;
+          return ra - rb;
+        });
+
+        // フィルタリング
+        const activeTrait = this._candidateTraitFilter;
+        const filtered = !activeTrait ? available : available.filter(item =>
+          item.traits.includes(activeTrait)
+        );
+
+        // 特性バッジピッカーを構築
+        const traitPickerHtml = allTraits.length > 0 ? allTraits.map(t => {
+          const isActive = activeTrait === t;
+          const count = traitCountMap[t];
+          return `<button class="cand-trait-pick ${isActive ? 'cand-trait-pick-active' : ''}" data-trait="${t}">${createTraitBadgeHTML(t)} <span class="cand-trait-count">${count}</span></button>`;
+        }).join('') : '<span class="cand-no-traits">特性を持つ素材がありません</span>';
+
+        html += `<div class="craft-slot-candidates">`;
+        html += `
+          <div class="cand-filter-bar">
+            <div class="cand-filter-label">🏷️ 特性で絞り込み${activeTrait ? ` <button class="cand-clear-btn" id="cand-clear-filter">✕ 解除</button>` : ''}</div>
+            <div class="cand-trait-picker">${traitPickerHtml}</div>
+          </div>
+        `;
+        if (filtered.length === 0) {
+          html += `<div class="cand-no-results">条件に合う素材がありません</div>`;
+        }
+        for (const item of filtered) {
           const tier = getQualityTier(item.quality);
           const typeInfo = getTypeInfo(item.type);
           const isChosen = item.uid === selectedUid;
@@ -485,6 +523,10 @@ export class CraftingTab {
     ws.querySelectorAll('.craft-slot-filled, .craft-slot-unfilled').forEach(slot => {
       slot.addEventListener('click', () => {
         const slotKey = slot.dataset.slot;
+        if (this.expandedSlot !== slotKey) {
+          // 新しいスロットを開くときフィルターリセット
+          this._candidateTraitFilter = null;
+        }
         this.expandedSlot = this.expandedSlot === slotKey ? null : slotKey;
         ws.innerHTML = this._renderWorkspace();
         this._bindWorkspaceEvents();
@@ -499,10 +541,34 @@ export class CraftingTab {
         const uid = card.dataset.uid;
         this.selectedMaterials[slotKey] = uid;
         this.expandedSlot = null;
+        this._candidateTraitFilter = null;
         ws.innerHTML = this._renderWorkspace();
         this._bindWorkspaceEvents();
       });
     });
+
+    // 特性バッジピッカー
+    ws.querySelectorAll('.cand-trait-pick').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const trait = btn.dataset.trait;
+        // トグル: 同じ特性を再クリックで解除
+        this._candidateTraitFilter = this._candidateTraitFilter === trait ? null : trait;
+        ws.innerHTML = this._renderWorkspace();
+        this._bindWorkspaceEvents();
+      });
+    });
+
+    // フィルター解除ボタン
+    const clearBtn = ws.querySelector('#cand-clear-filter');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._candidateTraitFilter = null;
+        ws.innerHTML = this._renderWorkspace();
+        this._bindWorkspaceEvents();
+      });
+    }
 
     // 調合ボタン
     const btnDoCraft = document.getElementById('btn-do-craft');

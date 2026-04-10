@@ -559,6 +559,93 @@
 .craft-candidate-card.q-excellent { border-left: 3px solid #7ab0c4; }
 .craft-candidate-card.q-legendary { border-left: 3px solid #e8b84b; }
 
+/* ── Candidate Filter Bar ── */
+.cand-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(160, 132, 92, 0.1);
+}
+.cand-filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cand-clear-btn {
+  font-size: 10px;
+  padding: 1px 8px;
+  border: 1px solid rgba(196, 106, 90, 0.3);
+  border-radius: 8px;
+  background: rgba(196, 106, 90, 0.1);
+  color: #e0a090;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all 0.15s;
+}
+.cand-clear-btn:hover {
+  background: rgba(196, 106, 90, 0.2);
+  border-color: rgba(196, 106, 90, 0.5);
+  color: #f0b0a0;
+}
+.cand-trait-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.cand-trait-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 4px 2px 2px;
+  border: 1px solid rgba(160, 132, 92, 0.12);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-body);
+}
+.cand-trait-pick:hover {
+  border-color: rgba(232, 184, 75, 0.3);
+  background: rgba(232, 184, 75, 0.06);
+}
+.cand-trait-pick-active {
+  border-color: rgba(232, 184, 75, 0.5) !important;
+  background: rgba(232, 184, 75, 0.12) !important;
+  box-shadow: 0 0 8px rgba(232, 184, 75, 0.15);
+}
+.cand-trait-pick .trait-badge {
+  font-size: 9px;
+  padding: 1px 5px;
+  pointer-events: none;
+}
+.cand-trait-count {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  min-width: 14px;
+  text-align: center;
+}
+.cand-trait-pick-active .cand-trait-count {
+  color: var(--gold);
+}
+.cand-no-traits {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.cand-no-results {
+  text-align: center;
+  padding: 14px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* Preview card */
 .crafting-preview {
   margin-top: 16px;
