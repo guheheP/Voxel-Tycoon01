@@ -20,7 +20,7 @@ export class BattleSystem {
     this.state = null;
   }
 
-  startBattle(rankIndex, bossDef, selectedItems = null) {
+  startBattle(rankIndex, bossDef, selectedItems = null, overrideBgm = null) {
     // 持ち込みアイテムを保存（BattleScreenで参照）
     this.selectedItems = selectedItems;
     // 参加冒険者は全生存者
@@ -126,6 +126,7 @@ export class BattleSystem {
       chainMax: 0,
       selectedItems: selectedItems,
       itemUses: {}, // uid → { remaining, max }
+      overrideBgm: overrideBgm || null,
     };
 
     // バトルアイテムの使用回数を初期化
@@ -361,7 +362,7 @@ export class BattleSystem {
   // ===== チャレンジモード =====
 
   /** チャレンジを開始 */
-  startChallenge(challengeId, selectedItems = null) {
+  startChallenge(challengeId, selectedItems = null, overrideBgm = null) {
     const challenge = ChallengeDefs.find(c => c.id === challengeId);
     if (!challenge || challenge.waves.length === 0) return false;
 
@@ -380,7 +381,7 @@ export class BattleSystem {
 
     // ステータス倍率を適用した仮想ボス定義
     const scaledBoss = this._applyWaveMultiplier(bossDef, waveDef.statMultiplier);
-    const result = this.startBattle(0, scaledBoss, selectedItems);
+    const result = this.startBattle(0, scaledBoss, selectedItems, overrideBgm);
     if (!result) {
       this._challengeState = null;
       return false;

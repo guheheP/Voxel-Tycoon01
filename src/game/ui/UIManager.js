@@ -13,6 +13,7 @@ import { StatsTab } from './StatsTab.js';
 import { UpgradeTab } from './UpgradeTab.js';
 import { QuestTab } from './QuestTab.js';
 import { CollectionTab } from './CollectionTab.js';
+import { ChallengeTab } from './ChallengeTab.js';
 
 import { SettingsPanel } from './SettingsPanel.js';
 
@@ -73,9 +74,10 @@ export class UIManager {
       'tab-shop':      new ShopTab(inventorySystem, shopSystem, customerSystem),
       'tab-dispatch':  new DispatchTab(adventurerSystem, inventorySystem),
       'tab-stats':     new StatsTab(dayCycleSystem, reputationSystem),
-      'tab-upgrade':   new UpgradeTab(inventorySystem, shopSystem, dayCycleSystem, battleSystem),
+      'tab-upgrade':   new UpgradeTab(inventorySystem, shopSystem, dayCycleSystem),
       'tab-quest':     new QuestTab(dayCycleSystem, questSystem, adventurerSystem),
       'tab-collection': collectionSystem ? new CollectionTab(collectionSystem) : null,
+      'tab-challenge': new ChallengeTab(inventorySystem, dayCycleSystem, battleSystem),
     };
 
     // イベント購読
@@ -100,9 +102,15 @@ export class UIManager {
       eventBus.on('item:sold', (d) => this._showSaleFloatingText(d)),
       eventBus.on('rank:up', (d) => this._showRankUpOverlay(d)),
       eventBus.on('item:crafted', (d) => this._onItemCrafted(d)),
+      // チャレンジタブの表示/非表示
+      eventBus.on('rank:up', () => this._updateChallengeTabVisibility()),
+      eventBus.on('game:clear', () => this._updateChallengeTabVisibility()),
     ];
 
     this._init();
+
+    // 初期状態でチャレンジタブの表示を同期
+    this._updateChallengeTabVisibility();
   }
 
   /** 毎フレーム — 日進行バー＋タイマー更新 */
@@ -577,6 +585,7 @@ export class UIManager {
       '6': 'tab-quest',
       '7': 'tab-collection',
       '8': 'tab-stats',
+      '9': 'tab-challenge',
     };
 
     this._keyHandler = (e) => {
@@ -602,6 +611,19 @@ export class UIManager {
   dispose() {
     this._unsubscribers.forEach(unsub => unsub());
     if (this._keyHandler) document.removeEventListener('keydown', this._keyHandler);
+  }
+
+  // =============================================
+  //  チャレンジタブ表示制御
+  // =============================================
+
+  _updateChallengeTabVisibility() {
+    const currentRank = this.dayCycle ? this.dayCycle.currentRankIndex + 1 : 1;
+    const unlocked = currentRank >= GameConfig.goalShopRank;
+    const btn = document.querySelector('.tab-challenge-btn');
+    if (btn) {
+      btn.style.display = unlocked ? '' : 'none';
+    }
   }
 }
 

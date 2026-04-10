@@ -1,19 +1,14 @@
 /**
- * UpgradeTab — 設備タブ（アップグレード購入UI + チャレンジモード）
+ * UpgradeTab — 設備タブ（アップグレード購入UI）
  */
 import { UpgradeDefs, UpgradeCategories } from '../data/upgrades.js';
-import { GameConfig } from '../data/config.js';
-import { ChallengeDefs } from '../data/challenges.js';
 import { eventBus } from '../core/EventBus.js';
 
 export class UpgradeTab {
-  constructor(inventorySystem, shopSystem, dayCycleSystem, battleSystem) {
+  constructor(inventorySystem, shopSystem, dayCycleSystem) {
     this.inventory = inventorySystem;
     this.shop = shopSystem;
     this.dayCycle = dayCycleSystem;
-    this.battle = battleSystem;
-    // DayCycleSystemのclearedChallengesを参照（セーブ/ロード対応）
-    this._getClearedChallenges = () => new Set(this.dayCycle.clearedChallenges || []);
   }
 
   render() {
@@ -82,55 +77,16 @@ export class UpgradeTab {
       </div>
     `;
 
-    // チャレンジモードセクション（ランク8到達後に表示）
-    let challengeHTML = '';
-    if (currentRank >= GameConfig.goalShopRank) {
-      const challengeCards = ChallengeDefs.map(ch => {
-        const cleared = this._getClearedChallenges().has(ch.id);
-        return `
-          <div class="upgrade-card ${cleared ? 'upgrade-purchased' : 'upgrade-available'} challenge-card" data-challenge-id="${ch.id}">
-            <div class="upgrade-card-icon">${ch.icon}</div>
-            <div class="upgrade-card-body">
-              <span class="upgrade-card-name">${ch.name}</span>
-              <span class="upgrade-card-desc">${ch.description} (${ch.waves.length}ウェーブ)</span>
-            </div>
-            <div class="upgrade-card-price">
-              ${cleared ? '✅ クリア済' : `🏆 報酬 ${ch.rewards.gold}G`}
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      challengeHTML = `
-        <div class="upgrade-category">
-          <h3 class="upgrade-section-title">🗼 チャレンジモード</h3>
-          <p class="text-dim" style="margin-bottom:8px;">全クリアおめでとう！ 強化ボスとの連戦に挑もう。</p>
-          <div class="upgrade-grid">${challengeCards}</div>
-        </div>
-      `;
-    }
-
-    section.innerHTML = capacityHTML + upgradesHTML + challengeHTML;
+    section.innerHTML = capacityHTML + upgradesHTML;
 
     // 購入ボタンのイベント
-    section.querySelectorAll('.upgrade-available:not(.challenge-card)').forEach(card => {
+    section.querySelectorAll('.upgrade-available').forEach(card => {
       card.addEventListener('click', () => {
         const id = card.dataset.id;
         const success = this.shop.purchaseUpgrade(id, currentRank);
         if (success) {
           this.render();
           eventBus.emit('inventory:changed');
-        }
-      });
-    });
-
-    // チャレンジ開始ボタン
-    section.querySelectorAll('.challenge-card.upgrade-available').forEach(card => {
-      card.addEventListener('click', () => {
-        const challengeId = card.dataset.challengeId;
-        if (this.battle && !this.battle.active) {
-          // BattlePrepScreenを経由してチャレンジを開始
-          eventBus.emit('challenge:requestStart', { challengeId });
         }
       });
     });

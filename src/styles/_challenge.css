@@ -1,0 +1,198 @@
+/* ========================================================
+   ChallengeTab — チャレンジモード専用タブのスタイル
+   ======================================================== */
+
+/* ── イントロ ── */
+.challenge-intro {
+  margin-bottom: 1.2rem;
+  padding: 1rem 1.2rem;
+  background: linear-gradient(135deg, rgba(252,163,17,0.08), rgba(168,85,247,0.06));
+  border: 1px solid rgba(252,163,17,0.15);
+  border-radius: 12px;
+}
+.challenge-intro-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #bbb;
+  line-height: 1.7;
+}
+
+/* ── グリッド ── */
+.challenge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+/* ── カード ── */
+.challenge-card {
+  background: linear-gradient(145deg, rgba(30,30,50,0.9), rgba(20,20,40,0.95));
+  border: 1px solid rgba(74,78,105,0.5);
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+  transition: all 0.22s ease;
+  position: relative;
+  overflow: hidden;
+}
+.challenge-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, rgba(252,163,17,0.3), rgba(168,85,247,0.3));
+  border-radius: 14px 14px 0 0;
+}
+.challenge-available:hover {
+  border-color: rgba(252,163,17,0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(252,163,17,0.12);
+}
+.challenge-cleared {
+  border-color: rgba(74,222,128,0.3);
+}
+.challenge-cleared::before {
+  background: linear-gradient(90deg, rgba(74,222,128,0.4), rgba(59,130,246,0.3));
+}
+
+/* ── カードヘッダー ── */
+.challenge-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.challenge-card-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(252,163,17,0.1);
+  border-radius: 10px;
+}
+.challenge-cleared .challenge-card-icon {
+  background: rgba(74,222,128,0.1);
+}
+.challenge-card-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.challenge-card-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f0e6d0;
+}
+.challenge-cleared-badge {
+  font-size: 0.72rem;
+  color: #4ade80;
+  font-weight: 600;
+}
+
+/* ── 説明 ── */
+.challenge-card-desc {
+  font-size: 0.8rem;
+  color: #999;
+  line-height: 1.5;
+  margin: 0 0 10px 0;
+}
+
+/* ── メタ情報 ── */
+.challenge-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.challenge-meta-label {
+  font-size: 0.72rem;
+  color: #777;
+  margin-right: 4px;
+}
+.challenge-card-waves {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.challenge-wave-dots {
+  display: flex;
+  gap: 3px;
+}
+.challenge-wave-dot {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #aaa;
+  background: rgba(74,78,105,0.4);
+  border: 1px solid rgba(74,78,105,0.5);
+  border-radius: 4px;
+}
+.challenge-reward-gold {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #fca311;
+}
+
+/* ── 開始ボタン ── */
+.challenge-start-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 0;
+  background: linear-gradient(135deg, rgba(214,40,40,0.2), rgba(155,34,38,0.2));
+  border: 1px solid rgba(214,40,40,0.4);
+  border-radius: 8px;
+  color: #ff6b6b;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  letter-spacing: 0.5px;
+}
+.challenge-start-btn:hover {
+  background: linear-gradient(135deg, rgba(214,40,40,0.35), rgba(155,34,38,0.35));
+  border-color: rgba(214,40,40,0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(214,40,40,0.2);
+}
+.challenge-retry-btn {
+  background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(99,102,241,0.15));
+  border-color: rgba(59,130,246,0.3);
+  color: #60a5fa;
+}
+.challenge-retry-btn:hover {
+  background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(99,102,241,0.3));
+  border-color: rgba(59,130,246,0.5);
+  box-shadow: 0 3px 12px rgba(59,130,246,0.15);
+}
+
+/* ── ロックメッセージ ── */
+.challenge-locked-msg {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #777;
+}
+.challenge-locked-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+.challenge-locked-msg p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* ── タブボタン特殊スタイル ── */
+.tab-challenge-btn {
+  border-top: 1px solid rgba(74,78,105,0.3);
+  margin-top: auto;
+}

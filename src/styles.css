@@ -19,4 +19,5 @@
 @import './styles/_battle.css';
 @import './styles/_simulator.css';
 @import './styles/_inventory.css';
+@import './styles/_challenge.css';
 @import './styles/_mobile.css';  /* モバイル対応 — 最後に読み込む */

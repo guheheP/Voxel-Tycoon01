@@ -13,6 +13,19 @@ import { AreaDefs } from '../data/areas.js';
 import { assetPath } from '../core/assetPath.js';
 import { getQualityTier, createTraitBadgeHTML } from './UIHelpers.js';
 
+// BGM選択用トラックリスト
+const BGM_CHOICES = [
+  { id: 'battle_01', label: '草原の戦い',     file: '/bgm/battle_01.mp3' },
+  { id: 'battle_02', label: '洞窟の戦い',     file: '/bgm/battle_02.mp3' },
+  { id: 'battle_03', label: '妖精の森の戦い', file: '/bgm/battle_03.mp3' },
+  { id: 'battle_04', label: '火山の戦い',     file: '/bgm/battle_04.mp3' },
+  { id: 'battle_05', label: '深海の戦い',     file: '/bgm/battle_05.mp3' },
+  { id: 'battle_06', label: '竜の巣の戦い',   file: '/bgm/battle_06.mp3' },
+  { id: 'battle_07', label: '天空の戦い',     file: '/bgm/battle_07.mp3' },
+  { id: 'battle_08', label: '時の回廊の戦い', file: '/bgm/battle_08.mp3' },
+  { id: 'battle_EX', label: 'EXバトル',       file: '/bgm/battle_EX.mp3' },
+];
+
 const _allAdvDefs = [...AdventurerDefs, ...UnlockableAdventurers];
 function _getAdvDef(id) {
   return _allAdvDefs.find(d => d.id === id);
@@ -31,6 +44,7 @@ export class BattlePrepScreen {
     this.maxSlots = this._calcMaxSlots(rankIdx);
     this._pendingBattle = null; // { rankIndex, bossDef }
     this._pendingChallengeId = null; // チャレンジモード用
+    this._selectedBgm = null; // チャレンジBGM選択
   }
 
   /** 持ち込み枠数を計算（ランク基準 + アップグレードボーナス） */
@@ -138,6 +152,11 @@ export class BattlePrepScreen {
     };
     this.show(0, virtualBoss);
     this._pendingChallengeId = challengeId; // show()のリセット後に設定
+
+    // 2層以降はBGMセレクターを挿入
+    if (challengeId !== 'challenge_1' && this.overlay) {
+      this._insertBgmSelector();
+    }
   }
 
   _renderAdvCard(adv) {
@@ -297,9 +316,11 @@ export class BattlePrepScreen {
       const { rankIndex, bossDef } = this._pendingBattle;
       const selectedUids = [...this.selectedItems];
       const challengeId = this._pendingChallengeId;
+      const selectedBgm = this._selectedBgm;
       this._pendingChallengeId = null;
+      this._selectedBgm = null;
       this._close();
-      eventBus.emit('battle:prepComplete', { rankIndex, bossDef, selectedItems: selectedUids, challengeId });
+      eventBus.emit('battle:prepComplete', { rankIndex, bossDef, selectedItems: selectedUids, challengeId, selectedBgm });
     });
 
     // オーバーレイ背景クリックで閉じない（意図しない操作防止）
@@ -336,6 +357,50 @@ export class BattlePrepScreen {
       this.overlay = null;
     }
     this._pendingBattle = null;
+    this._selectedBgm = null;
     this.selectedItems = [];
+  }
+
+  // ── BGMセレクター ──
+
+  _insertBgmSelector() {
+    const body = this.overlay.querySelector('.prep-body');
+    if (!body) return;
+
+    const section = document.createElement('div');
+    section.className = 'prep-section prep-bgm';
+    section.innerHTML = `
+      <h3>🎵 バトルBGM選択</h3>
+      <p class="prep-bgm-hint">お好みのBGMでバトルに挑めます（未選択時は通常BGM）</p>
+      <div class="prep-bgm-grid" id="prep-bgm-grid">
+        ${BGM_CHOICES.map(bgm => `
+          <button class="prep-bgm-btn" data-bgm-file="${bgm.file}" data-bgm-id="${bgm.id}">
+            <span class="prep-bgm-icon">🎶</span>
+            <span class="prep-bgm-label">${bgm.label}</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
+    body.appendChild(section);
+
+    // BGMプレビュー・選択
+    section.querySelectorAll('.prep-bgm-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const file = btn.dataset.bgmFile;
+        const isSelected = btn.classList.contains('prep-bgm-selected');
+
+        // 全ボタンの選択解除
+        section.querySelectorAll('.prep-bgm-btn').forEach(b => b.classList.remove('prep-bgm-selected'));
+
+        if (isSelected) {
+          // 選択解除 → デフォルトBGMに戻す
+          this._selectedBgm = null;
+        } else {
+          // 選択
+          btn.classList.add('prep-bgm-selected');
+          this._selectedBgm = assetPath(file);
+        }
+      });
+    });
   }
 }

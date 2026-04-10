@@ -153,6 +153,11 @@ class SoundManagerClass {
 
     // --- バトルBGM & SE ---
     eventBus.on('battle:start', (state) => {
+      // チャレンジモードなどでプレイヤーが選んだBGMがあればそちらを優先
+      if (state?.overrideBgm) {
+        this.startBattleBGM(state.overrideBgm);
+        return;
+      }
       const bossId = state?.boss?.id;
       const track = (bossId && BATTLE_TRACKS[bossId]) || BATTLE_TRACK_DEFAULT;
       this.startBattleBGM(track);
@@ -349,6 +354,60 @@ class SoundManagerClass {
     this._stopProcedural();
   }
 
+  // ===== 音量制御 =====
+
+  /** マスター音量を設定 (0.0 ~ 1.0) */
+  setMasterVolume(v) {
+    this.masterVolume = Math.max(0, Math.min(1, v));
+    if (this.masterGain && !this.muted) {
+      this.masterGain.gain.setValueAtTime(this.masterVolume, this.ctx.currentTime);
+    }
+    this._saveSettings();
+  }
+
+  /** BGM音量を設定 (0.0 ~ 1.0) */
+  setBgmVolume(v) {
+    this.bgmVolume = Math.max(0, Math.min(1, v));
+    if (this.bgmGain && !this.isFading) {
+      this.bgmGain.gain.setValueAtTime(this.bgmVolume, this.ctx.currentTime);
+    }
+    this._saveSettings();
+  }
+
+  /** SE音量を設定 (0.0 ~ 1.0) */
+  setSeVolume(v) {
+    this.seVolume = Math.max(0, Math.min(1, v));
+    if (this.seGain) {
+      this.seGain.gain.setValueAtTime(this.seVolume, this.ctx.currentTime);
+    }
+    this._saveSettings();
+  }
+
+  /** ミュートトグル。新しいmuted状態を返す */
+  toggleMute() {
+    this.muted = !this.muted;
+    if (this.masterGain) {
+      this.masterGain.gain.setValueAtTime(
+        this.muted ? 0 : this.masterVolume,
+        this.ctx.currentTime
+      );
+    }
+    this._saveSettings();
+    return this.muted;
+  }
+
+  /** 設定をlocalStorageに保存 */
+  _saveSettings() {
+    try {
+      localStorage.setItem('voxelshop_sound', JSON.stringify({
+        muted: this.muted,
+        masterVolume: this.masterVolume,
+        bgmVolume: this.bgmVolume,
+        seVolume: this.seVolume,
+      }));
+    } catch { /* quota exceeded etc. */ }
+  }
+
   /** day:newDayイベント → フェードアウトして次の曲 */
   _onNewDay() {
     if (this.isTitleBGM || this.isBattleBGM) return;
@@ -373,7 +432,7 @@ class SoundManagerClass {
         this.audioEl.pause();
       }
       // 音量復元
-      this.bgmGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+      this.bgmGain.gain.setValueAtTime(this.bgmVolume, this.ctx.currentTime);
       this.isFading = false;
       callback();
     }, durationMs);

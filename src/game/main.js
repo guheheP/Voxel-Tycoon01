@@ -221,7 +221,7 @@ async function startGame(saveData) {
     eventBus.on('battle:prepComplete', (d) => {
       // チャレンジモードの場合はstartChallengeを使用
       if (d.challengeId) {
-        battleSystem.startChallenge(d.challengeId, d.selectedItems);
+        battleSystem.startChallenge(d.challengeId, d.selectedItems, d.selectedBgm || null);
       } else {
         battleSystem.startBattle(d.rankIndex, d.bossDef, d.selectedItems);
       }

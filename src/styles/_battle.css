@@ -830,3 +830,56 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(214, 40, 40, 0.5);
 }
+
+/* ── BGM Selector ── */
+.prep-bgm {
+  border-top: 1px solid rgba(74, 78, 105, 0.4);
+  padding-top: 0.75rem;
+}
+.prep-bgm-hint {
+  font-size: 0.75rem;
+  color: #888;
+  margin: 0 0 0.6rem 0;
+}
+.prep-bgm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+}
+.prep-bgm-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  background: rgba(40, 40, 60, 0.6);
+  border: 1px solid rgba(74, 78, 105, 0.5);
+  border-radius: 8px;
+  color: #bbb;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.prep-bgm-btn:hover {
+  background: rgba(60, 60, 90, 0.7);
+  border-color: rgba(168, 138, 255, 0.5);
+  color: #ddd;
+  transform: translateY(-1px);
+}
+.prep-bgm-btn.prep-bgm-selected {
+  background: rgba(252, 163, 17, 0.15);
+  border-color: #fca311;
+  color: #fca311;
+  box-shadow: 0 0 10px rgba(252, 163, 17, 0.2), inset 0 0 12px rgba(252, 163, 17, 0.06);
+  font-weight: 700;
+}
+.prep-bgm-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.prep-bgm-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -43,6 +43,7 @@
 .puzzle-body {
   display: flex;
   gap: 16px;
+  align-items: flex-start;
 }
 .pz-left {
   display: flex;
@@ -127,7 +128,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-width: 160px;
+  width: 170px;
+  flex-shrink: 0;
 }
 .pz-panel {
   background: rgba(0, 0, 0, 0.2);
@@ -176,7 +178,14 @@
   opacity: 0.6;
 }
 
-/* Mini shape preview */
+.pz-piece-shape {
+  width: 62px;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
 .pz-mini {
   display: inline-grid;
   gap: 1px;
