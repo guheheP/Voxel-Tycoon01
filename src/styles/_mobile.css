@@ -6,10 +6,6 @@
 /* ===== Phase 1: レイアウト基盤 ===== */
 
 @media (max-width: 768px) {
-  /* --- 3Dキャンバス非表示（モバイルではレンダリング不要） --- */
-  #game-canvas {
-    display: none;
-  }
   /* .scene-strip はデフォルト display:none なのでここでは不要 */
 
   /* --- ボトムナビゲーション化 --- */
@@ -625,9 +621,3 @@
   }
 }
 
-/* ===== 環境パーティクルのモバイル対応 ===== */
-@media (max-width: 768px) {
-  .ambient-particles {
-    display: none; /* モバイルではCSS環境パーティクル非表示 */
-  }
-}

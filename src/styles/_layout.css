@@ -1,13 +1,3 @@
-/* ===== Canvas ===== */
-#game-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  position: fixed;
-  top: 0;
-  left: 0;
-}
-
 /* ===== UI Overlay ===== */
 #ui-root {
   position: fixed;
@@ -72,7 +62,7 @@
   min-height: 0;
 }
 
-/* ===== 3D Scene Strip (Desktop only) ===== */
+/* ===== Main Scene Strip (Desktop only) ===== */
 .scene-strip {
   display: none;
 }
