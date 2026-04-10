@@ -31,6 +31,8 @@ export class MainSceneCanvas {
     this._customers = [];
     this._returningAdvs = [];
     this._particles = [];
+    this._unsubs = [];
+    this._handleResize = null;
   }
 
   get shopX() { return this.W / 2; }
@@ -582,7 +584,12 @@ export class MainSceneCanvas {
   dispose() {
     this._disposed = true;
     if (this._animId) cancelAnimationFrame(this._animId);
+    if (this._handleResize) {
+      window.removeEventListener('resize', this._handleResize);
+      this._handleResize = null;
+    }
     this._unsubs.forEach(u => u());
+    this._unsubs = [];
     if (this.canvas && this.canvas.parentNode) {
       this.canvas.remove();
     }
