@@ -248,6 +248,81 @@
   margin-top: 2px;
 }
 
+/* ===== Auto-Lock Accordion ===== */
+.autolock-accordion {
+  margin-bottom: 8px;
+  border: 1px solid rgba(100, 140, 200, 0.15);
+  border-radius: 8px;
+  background: rgba(100, 140, 200, 0.03);
+  overflow: hidden;
+}
+.autolock-accordion-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 12px;
+  border: none;
+  background: none;
+  color: rgba(245, 230, 200, 0.7);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.autolock-accordion-header:hover {
+  background: rgba(100, 140, 200, 0.06);
+  color: #7ab0e8;
+}
+.autolock-accordion-icon {
+  font-size: 9px;
+  color: rgba(245, 230, 200, 0.4);
+  transition: transform 0.2s;
+}
+.autolock-accordion-body {
+  padding: 6px 12px 10px;
+  border-top: 1px solid rgba(100, 140, 200, 0.1);
+}
+.autolock-desc {
+  font-size: 10px;
+  color: rgba(245, 230, 200, 0.4);
+  margin: 0 0 6px;
+}
+.autolock-trait-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.autolock-trait-btn {
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  padding: 1px 2px;
+  cursor: pointer;
+  transition: all 0.15s;
+  opacity: 0.45;
+}
+.autolock-trait-btn:hover {
+  opacity: 0.85;
+  border-color: rgba(232, 184, 75, 0.3);
+}
+.autolock-trait-active {
+  opacity: 1;
+  border-color: rgba(122, 176, 232, 0.6);
+  background: rgba(122, 176, 232, 0.1);
+  box-shadow: 0 0 6px rgba(122, 176, 232, 0.15);
+}
+.autolock-trait-active:hover {
+  border-color: rgba(196, 90, 90, 0.5);
+  background: rgba(196, 90, 90, 0.1);
+}
+.autolock-count {
+  color: #7ab0e8;
+  font-weight: 700;
+  font-size: 11px;
+  margin-left: auto;
+}
+
 /* ===== Collection Tab ===== */
 .coll-header {
   display: flex;

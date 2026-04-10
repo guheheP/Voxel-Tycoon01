@@ -358,6 +358,11 @@ function _applySaveData(data) {
     shopSystem.autoDisposeMaxQuality = data.autoDisposeMaxQuality;
   }
 
+  // 特性自動ロックの復元
+  if (data.autoLockTraits && Array.isArray(data.autoLockTraits)) {
+    inventorySystem.autoLockTraits = new Set(data.autoLockTraits);
+  }
+
   // オート調合の復元
   if (data.autoCraft && autoCraftSystem) {
     autoCraftSystem.loadSaveData(data.autoCraft);

@@ -13,6 +13,9 @@ export class InventorySystem {
     this.items = [];
     this.maxCapacity = GameConfig.initialInventoryCapacity;
 
+    /** 自動ロック対象の特性名セット */
+    this.autoLockTraits = new Set();
+
     // 初期アイテムの生成
     for (const def of GameConfig.initialItems) {
       this.items.push(createItemInstance(def.blueprintId, def.quality, def.traits));
@@ -51,6 +54,7 @@ export class InventorySystem {
       }
       return false;
     }
+    this._applyAutoLock(itemInstance);
     this.items.push(itemInstance);
     eventBus.emit('inventory:changed');
     return true;
@@ -58,8 +62,28 @@ export class InventorySystem {
 
   /** 容量無視でアイテム追加（探索報酬等、確実に追加したい場合） */
   forceAddItem(itemInstance) {
+    this._applyAutoLock(itemInstance);
     this.items.push(itemInstance);
     eventBus.emit('inventory:changed');
+  }
+
+  /** 自動ロック判定 — アイテムの特性が autoLockTraits に含まれていればロック */
+  _applyAutoLock(item) {
+    if (this.autoLockTraits.size === 0) return;
+    if (item.traits && item.traits.some(t => this.autoLockTraits.has(t))) {
+      item.locked = true;
+    }
+  }
+
+  /** 自動ロック特性のトグル */
+  toggleAutoLockTrait(traitName) {
+    if (this.autoLockTraits.has(traitName)) {
+      this.autoLockTraits.delete(traitName);
+      return false;
+    } else {
+      this.autoLockTraits.add(traitName);
+      return true;
+    }
   }
 
   removeItem(uid, force = false) {

@@ -2,7 +2,7 @@
  * InventoryTab — 倉庫タブ（一括操作・即時処分・高度フィルタ対応版）
  */
 import { ItemBlueprints, TraitDefs } from '../data/items.js';
-import { createItemCardHTML, getTypeInfo, getQualityTier, openItemDetailModal } from './UIHelpers.js';
+import { createItemCardHTML, getTypeInfo, getQualityTier, openItemDetailModal, createTraitBadgeHTML } from './UIHelpers.js';
 import { eventBus } from '../core/EventBus.js';
 
 export class InventoryTab {
@@ -16,6 +16,7 @@ export class InventoryTab {
     this.traitFilter = 'all';    // 'all' | 'with' | 'without'
     this.selectMode = false;
     this.selectedUids = new Set();
+    this._autoLockOpen = false; // 自動ロックパネルの開閉状態
   }
 
   render() {
@@ -129,6 +130,31 @@ export class InventoryTab {
       }
     }
     html += `</div>`;
+
+    // 特性自動ロックパネル（折りたたみ式）
+    const lockTraits = this.inventory.autoLockTraits;
+    const lockCount = lockTraits.size;
+    const isOpen = this._autoLockOpen;
+    const rarityOrder = { legendary: 0, epic: 1, rare: 2, uncommon: 3, common: 4 };
+    const sortedTraits = Object.entries(TraitDefs)
+      .sort((a, b) => (rarityOrder[a[1].rarity] ?? 5) - (rarityOrder[b[1].rarity] ?? 5));
+    const traitBadges = sortedTraits.map(([name, def]) => {
+      const active = lockTraits.has(name);
+      return `<button class="autolock-trait-btn ${active ? 'autolock-trait-active' : ''}" data-autolock-trait="${name}" title="${def.description}">${createTraitBadgeHTML(name)}</button>`;
+    }).join('');
+    html += `
+      <div class="autolock-accordion ${isOpen ? 'autolock-open' : ''}">
+        <button class="autolock-accordion-header" id="autolock-toggle">
+          <span class="autolock-accordion-icon">${isOpen ? '▼' : '▶'}</span>
+          <span>🔒 特性自動ロック</span>
+          ${lockCount > 0 ? `<span class="autolock-count">${lockCount}件</span>` : ''}
+        </button>
+        <div class="autolock-accordion-body" ${isOpen ? '' : 'style="display:none"'}>
+          <p class="autolock-desc">選択した特性を持つ素材を入手時に自動でロックします</p>
+          <div class="autolock-trait-grid">${traitBadges}</div>
+        </div>
+      </div>
+    `;
 
     if (sorted.length === 0) {
       const isAll = this.filter === 'all' && this.qualityFilter === 'all' && this.traitFilter === 'all';
@@ -311,6 +337,44 @@ export class InventoryTab {
         }
       });
     }
+
+    // 自動ロック: アコーディオン開閉
+    const alToggle = this.el.querySelector('#autolock-toggle');
+    if (alToggle) {
+      alToggle.addEventListener('click', () => {
+        this._autoLockOpen = !this._autoLockOpen;
+        const body = this.el.querySelector('.autolock-accordion-body');
+        const icon = this.el.querySelector('.autolock-accordion-icon');
+        if (body) body.style.display = this._autoLockOpen ? '' : 'none';
+        if (icon) icon.textContent = this._autoLockOpen ? '▼' : '▶';
+        this.el.querySelector('.autolock-accordion')?.classList.toggle('autolock-open', this._autoLockOpen);
+      });
+    }
+    // 自動ロック: 特性バッジトグル
+    this.el.querySelectorAll('.autolock-trait-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const traitName = btn.dataset.autolockTrait;
+        if (!traitName) return;
+        const nowActive = this.inventory.toggleAutoLockTrait(traitName);
+        btn.classList.toggle('autolock-trait-active', nowActive);
+        // ヘッダーのカウント更新
+        const countEl = this.el.querySelector('.autolock-count');
+        const sz = this.inventory.autoLockTraits.size;
+        if (countEl) {
+          countEl.textContent = `${sz}件`;
+        } else if (sz > 0) {
+          // カウントが最初からなかった場合、ヘッダーに追加
+          const header = this.el.querySelector('.autolock-accordion-header');
+          if (header) {
+            const span = document.createElement('span');
+            span.className = 'autolock-count';
+            span.textContent = `${sz}件`;
+            header.appendChild(span);
+          }
+        }
+      });
+    });
   }
 
   _showConfirm(message, onConfirm) {

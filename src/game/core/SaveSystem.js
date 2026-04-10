@@ -87,6 +87,7 @@ export class SaveSystem {
         autoSellRules: this.shop.autoSellRules || null,
         autoDisposeEnabled: this.shop.autoDisposeEnabled || false,
         autoDisposeMaxQuality: this.shop.autoDisposeMaxQuality ?? 30,
+        autoLockTraits: [...this.inventory.autoLockTraits],
         collection: this.collection ? this.collection.toSaveData() : null,
         autoCraft: this.autoCraft ? this.autoCraft.toSaveData() : null,
       };
