@@ -45,11 +45,12 @@ export class CustomerSystem {
     });
   }
 
-  /** アップグレードボーナスをEventBus経由で同期取得 */
+  /** アップグレードボーナスをShopSystemから直接取得 */
   _getUpgradeBonus(effectType) {
-    const q = { effectType, result: 0 };
-    eventBus.emit('upgrade:queryBonus', q);
-    return q.result;
+    if (this.shop) {
+      return this.shop.getUpgradeBonus(effectType);
+    }
+    return 0;
   }
 
   /** 毎フレーム更新 */

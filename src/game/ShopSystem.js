@@ -17,6 +17,7 @@ export class ShopSystem {
     this.maxSlots = GameConfig.shopMaxDisplaySlots;
     this.sellTimer = 0;
     this.purchasedUpgrades = [];
+    this._cachedUpgrades = {};
 
     // オートセル設定
     this.autoSellEnabled = false;
@@ -192,20 +193,29 @@ export class ShopSystem {
         break;
     }
 
+    this.recalculateUpgrades();
     eventBus.emit('upgrade:purchased', { upgradeId, effect });
     return true;
   }
 
-  /** 購入済みアップグレードの効果値を合算して返す */
-  getUpgradeBonus(effectType) {
-    let total = 0;
+  /** 購入済みアップグレードの効果値を再計算してキャッシュに保存 */
+  recalculateUpgrades() {
+    this._cachedUpgrades = {};
     for (const uid of this.purchasedUpgrades) {
       const def = UpgradeDefs.find(u => u.id === uid);
-      if (def && def.effect.type === effectType) {
-        total += def.effect.value;
+      if (def) {
+        const type = def.effect.type;
+        this._cachedUpgrades[type] = (this._cachedUpgrades[type] || 0) + def.effect.value;
       }
     }
-    return total;
+  }
+
+  /** 購入済みアップグレードの効果値をキャッシュから即座に返す */
+  getUpgradeBonus(effectType) {
+    if (this._cachedUpgrades[effectType] !== undefined) {
+      return this._cachedUpgrades[effectType];
+    }
+    return 0;
   }
 
   /** アップグレード購入済み判定 */

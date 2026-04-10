@@ -326,6 +326,7 @@ function _applySaveData(data) {
   // アップグレード復元
   if (data.purchasedUpgrades) {
     shopSystem.purchasedUpgrades = [...data.purchasedUpgrades];
+    shopSystem.recalculateUpgrades();
   }
   // maxSlots復元
   if (data.maxSlots) {

@@ -43,7 +43,7 @@ export class SimulatorPanel {
             <button class="sim-tab-btn" data-tab="explore">🗺️ 探索</button>
             <button class="sim-tab-btn" data-tab="economy">💰 経済</button>
           </div>
-          <button class="sim-close-btn" title="閉じる (`)">✕</button>
+          <button class="sim-close-btn" title="閉じる (\`)">✕</button>
         </div>
         <div class="sim-panel-body">
           <div id="sim-tab-battle" class="sim-tab-content active"></div>
