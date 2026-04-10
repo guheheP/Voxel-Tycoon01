@@ -82,8 +82,9 @@ export class UIManager {
 
     // イベント購読
     this._unsubscribers = [
-      eventBus.on('item:sold',         () => this.updateAll()),
-      eventBus.on('adventurer:return',  () => this.updateAll()),
+      // item:sold → ショップの陳列棚更新用（inventory:changed は発火しない）
+      eventBus.on('item:sold',          () => this.updateAll()),
+      // adventurer:return → inventory:changed 経由で自動更新されるため個別リスナー不要
       eventBus.on('inventory:changed',  () => this.updateAll()),
       eventBus.on('gold:changed',       () => this._onGoldChanged()),
       eventBus.on('day:newDay',         () => this.updateAll()),

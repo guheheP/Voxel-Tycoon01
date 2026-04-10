@@ -9,9 +9,11 @@ import { eventBus } from './core/EventBus.js';
 
 export class InventorySystem {
   constructor() {
-    this.gold = GameConfig.initialGold;
     this.items = [];
+    this.gold = GameConfig.initialGold;
     this.maxCapacity = GameConfig.initialInventoryCapacity;
+    this._batchMode = false;
+    this._batchDirty = false;
 
     /** 自動ロック対象の特性名セット */
     this.autoLockTraits = new Set();
@@ -56,7 +58,7 @@ export class InventorySystem {
     }
     this._applyAutoLock(itemInstance);
     this.items.push(itemInstance);
-    eventBus.emit('inventory:changed');
+    if (this._batchMode) { this._batchDirty = true; } else { eventBus.emit('inventory:changed'); }
     return true;
   }
 
@@ -64,7 +66,18 @@ export class InventorySystem {
   forceAddItem(itemInstance) {
     this._applyAutoLock(itemInstance);
     this.items.push(itemInstance);
-    eventBus.emit('inventory:changed');
+    if (this._batchMode) { this._batchDirty = true; } else { eventBus.emit('inventory:changed'); }
+  }
+
+  /** バッチモード開始 — inventory:changed イベント発火を抑制 */
+  beginBatch() { this._batchMode = true; this._batchDirty = false; }
+  /** バッチモード終了 — 変更があった場合のみ1回イベント発火 */
+  endBatch() {
+    this._batchMode = false;
+    if (this._batchDirty) {
+      this._batchDirty = false;
+      eventBus.emit('inventory:changed');
+    }
   }
 
   /** 自動ロック判定 — アイテムの特性が autoLockTraits に含まれていればロック */

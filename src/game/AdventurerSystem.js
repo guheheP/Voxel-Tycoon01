@@ -184,6 +184,8 @@ export class AdventurerSystem {
       const pool = area.dropTable;
       const totalWeight = pool.reduce((sum, d) => sum + d.weight, 0);
 
+      // バッチモード: 全ドロップ追加後に1回だけ inventory:changed を発火
+      this.inventory.beginBatch();
       for (let i = 0; i < dropCount; i++) {
         let r = Math.random() * totalWeight;
         let selectedItemId = pool[0].blueprintId;
@@ -265,6 +267,7 @@ export class AdventurerSystem {
           items.pop();
         }
       }
+      this.inventory.endBatch();
     }
 
     // 経験値（失敗時は半分）

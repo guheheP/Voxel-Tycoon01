@@ -16,16 +16,27 @@ export class QuestSystem {
     // 購入したアップグレード数
     this.upgradeCount = 0;
 
+    // 全クエストのフラット配列 + conditionType別インデックス（初回のみ構築）
+    this._allQuests = [];
+    this._byCondition = {};
+    for (const quests of Object.values(QuestDefs)) {
+      for (const q of quests) {
+        this._allQuests.push(q);
+        if (!this._byCondition[q.conditionType]) this._byCondition[q.conditionType] = [];
+        this._byCondition[q.conditionType].push(q);
+      }
+    }
+
     this._initProgress();
     this._bindEvents();
   }
 
   _initProgress() {
-    this._forEachQuest(q => {
+    for (const q of this._allQuests) {
       if (!(q.id in this.progress)) {
         this.progress[q.id] = 0;
       }
-    });
+    }
   }
 
   _bindEvents() {
@@ -82,26 +93,23 @@ export class QuestSystem {
 
   /** 全クエストを走査してコールバックを呼ぶ共通ヘルパー */
   _forEachQuest(fn) {
-    for (const [, quests] of Object.entries(QuestDefs)) {
-      for (const q of quests) {
-        fn(q);
-      }
-    }
+    for (const q of this._allQuests) fn(q);
   }
 
   /** 指定conditionTypeの全クエスト進捗を加算 */
   _increment(conditionType, amount) {
-    this._forEachQuest(q => {
-      if (q.conditionType === conditionType) {
-        this.progress[q.id] = (this.progress[q.id] || 0) + amount;
-      }
-    });
+    const quests = this._byCondition[conditionType];
+    if (!quests) return;
+    for (const q of quests) {
+      this.progress[q.id] = (this.progress[q.id] || 0) + amount;
+    }
   }
 
   /** フィルタ付きインクリメント (targetArea/targetType/targetCustomer に一致するクエストのみ) */
   _incrementFiltered(conditionType, filterValue, amount) {
-    this._forEachQuest(q => {
-      if (q.conditionType !== conditionType) return;
+    const quests = this._byCondition[conditionType];
+    if (!quests) return;
+    for (const q of quests) {
       const match =
         (q.targetArea     && q.targetArea     === filterValue) ||
         (q.targetType     && q.targetType     === filterValue) ||
@@ -109,41 +117,41 @@ export class QuestSystem {
       if (match) {
         this.progress[q.id] = (this.progress[q.id] || 0) + amount;
       }
-    });
+    }
   }
 
   /** 最大値更新 (品質・トレイト数など) */
   _updateMax(conditionType, value) {
-    this._forEachQuest(q => {
-      if (q.conditionType === conditionType) {
-        this.progress[q.id] = Math.max(this.progress[q.id] || 0, value);
-      }
-    });
+    const quests = this._byCondition[conditionType];
+    if (!quests) return;
+    for (const q of quests) {
+      this.progress[q.id] = Math.max(this.progress[q.id] || 0, value);
+    }
   }
 
   _updateDailySales() {
-    this._forEachQuest(q => {
-      if (q.conditionType === 'daily_sales') {
-        this.progress[q.id] = Math.max(this.progress[q.id] || 0, this._bestDaySales);
-      }
-    });
+    const quests = this._byCondition['daily_sales'];
+    if (!quests) return;
+    for (const q of quests) {
+      this.progress[q.id] = Math.max(this.progress[q.id] || 0, this._bestDaySales);
+    }
   }
 
   _updateUpgradeCount() {
-    this._forEachQuest(q => {
-      if (q.conditionType === 'upgrade_count') {
-        this.progress[q.id] = this.upgradeCount;
-      }
-    });
+    const quests = this._byCondition['upgrade_count'];
+    if (!quests) return;
+    for (const q of quests) {
+      this.progress[q.id] = this.upgradeCount;
+    }
   }
 
   /** 累計売上をセット (DayCycleSystemから呼ばれる) */
   updateTotalSales(totalSales) {
-    this._forEachQuest(q => {
-      if (q.conditionType === 'total_sales') {
-        this.progress[q.id] = totalSales;
-      }
-    });
+    const quests = this._byCondition['total_sales'];
+    if (!quests) return;
+    for (const q of quests) {
+      this.progress[q.id] = totalSales;
+    }
   }
 
   /** 指定クエストが完了しているか */

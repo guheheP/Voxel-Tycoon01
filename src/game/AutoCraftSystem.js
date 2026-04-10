@@ -119,18 +119,73 @@ export class AutoCraftSystem {
 
   /** 解放済みレシピの中から調合可能なものを1つ返す（素材レシピ以外を優先） */
   _findCraftableRecipe() {
-    const candidates = [];
+    // 未ロック素材のインデックスを先に構築 — O(items) 1回で済ませる
+    const matIndex = this._buildMaterialIndex();
+    if (matIndex.totalCount < 2) return null; // 素材2個未満なら調合不可能
+
+    const nonMatCandidates = [];
+    const matCandidates = [];
     for (const [key, recipe] of Object.entries(Recipes)) {
       if (!recipe.unlocked) continue;
+      // 高速事前チェック: 各スロットに概算で候補があるか
+      if (!this._quickCheckMaterials(recipe, matIndex)) continue;
+      // 詳細チェック
       if (this._findMaterials(recipe)) {
-        candidates.push({ key, isMat: recipe.isMaterialRecipe || false });
+        if (recipe.isMaterialRecipe) {
+          matCandidates.push(key);
+        } else {
+          nonMatCandidates.push(key);
+        }
       }
     }
-    if (candidates.length === 0) return null;
-    // 素材レシピ以外を優先（売値が高い完成品を先に作る）
-    const nonMat = candidates.filter(c => !c.isMat);
-    if (nonMat.length > 0) return nonMat[Math.floor(Math.random() * nonMat.length)].key;
-    return candidates[Math.floor(Math.random() * candidates.length)].key;
+    if (nonMatCandidates.length > 0) return nonMatCandidates[Math.floor(Math.random() * nonMatCandidates.length)];
+    if (matCandidates.length > 0) return matCandidates[Math.floor(Math.random() * matCandidates.length)];
+    return null;
+  }
+
+  /** 未ロック素材のカテゴリ/blueprintId 別カウントを構築 */
+  _buildMaterialIndex() {
+    const byBlueprint = {};
+    const byCategory = {};
+    let totalCount = 0;
+    for (const item of this.inventory.items) {
+      if (item.locked || item.type !== 'material') continue;
+      totalCount++;
+      byBlueprint[item.blueprintId] = (byBlueprint[item.blueprintId] || 0) + 1;
+      const bp = ItemBlueprints[item.blueprintId];
+      if (bp?.category) {
+        byCategory[bp.category] = (byCategory[bp.category] || 0) + 1;
+      }
+    }
+    return { byBlueprint, byCategory, totalCount };
+  }
+
+  /** レシピの各スロットにマッチする素材が概算で足りるか高速チェック */
+  _quickCheckMaterials(recipe, idx) {
+    // 一時的なカウントの減算で重複使用を概算ガード
+    const tempBp = { ...idx.byBlueprint };
+    const tempCat = { ...idx.byCategory };
+    for (const slot of recipe.materials) {
+      if (isCategorySlot(slot)) {
+        const catId = slot.slice(1);
+        if ((tempCat[catId] || 0) <= 0) return false;
+        tempCat[catId]--;
+      } else {
+        // 指名スロット: blueprintId で直接チェック
+        if ((tempBp[slot] || 0) <= 0) {
+          // カテゴリフォールバックチェック
+          const bp = ItemBlueprints[slot];
+          if (bp?.category && (tempCat[bp.category] || 0) > 0) {
+            tempCat[bp.category]--;
+          } else {
+            return false;
+          }
+        } else {
+          tempBp[slot]--;
+        }
+      }
+    }
+    return true;
   }
 
   /** 調合の実行（共通処理） */
