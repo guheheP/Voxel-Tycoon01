@@ -6,7 +6,7 @@ import { GameConfig } from './data/config.js';
 import { AreaDefs } from './data/areas.js';
 import { ItemBlueprints, TraitDefs, getEquipSlot } from './data/items.js';
 import { AdventurerDefs, LevelExpTable, LevelBonuses, getCurrentMaxLevel } from './data/adventurers.js';
-import { getCurrentQualityCap } from './ItemSystem.js';
+import { getCurrentQualityCap, getEffectiveAreaMaxQuality } from './ItemSystem.js';
 import { eventBus } from './core/EventBus.js';
 import { StatsTracker } from './StatsTracker.js';
 
@@ -203,7 +203,10 @@ export class AdventurerSystem {
 
         // ── 品質計算（全装備品質の平均がメインドライバー） ──
         const areaMinQ = area.qualityMin || GameConfig.exploreQualityMin || 10;
-        const areaMaxQ = area.qualityMax || GameConfig.exploreQualityMax || 50;
+        const baseAreaMaxQ = area.qualityMax || GameConfig.exploreQualityMax || 50;
+        const qualityCap = getCurrentQualityCap();
+        // 極みの探求解放後はエリアの品質上限も √ スケールで拡張される
+        const areaMaxQ = getEffectiveAreaMaxQuality(baseAreaMaxQ, qualityCap);
         let quality;
 
         // 全装備の品質平均を計算
@@ -226,7 +229,6 @@ export class AdventurerSystem {
         quality += (adv.level - 1) * LevelBonuses.qualityBonus;
         // 装備の品質ボーナス特性
         quality += traitEffects.qualityBonus || 0;
-        const qualityCap = getCurrentQualityCap();
         quality = Math.min(qualityCap, Math.max(1, quality));
 
         // 特性 — エリアのtraitPoolから付与 + はみ出し抽選

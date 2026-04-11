@@ -13,6 +13,19 @@ export function getCurrentQualityCap() {
   return 100 + (q.result || 0);
 }
 
+/**
+ * エリアの「有効」品質上限を返す
+ *   品質上限解放 (quality_cap > 0) 後は areaMaxQ を √(qualityCap/100) 倍に拡張。
+ *   解放前は areaMaxQ をそのまま返す。
+ *   cap=999 解放時の倍率は約 3.16x となり、エリア順序は保たれる。
+ */
+export function getEffectiveAreaMaxQuality(areaMaxQ, qualityCap = null) {
+  const cap = qualityCap ?? getCurrentQualityCap();
+  if (cap <= 100) return areaMaxQ;
+  const mult = Math.sqrt(cap / 100);
+  return Math.min(cap, Math.round(areaMaxQ * mult));
+}
+
 /** カテゴリスロットかどうか判定 */
 export function isCategorySlot(slot) {
   return typeof slot === 'string' && slot.startsWith('@');

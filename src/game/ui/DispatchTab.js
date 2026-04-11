@@ -7,6 +7,7 @@ import { GameConfig } from '../data/config.js';
 import { AreaDefs } from '../data/areas.js';
 import { ItemBlueprints, TraitDefs, getEquipSlot } from '../data/items.js';
 import { ShopSystem } from '../ShopSystem.js';
+import { getEffectiveAreaMaxQuality } from '../ItemSystem.js';
 import { eventBus } from '../core/EventBus.js';
 import { getQualityTier, createTraitBadgeHTML } from './UIHelpers.js';
 import { assetPath } from '../core/assetPath.js';
@@ -67,6 +68,11 @@ export class DispatchTab {
         return bp ? bp.name : d.blueprintId;
       }).join('、');
       const advCount = areaAdvCount[area.id] || 0;
+      // 極みの探求解放後はエリアの有効 qualityMax が拡張される
+      const effectiveMaxQ = getEffectiveAreaMaxQuality(area.qualityMax);
+      const qLabel = effectiveMaxQ > area.qualityMax
+        ? `Q${area.qualityMin}〜${effectiveMaxQ}✦`
+        : `Q${area.qualityMin}〜${area.qualityMax}`;
 
       return `
         <div class="disp-area-card">
@@ -77,7 +83,7 @@ export class DispatchTab {
           </div>
           <div class="disp-area-desc">${area.description || ''}</div>
           <div class="disp-area-stats">
-            <span class="disp-area-stat">💎 Q${area.qualityMin}〜${area.qualityMax}</span>
+            <span class="disp-area-stat">💎 ${qLabel}</span>
             <span class="disp-area-stat">⏱ ${area.baseTime}s</span>
             <span class="disp-area-stat disp-area-diff">☠${'★'.repeat(area.difficulty || 0)}${'☆'.repeat(Math.max(0, 4 - (area.difficulty || 0)))}</span>
           </div>
