@@ -2,11 +2,12 @@
  * DispatchTab — 冒険者の派遣タブ（2カラム分割レイアウト版）
  * 左: エリア情報カード / 右: 冒険者カード
  */
-import { LevelExpTable, LevelBonuses, AdventurerDefs, UnlockableAdventurers } from '../data/adventurers.js';
+import { LevelExpTable, LevelBonuses, AdventurerDefs, UnlockableAdventurers, getCurrentMaxLevel, ABSOLUTE_MAX_LEVEL, getLevelStatBonus } from '../data/adventurers.js';
 import { GameConfig } from '../data/config.js';
 import { AreaDefs } from '../data/areas.js';
 import { ItemBlueprints, TraitDefs, getEquipSlot } from '../data/items.js';
 import { ShopSystem } from '../ShopSystem.js';
+import { getEffectiveAreaMaxQuality } from '../ItemSystem.js';
 import { eventBus } from '../core/EventBus.js';
 import { getQualityTier, createTraitBadgeHTML } from './UIHelpers.js';
 import { assetPath } from '../core/assetPath.js';
@@ -67,6 +68,11 @@ export class DispatchTab {
         return bp ? bp.name : d.blueprintId;
       }).join('、');
       const advCount = areaAdvCount[area.id] || 0;
+      // 極みの探求解放後はエリアの有効 qualityMax が拡張される
+      const effectiveMaxQ = getEffectiveAreaMaxQuality(area.qualityMax);
+      const qLabel = effectiveMaxQ > area.qualityMax
+        ? `Q${area.qualityMin}〜${effectiveMaxQ}✦`
+        : `Q${area.qualityMin}〜${area.qualityMax}`;
 
       return `
         <div class="disp-area-card">
@@ -77,7 +83,7 @@ export class DispatchTab {
           </div>
           <div class="disp-area-desc">${area.description || ''}</div>
           <div class="disp-area-stats">
-            <span class="disp-area-stat">💎 Q${area.qualityMin}〜${area.qualityMax}</span>
+            <span class="disp-area-stat">💎 ${qLabel}</span>
             <span class="disp-area-stat">⏱ ${area.baseTime}s</span>
             <span class="disp-area-stat disp-area-diff">☠${'★'.repeat(area.difficulty || 0)}${'☆'.repeat(Math.max(0, 4 - (area.difficulty || 0)))}</span>
           </div>
@@ -148,7 +154,7 @@ export class DispatchTab {
 
           <div class="disp-adv-exp">
             <div class="disp-exp-bar"><div class="disp-exp-fill" style="width:${this._expPct(adv)}%"></div></div>
-            <span class="disp-exp-text">EXP ${adv.exp}/${LevelExpTable[adv.level] || '—'}</span>
+            <span class="disp-exp-text">${this._expLabel(adv)}</span>
           </div>
 
           <div class="disp-adv-progress">
@@ -220,10 +226,29 @@ export class DispatchTab {
   }
 
   _expPct(adv) {
+    // アップグレードによる解放量を考慮した現在の上限
+    const q = { effectType: 'adv_max_level', result: 0 };
+    eventBus.emit('upgrade:queryBonus', q);
+    const curMax = getCurrentMaxLevel(q.result || 0);
+    if (adv.level >= curMax) return 100;
     const next = LevelExpTable[adv.level];
     if (!next) return 100;
     const prev = LevelExpTable[adv.level - 1] || 0;
     return Math.min(100, ((adv.exp - prev) / (next - prev)) * 100);
+  }
+
+  _expLabel(adv) {
+    const q = { effectType: 'adv_max_level', result: 0 };
+    eventBus.emit('upgrade:queryBonus', q);
+    const curMax = getCurrentMaxLevel(q.result || 0);
+    if (adv.level >= curMax) {
+      // 現在の上限に到達
+      return curMax >= ABSOLUTE_MAX_LEVEL
+        ? `EXP ${adv.exp} (Lv MAX)`
+        : `EXP ${adv.exp} (Lv${curMax} 上限)`;
+    }
+    const next = LevelExpTable[adv.level];
+    return `EXP ${adv.exp}/${next || '—'}`;
   }
 
   _renderSuccessRate(adv, area) {
@@ -294,10 +319,11 @@ export class DispatchTab {
     const def = _getAdvDef(adv.id);
     const bat = def?.battle || { maxHp: 100, atk: 10, def: 5, spd: 50 };
     const level = adv.level || 1;
-    let hp = bat.maxHp + (level - 1) * 5;
-    let atk = bat.atk + (level - 1) * 2;
-    let defStat = bat.def + (level - 1) * 1;
-    let spd = bat.spd + (level - 1) * 2;
+    const lvBonus = getLevelStatBonus(level);
+    let hp = bat.maxHp + lvBonus.hp;
+    let atk = bat.atk + lvBonus.atk;
+    let defStat = bat.def + lvBonus.def;
+    let spd = bat.spd + lvBonus.spd;
 
     const eqCoeffs = GameConfig.equipStatCoefficients || {};
     for (const slot of GameConfig.equipmentSlots) {

@@ -234,9 +234,11 @@ export class BattlePrepScreen {
     const tier = getQualityTier(item.quality);
     const traitBadges = (item.traits || []).map(t => createTraitBadgeHTML(t)).join('');
 
-    // 品質に応じた使用回数・効果の説明
+    // 品質に応じた使用回数・効果の説明 (Q100超は√で鈍化)
     const quality = item.quality ?? 50;
-    const qualityMult = (0.7 + (quality / 100) * 0.8).toFixed(1);
+    const qualityMult = (quality <= 100
+      ? 0.7 + (quality / 100) * 0.8
+      : 1.5 + Math.sqrt(quality - 100) * 0.01).toFixed(1);
 
     return `
       <button class="prep-item-option" data-uid="${item.uid}">

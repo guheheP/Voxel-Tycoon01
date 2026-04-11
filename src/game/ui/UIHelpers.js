@@ -5,15 +5,34 @@
 import { ItemBlueprints, TraitDefs } from '../data/items.js';
 import { AdventurerDefs, UnlockableAdventurers } from '../data/adventurers.js';
 import { assetPath } from '../core/assetPath.js';
+import { eventBus } from '../core/EventBus.js';
 
-// ===== 品質ティア定義 =====
+// ===== 品質ティア定義（Q0-100は通常、Q101+はエンドゲーム解放時のみ） =====
 const QualityTiers = [
-  { name: '粗悪',  min: 0,  max: 20,  css: 'q-poor',      icon: '▪', color: '#888' },
-  { name: '普通',  min: 21, max: 40,  css: 'q-common',    icon: '▫', color: '#c8bea7' },
-  { name: '良品',  min: 41, max: 60,  css: 'q-fine',      icon: '◆', color: '#7daa68' },
-  { name: '優品',  min: 61, max: 80,  css: 'q-excellent', icon: '★', color: '#7ab0c4' },
-  { name: '極上',  min: 81, max: 100, css: 'q-legendary', icon: '✦', color: '#e8b84b' },
+  { name: '粗悪',  min: 0,   max: 20,  css: 'q-poor',      icon: '▪', color: '#888' },
+  { name: '普通',  min: 21,  max: 40,  css: 'q-common',    icon: '▫', color: '#c8bea7' },
+  { name: '良品',  min: 41,  max: 60,  css: 'q-fine',      icon: '◆', color: '#7daa68' },
+  { name: '優品',  min: 61,  max: 80,  css: 'q-excellent', icon: '★', color: '#7ab0c4' },
+  { name: '極上',  min: 81,  max: 100, css: 'q-legendary', icon: '✦', color: '#e8b84b' },
+  // エンドゲームティア（Q100解放後）
+  { name: '伝説',  min: 101, max: 200, css: 'q-mythic',    icon: '✧', color: '#c779ff' },
+  { name: '神話',  min: 201, max: 500, css: 'q-mythic',    icon: '❋', color: '#ffe066' },
+  { name: '超越',  min: 501, max: 9999, css: 'q-mythic',   icon: '✺', color: '#ffffff' },
 ];
+
+// 現在の品質上限をキャッシュ (upgrade:purchased で更新)
+let _cachedMaxQuality = 100;
+export function getUIMaxQuality() { return _cachedMaxQuality; }
+function _refreshMaxQuality() {
+  const q = { effectType: 'quality_cap', result: 0 };
+  eventBus.emit('upgrade:queryBonus', q);
+  _cachedMaxQuality = 100 + (q.result || 0);
+}
+// 初期化時 + アップグレード購入時 + セーブロード後に更新
+eventBus.on('upgrade:purchased', _refreshMaxQuality);
+eventBus.on('save:loaded', _refreshMaxQuality);
+// ShopSystem構築後に一度呼ぶ必要があるため、念のため遅延初期化
+setTimeout(_refreshMaxQuality, 0);
 
 // ===== タイプアイコン・カラー =====
 const TypeInfo = {
@@ -218,9 +237,9 @@ export function openItemDetailModal(item) {
         </div>
       </div>
       <div class="item-detail-quality">
-        <span style="color:${tier.color}">${tier.icon} ${tier.name} (Q${item.quality}/100)</span>
+        <span style="color:${tier.color}">${tier.icon} ${tier.name} (Q${item.quality}/${_cachedMaxQuality})</span>
         <div class="item-quality-bar" style="margin-top:4px">
-          <div class="item-quality-fill" style="width:${item.quality}%"></div>
+          <div class="item-quality-fill" style="width:${Math.min(100, (item.quality / _cachedMaxQuality) * 100)}%"></div>
         </div>
       </div>
       <div class="detail-section">
@@ -267,7 +286,7 @@ export function createItemCardHTML(item) {
           <span class="item-quality-name">${tier.name}</span>
         </div>
         <div class="item-quality-bar">
-          <div class="item-quality-fill" style="width:${item.quality}%"></div>
+          <div class="item-quality-fill" style="width:${Math.min(100, (item.quality / _cachedMaxQuality) * 100)}%"></div>
         </div>
         ${renderEquipIcons(item)}
         <div class="item-traits">${traitsHtml}</div>
@@ -308,7 +327,7 @@ export function createShopItemCardHTML(item) {
           <span class="item-card-price">💰 ${item.value}G</span>
         </div>
         <div class="item-quality-bar">
-          <div class="item-quality-fill" style="width:${item.quality}%"></div>
+          <div class="item-quality-fill" style="width:${Math.min(100, (item.quality / _cachedMaxQuality) * 100)}%"></div>
         </div>
         ${renderEquipIcons(item)}
         <div class="item-traits">${traitsHtml}</div>

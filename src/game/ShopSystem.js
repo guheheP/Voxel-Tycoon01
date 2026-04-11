@@ -180,14 +180,18 @@ export class ShopSystem {
     const bp = ItemBlueprints[item.blueprintId];
     if (!bp) return 10;
 
-    // Q1-50: 線形（quality/50）、Q51-100: 二次曲線で加速
-    // Q50=×1.0, Q75=×2.0, Q100=×5.0
+    // 品質倍率カーブ（緩やか・上限解放対応）
+    //   Q0-50    : 0.4 → 1.0  （線形: 0.4 + q/50 × 0.6）
+    //   Q51-100  : 1.0 → 2.0  （線形: 1 + (q-50)/50）
+    //   Q101-999 : 2.0 → 3.5  （√曲線で鈍化: 2 + sqrt(q-100) × 0.05）
+    const q = item.quality;
     let multiplier;
-    if (item.quality <= QUALITY_REFERENCE) {
-      multiplier = item.quality / QUALITY_REFERENCE;
+    if (q <= QUALITY_REFERENCE) {
+      multiplier = 0.4 + (q / QUALITY_REFERENCE) * 0.6;
+    } else if (q <= 100) {
+      multiplier = 1.0 + ((q - QUALITY_REFERENCE) / QUALITY_REFERENCE) * 1.0;
     } else {
-      const t = (item.quality - QUALITY_REFERENCE) / QUALITY_REFERENCE;
-      multiplier = 1 + 4 * (t * t);
+      multiplier = 2.0 + Math.sqrt(q - 100) * 0.05;
     }
     let value = Math.max(1, Math.floor(bp.baseValue * multiplier));
 

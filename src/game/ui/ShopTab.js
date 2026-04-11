@@ -2,7 +2,7 @@
  * ShopTab — お店タブ（2カラム分割レイアウト版）
  * 左: 陳列棚 + お客さん / 右: 倉庫ブラウザ
  */
-import { createShopItemCardHTML, createDisplayedItemCardHTML } from './UIHelpers.js';
+import { createShopItemCardHTML, createDisplayedItemCardHTML, getUIMaxQuality } from './UIHelpers.js';
 import { eventBus } from '../core/EventBus.js';
 
 const TypeIcons = {
@@ -120,10 +120,10 @@ export class ShopTab {
           </div>
           <div class="autosell-rule">
             <span class="autosell-rule-label">品質範囲:</span>
-            <input type="range" id="autosell-min-q" min="0" max="100" step="5" value="${as.minQuality}" class="autosell-range" />
+            <input type="range" id="autosell-min-q" min="0" max="${getUIMaxQuality()}" step="5" value="${as.minQuality}" class="autosell-range" />
             <span id="autosell-min-q-val" class="autosell-range-val">Q${as.minQuality}</span>
             <span class="autosell-range-sep">〜</span>
-            <input type="range" id="autosell-max-q" min="0" max="100" step="5" value="${as.maxQuality}" class="autosell-range" />
+            <input type="range" id="autosell-max-q" min="0" max="${getUIMaxQuality()}" step="5" value="${as.maxQuality}" class="autosell-range" />
             <span id="autosell-max-q-val" class="autosell-range-val">Q${as.maxQuality}</span>
           </div>
           <div class="autosell-rule">
@@ -146,7 +146,7 @@ export class ShopTab {
         <div class="autosell-rules ${this.shop.autoDisposeEnabled ? '' : 'autosell-rules-disabled'}">
           <div class="autosell-rule">
             <span class="autosell-rule-label">品質しきい値:</span>
-            <input type="range" id="autodispose-max-q" min="0" max="100" step="5" value="${this.shop.autoDisposeMaxQuality}" class="autosell-range" />
+            <input type="range" id="autodispose-max-q" min="0" max="${getUIMaxQuality()}" step="5" value="${this.shop.autoDisposeMaxQuality}" class="autosell-range" />
             <span id="autodispose-max-q-val" class="autosell-range-val">Q${this.shop.autoDisposeMaxQuality}以下</span>
           </div>
           <div class="autosell-rule">

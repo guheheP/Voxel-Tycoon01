@@ -27,22 +27,27 @@ function calcExploreTime(level, baseTime, exploreTimeMultiplier, speedBonus = 0)
   return Math.max(8, Math.ceil(baseTime * (exploreTimeMultiplier || 1.0) * levelReduction * speedMult));
 }
 
-/** 品質計算（AdventurerSystem._completeExploration と完全一致） */
-function calcQualityRange(level, area, weaponQ, qualityBonus = 0) {
+/** 品質計算（AdventurerSystem._completeExploration と完全一致）
+ *  品質上限はデフォルトで100、呼び出し元が解放後の上限を渡した場合はそれを使用
+ *  qualityCap > 100 の場合は areaMaxQ も √(cap/100) 倍に拡張（エリア解放連動） */
+function calcQualityRange(level, area, weaponQ, qualityBonus = 0, qualityCap = 100) {
   const areaMinQ = area.qualityMin || GameConfig.exploreQualityMin || 10;
-  const areaMaxQ = area.qualityMax || GameConfig.exploreQualityMax || 50;
+  const baseAreaMaxQ = area.qualityMax || GameConfig.exploreQualityMax || 50;
+  const areaMaxQ = qualityCap > 100
+    ? Math.min(qualityCap, Math.round(baseAreaMaxQ * Math.sqrt(qualityCap / 100)))
+    : baseAreaMaxQ;
 
   if (weaponQ > 0) {
     const baseQ = areaMinQ + (areaMaxQ - areaMinQ) * (weaponQ / 100);
     const spread = (areaMaxQ - areaMinQ) * 0.1;
-    const min = Math.min(100, Math.max(1, Math.round(baseQ - spread) + (level - 1) + qualityBonus));
-    const max = Math.min(100, Math.max(1, Math.round(baseQ + spread) + (level - 1) + qualityBonus));
-    const avg = Math.min(100, Math.max(1, Math.round(baseQ) + (level - 1) + qualityBonus));
+    const min = Math.min(qualityCap, Math.max(1, Math.round(baseQ - spread) + (level - 1) + qualityBonus));
+    const max = Math.min(qualityCap, Math.max(1, Math.round(baseQ + spread) + (level - 1) + qualityBonus));
+    const avg = Math.min(qualityCap, Math.max(1, Math.round(baseQ) + (level - 1) + qualityBonus));
     return { min, avg, max };
   } else {
-    const min = Math.min(100, Math.max(1, areaMinQ + (level - 1) + qualityBonus));
-    const max = Math.min(100, Math.max(1, areaMinQ + 10 + (level - 1) + qualityBonus));
-    const avg = Math.min(100, Math.max(1, areaMinQ + 5 + (level - 1) + qualityBonus));
+    const min = Math.min(qualityCap, Math.max(1, areaMinQ + (level - 1) + qualityBonus));
+    const max = Math.min(qualityCap, Math.max(1, areaMinQ + 10 + (level - 1) + qualityBonus));
+    const avg = Math.min(qualityCap, Math.max(1, areaMinQ + 5 + (level - 1) + qualityBonus));
     return { min, avg, max };
   }
 }

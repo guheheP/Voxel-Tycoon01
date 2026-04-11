@@ -5,7 +5,8 @@
 import { GameConfig } from './data/config.js';
 import { AreaDefs } from './data/areas.js';
 import { ItemBlueprints, TraitDefs, getEquipSlot } from './data/items.js';
-import { AdventurerDefs, LevelExpTable, LevelBonuses } from './data/adventurers.js';
+import { AdventurerDefs, LevelExpTable, LevelBonuses, getCurrentMaxLevel } from './data/adventurers.js';
+import { getCurrentQualityCap, getEffectiveAreaMaxQuality } from './ItemSystem.js';
 import { eventBus } from './core/EventBus.js';
 import { StatsTracker } from './StatsTracker.js';
 
@@ -202,7 +203,10 @@ export class AdventurerSystem {
 
         // ── 品質計算（全装備品質の平均がメインドライバー） ──
         const areaMinQ = area.qualityMin || GameConfig.exploreQualityMin || 10;
-        const areaMaxQ = area.qualityMax || GameConfig.exploreQualityMax || 50;
+        const baseAreaMaxQ = area.qualityMax || GameConfig.exploreQualityMax || 50;
+        const qualityCap = getCurrentQualityCap();
+        // 極みの探求解放後はエリアの品質上限も √ スケールで拡張される
+        const areaMaxQ = getEffectiveAreaMaxQuality(baseAreaMaxQ, qualityCap);
         let quality;
 
         // 全装備の品質平均を計算
@@ -225,7 +229,7 @@ export class AdventurerSystem {
         quality += (adv.level - 1) * LevelBonuses.qualityBonus;
         // 装備の品質ボーナス特性
         quality += traitEffects.qualityBonus || 0;
-        quality = Math.min(100, Math.max(1, quality));
+        quality = Math.min(qualityCap, Math.max(1, quality));
 
         // 特性 — エリアのtraitPoolから付与 + はみ出し抽選
         const traits = [];
@@ -318,7 +322,11 @@ export class AdventurerSystem {
   }
 
   _checkLevelUp(adv) {
-    while (adv.level < LevelExpTable.length && adv.exp >= LevelExpTable[adv.level]) {
+    // アップグレードによる解放量を問い合わせて現在の上限を計算
+    const q = { effectType: 'adv_max_level', result: 0 };
+    eventBus.emit('upgrade:queryBonus', q);
+    const maxLevel = Math.min(LevelExpTable.length, getCurrentMaxLevel(q.result || 0));
+    while (adv.level < maxLevel && adv.exp >= LevelExpTable[adv.level]) {
       adv.level++;
       eventBus.emit('adventurer:levelUp', { adventurer: adv });
     }
