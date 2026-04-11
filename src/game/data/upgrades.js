@@ -15,6 +15,10 @@
  *   puzzle_extra_piece — パズルのブロック数を追加 (CraftingPuzzle)
  *   puzzle_grid_expand — パズルのグリッドサイズ拡張 (CraftingPuzzle)
  *   puzzle_bonus_cap   — パズルの品質ボーナス上限を引き上げ (CraftingPuzzle)
+ *   quality_cap        — 装備品質上限の解放量 (ItemSystem/AdventurerSystem)
+ *                        購入された合計値がそのまま上限拡張量になる (100 + 値)
+ *   adv_max_level      — 冒険者のレベル上限を引き上げる (AdventurerSystem)
+ *                        購入された合計値がそのまま基準Lv10への加算量になる
  */
 
 export const UpgradeDefs = [
@@ -56,6 +60,13 @@ export const UpgradeDefs = [
   { id: 'battle_slots_4', category: 'expedition', name: '強化リュック', description: '持ち込み枠 +1', icon: '🎒', cost: 2000, requiredRank: 5, effect: { type: 'battle_item_slots', value: 1 } },
   { id: 'battle_slots_5', category: 'expedition', name: '魔法のカバン', description: '持ち込み枠 +1', icon: '🎒', cost: 3500, requiredRank: 6, effect: { type: 'battle_item_slots', value: 1 } },
   { id: 'battle_slots_6', category: 'expedition', name: '異次元収納袋', description: '持ち込み枠 +1', icon: '🎒', cost: 5000, requiredRank: 7, effect: { type: 'battle_item_slots', value: 1 } },
+
+  // ===== 🌟 極意（ランク8以降・エンドゲーム） =====
+  { id: 'endgame_quality_cap', category: 'endgame', name: '極みの探求', description: '装備品質の上限を Q100 → Q999 に解放', icon: '🌟', cost: 30000, requiredRank: 8, effect: { type: 'quality_cap', value: 899 } },
+  { id: 'endgame_level_1', category: 'endgame', name: '冒険者の覚醒I', description: '冒険者のレベル上限 +5 (最大Lv15)', icon: '⬆️', cost: 15000, requiredRank: 8, effect: { type: 'adv_max_level', value: 5 } },
+  { id: 'endgame_level_2', category: 'endgame', name: '冒険者の覚醒II', description: '冒険者のレベル上限 +5 (最大Lv20)', icon: '⬆️', cost: 60000, requiredRank: 8, effect: { type: 'adv_max_level', value: 5 } },
+  { id: 'endgame_level_3', category: 'endgame', name: '冒険者の覚醒III', description: '冒険者のレベル上限 +5 (最大Lv25)', icon: '⬆️', cost: 200000, requiredRank: 8, effect: { type: 'adv_max_level', value: 5 } },
+  { id: 'endgame_level_4', category: 'endgame', name: '冒険者の覚醒IV', description: '冒険者のレベル上限 +5 (最大Lv30)', icon: '⬆️', cost: 500000, requiredRank: 8, effect: { type: 'adv_max_level', value: 5 } },
 ];
 
 // カテゴリの表示名
@@ -65,4 +76,5 @@ export const UpgradeCategories = {
   workshop: { name: '🔨 工房', order: 3 },
   decor: { name: '🎪 装飾', order: 4 },
   expedition: { name: '🏕️ 冒険支援', order: 5 },
+  endgame: { name: '🌟 極意', order: 6 },
 };

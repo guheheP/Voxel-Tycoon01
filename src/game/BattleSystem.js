@@ -1,7 +1,7 @@
 import { eventBus } from './core/EventBus.js';
 import { GameConfig } from './data/config.js';
 import { ItemBlueprints, TraitDefs } from './data/items.js';
-import { AdventurerDefs, UnlockableAdventurers } from './data/adventurers.js';
+import { AdventurerDefs, UnlockableAdventurers, getLevelStatBonus } from './data/adventurers.js';
 import { AreaDefs } from './data/areas.js';
 import { ChallengeDefs } from './data/challenges.js';
 
@@ -26,13 +26,14 @@ export class BattleSystem {
     // 参加冒険者は全生存者
     const participants = this.adventurers.adventurers.map(a => {
       const def = _getAdvDef(a.id);
-      // level bonus points
+      // level bonus points (Lv1-10:通常, Lv11-20:鈍化, Lv21-30:さらに鈍化)
       const level = a.level || 1;
       const bat = (def && def.battle) || { maxHp: 100, atk: 10, def: 5, spd: 50 };
-      const spd = bat.spd + (level - 1) * 2;
-      const maxHp = bat.maxHp + (level - 1) * 5;
-      const atk = bat.atk + (level - 1) * 2;
-      const defStat = bat.def + (level - 1) * 1;
+      const lvBonus = getLevelStatBonus(level);
+      const spd = bat.spd + lvBonus.spd;
+      const maxHp = bat.maxHp + lvBonus.hp;
+      const atk = bat.atk + lvBonus.atk;
+      const defStat = bat.def + lvBonus.def;
       
       // equipment bonus — 全スロット (weapon/armor/accessory) のステータスとトレイトを集計
       let eqAtk = 0, eqDef = 0, eqSpd = 0, eqHp = 0;
@@ -89,11 +90,13 @@ export class BattleSystem {
 
     // パーティ平均レベルに応じたボスステータスのスケーリング
     const avgLevel = participants.reduce((sum, a) => sum + a.level, 0) / participants.length;
-    const levelScale = 1 + (avgLevel - 1) * 0.06; // Lv1=1.0, Lv7=1.36, Lv10=1.54 (装備3スロット対応)
+    // Lv11以降はボススケーリングを打ち止め（エンドゲーム育成が報われるように）
+    const scalingLevel = Math.min(avgLevel, 10);
+    const levelScale = 1 + (scalingLevel - 1) * 0.06; // Lv1=1.0, Lv7=1.36, Lv10=1.54 (装備3スロット対応)
     const scaledMaxHp = Math.floor(bossDef.maxHp * levelScale);
     const scaledAtk = Math.floor(bossDef.atk * levelScale);
     const scaledDef = Math.floor(bossDef.def * levelScale);
-    const scaledSpd = Math.floor(bossDef.spd * (1 + (avgLevel - 1) * 0.03)); // SPDは控えめにスケール
+    const scaledSpd = Math.floor(bossDef.spd * (1 + (scalingLevel - 1) * 0.03)); // SPDは控えめにスケール
 
     this.state = {
       rankIndex: rankIndex,
@@ -232,9 +235,11 @@ export class BattleSystem {
 
     const fx = bp.battleEffect;
 
-    // 品質補正: quality 0~100 → 0.7x ~ 1.5x (50で1.0x)
+    // 品質補正: Q0=0.7, Q50=1.1, Q100=1.5, Q100超は√で緩やかに伸長 (Q999≈1.8)
     const quality = item.quality ?? 50;
-    const qualityMult = 0.7 + (quality / 100) * 0.8;
+    const qualityMult = quality <= 100
+      ? 0.7 + (quality / 100) * 0.8
+      : 1.5 + Math.sqrt(quality - 100) * 0.01;
 
     // 特性ボーナス: アイテムのトレイトにバトル系効果があれば加算
     let traitBonus = 0;
@@ -422,7 +427,8 @@ export class BattleSystem {
 
     // ボスを差し替え
     const avgLevel = this.state.adventurers.reduce((sum, a) => sum + a.level, 0) / this.state.adventurers.length;
-    const levelScale = 1 + (avgLevel - 1) * 0.06;
+    const scalingLevel = Math.min(avgLevel, 10);
+    const levelScale = 1 + (scalingLevel - 1) * 0.06;
 
     this.state.boss = {
       id: scaledBoss.id,
@@ -433,7 +439,7 @@ export class BattleSystem {
       maxHp: Math.floor(scaledBoss.maxHp * levelScale),
       baseAtk: Math.floor(scaledBoss.atk * levelScale),
       baseDef: Math.floor(scaledBoss.def * levelScale),
-      baseSpd: Math.floor(scaledBoss.spd * (1 + (avgLevel - 1) * 0.03)),
+      baseSpd: Math.floor(scaledBoss.spd * (1 + (scalingLevel - 1) * 0.03)),
       atbGauge: 0,
       activeBuffs: [],
       stunTimer: 0,

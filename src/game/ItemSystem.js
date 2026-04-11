@@ -1,9 +1,17 @@
 import { ItemBlueprints, Recipes, TraitDefs, TraitFusionTable, MaterialCategories } from './data/items.js';
 import { GameConfig } from './data/config.js';
 import { ShopSystem } from './ShopSystem.js';
+import { eventBus } from './core/EventBus.js';
 
 // Re-export for backward compatibility
 export { ItemBlueprints, Recipes };
+
+/** 現在の装備品質上限（アップグレード購入で Q100→Q999 に解放可能） */
+export function getCurrentQualityCap() {
+  const q = { effectType: 'quality_cap', result: 0 };
+  eventBus.emit('upgrade:queryBonus', q);
+  return 100 + (q.result || 0);
+}
 
 /** カテゴリスロットかどうか判定 */
 export function isCategorySlot(slot) {
@@ -143,7 +151,8 @@ export function craftItem(recipeId, materialInstances, selectedTraits = [], qual
       }
     }
   }
-  const finalQuality = Math.min(100, Math.max(0, avgQuality + qualityBonus + craftTraitBonus));
+  const qualityCap = getCurrentQualityCap();
+  const finalQuality = Math.min(qualityCap, Math.max(0, avgQuality + qualityBonus + craftTraitBonus));
 
   // 4. アイテムインスタンスの作成と返却
   return createItemInstance(recipe.targetId, finalQuality, finalTraits);
