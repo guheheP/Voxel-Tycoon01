@@ -224,8 +224,8 @@ export class BattleSystem {
     const usesInfo = this.state.itemUses[itemUid];
     if (!usesInfo || usesInfo.remaining <= 0) return false;
 
-    // アイテム検索
-    const item = this.inventory.items.find(i => i.uid === itemUid);
+    // アイテム検索 (UID インデックスで O(1))
+    const item = this.inventory.getItemByUid(itemUid);
     if (!item) return false;
     const bp = ItemBlueprints[item.blueprintId];
     if (!bp || !bp.battleEffect) return false;

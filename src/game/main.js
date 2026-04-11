@@ -292,6 +292,8 @@ function _applySaveData(data) {
       console.warn('[Load] 不明なアイテムをスキップ:', item.blueprintId, e.message);
     }
   }
+  // セカンダリインデックスを再構築
+  inventorySystem.rebuildIndexes();
 
   // 陳列中アイテム（売値をShopSystemの計算式で再設定する）
   shopSystem.displayedItems = [];
@@ -304,6 +306,8 @@ function _applySaveData(data) {
       console.warn('[Load] 不明な陳列アイテムをスキップ:', item.blueprintId, e.message);
     }
   }
+  // 型別インデックスを再構築
+  shopSystem.rebuildDisplayedIndex();
 
   // レシピ解放
   for (const key of (data.unlockedRecipes || [])) {

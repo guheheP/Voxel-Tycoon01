@@ -13,10 +13,35 @@ export class CollectionTab {
     this.el = document.querySelector('#tab-collection');
     this.subTab = 'items';  // 'items' | 'areas' | 'traits'
     this.typeFilter = 'all'; // 'all' | 'material' | 'equipment' | 'consumable' | 'accessory'
+    // C2: HTML キャッシュ — 発見状態が変わらない限り再構築不要
+    this._htmlCache = null;
+    this._cacheKey = null;
+  }
+
+  /** 現在の状態のキャッシュキーを生成 */
+  _computeCacheKey() {
+    const col = this.collection;
+    // 発見数はアイテム/特性/エリア/ボス全てを含める
+    const itemCount = Object.keys(col.discoveredItems).length;
+    const traitCount = col.discoveredTraits.size;
+    const areaCount = col.discoveredAreas.size;
+    const bossCount = col.defeatedBosses.size;
+    return `${this.subTab}:${this.typeFilter}:${itemCount}:${traitCount}:${areaCount}:${bossCount}`;
   }
 
   render() {
     if (!this.el) return;
+
+    // C2: キャッシュチェック — 発見状態が同じなら HTML 再構築をスキップ
+    const cacheKey = this._computeCacheKey();
+    if (cacheKey === this._cacheKey && this._htmlCache !== null) {
+      if (this.el.innerHTML !== this._htmlCache) {
+        this.el.innerHTML = this._htmlCache;
+        this._bindEvents();
+      }
+      return;
+    }
+
     const col = this.collection;
     const rate = col.getCompletionRate();
     const pct = Math.floor(rate * 100);
@@ -56,6 +81,9 @@ export class CollectionTab {
       html += this._renderTraitsTab();
     }
 
+    // C2: 生成した HTML をキャッシュしてから描画
+    this._htmlCache = html;
+    this._cacheKey = cacheKey;
     this.el.innerHTML = html;
     this._bindEvents();
   }

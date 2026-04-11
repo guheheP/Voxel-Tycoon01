@@ -15,6 +15,30 @@ const PALETTES = {
 
 const GROUND_Y = 100;
 
+/**
+ * C1 最適化: アルファ付き rgba 文字列を毎フレーム生成するとGCポーズの原因になるため、
+ * よく使う色について 16 段階量子化した rgba 文字列を事前に計算しておく。
+ */
+const RGBA_CACHE_STEPS = 16;
+function _buildRgbaCache(r, g, b) {
+  const arr = new Array(RGBA_CACHE_STEPS + 1);
+  for (let i = 0; i <= RGBA_CACHE_STEPS; i++) {
+    const a = i / RGBA_CACHE_STEPS;
+    arr[i] = `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+  }
+  return arr;
+}
+function _rgbaCached(cache, alpha) {
+  let idx = Math.round(alpha * RGBA_CACHE_STEPS);
+  if (idx < 0) idx = 0; else if (idx > RGBA_CACHE_STEPS) idx = RGBA_CACHE_STEPS;
+  return cache[idx];
+}
+// パーティクルで使用する色のキャッシュ
+const STAR_RGBA        = _buildRgbaCache(255, 255, 255);
+const FIREFLY_RGBA     = _buildRgbaCache(180, 255, 120);
+const DUST_RGBA        = _buildRgbaCache(255, 230, 150);
+const NIGHT_OVERLAY    = _buildRgbaCache(10, 10, 20);
+
 export class MainSceneCanvas {
   constructor() {
     this.scale = 1.6; // 描画拡大率
@@ -31,8 +55,14 @@ export class MainSceneCanvas {
     this._customers = [];
     this._returningAdvs = [];
     this._particles = [];
+    this._ambientCount = 0; // C1: filter() 回避用のランニングカウンタ
     this._unsubs = [];
     this._handleResize = null;
+    this._resizeTimer = null; // C3: リサイズデバウンス用
+
+    // C1: 空のグラデーション色をバケットキャッシュ（1% ステップ）
+    this._skyCache = new Array(101);
+    this._lastSkyBucket = -1;
   }
 
   get shopX() { return this.W / 2; }
@@ -43,25 +73,41 @@ export class MainSceneCanvas {
     if (!container) return;
     
     container.innerHTML = '';
-    
+
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'main-canvas';
     this.canvas.height = this.H;
     container.appendChild(this.canvas);
     this.ctx = this.canvas.getContext('2d');
+    // C1: imageSmoothingEnabled は毎フレーム設定せず、初期化時 1 度だけ設定する
+    this.ctx.imageSmoothingEnabled = false;
 
-    // リサイズ処理
-    this._handleResize = () => {
+    // リサイズ処理本体 (デバウンス経由で呼ばれる)
+    const _applyResize = () => {
       this.W = Math.floor((container.clientWidth || 480) / this.scale);
       this.canvas.width = this.W;
-      
+      // C1: canvas.width 設定でコンテキスト状態がリセットされるので再設定
+      this.ctx.imageSmoothingEnabled = false;
+      // 空キャッシュは canvas サイズに影響しないのでそのまま有効
+
       // お客さん等の画面外調整 (右寄りに再設定)
       for (const c of this._customers) {
         if (c.x > this.W) c.x = this.W + 20;
       }
     };
+
+    // C3: resize イベントをデバウンス (100ms) することで連続リサイズ時の
+    // canvas バッファ再割り当てを抑制
+    this._handleResize = () => {
+      if (this._resizeTimer) clearTimeout(this._resizeTimer);
+      this._resizeTimer = setTimeout(() => {
+        this._resizeTimer = null;
+        _applyResize();
+      }, 100);
+    };
     window.addEventListener('resize', this._handleResize);
-    this._handleResize();
+    // 初回は即座に反映
+    _applyResize();
 
     // イベントフック
     this._unsubs = [
@@ -186,7 +232,7 @@ export class MainSceneCanvas {
   }
 
   _spawnAmbientParticle() {
-    if (this._particles.filter(p => p.type === 'ambient').length > 20) return;
+    if (this._ambientCount > 20) return; // C1: O(1) ランニングカウンタ
     const isNight = this.dayProgress > 0.7; // 夕方〜夜は蛍風に
     this._particles.push({
       type: 'ambient',
@@ -199,6 +245,7 @@ export class MainSceneCanvas {
       phase: Math.random() * Math.PI * 2,
       isFirefly: isNight
     });
+    this._ambientCount++;
   }
 
   _startLoop() {
@@ -292,17 +339,21 @@ export class MainSceneCanvas {
         }
       }
       p.life -= dt;
-      if (p.life <= 0) this._particles.splice(i, 1);
+      if (p.life <= 0) {
+        if (p.type === 'ambient') this._ambientCount--; // C1: カウンタ減算
+        this._particles.splice(i, 1);
+      }
     }
   }
 
   _draw() {
     const ctx = this.ctx;
     const W = this.W, H = this.H;
-    ctx.imageSmoothingEnabled = false;
+    // 注: imageSmoothingEnabled = false は init() で 1 度だけ設定する (C1)
 
     // 空の描画 (時間によるグラデーション補間)
-    const skyColors = this._getSkyColors(this.dayProgress);
+    // C1: dayProgress を 1% バケットに丸めてキャッシュ
+    const skyColors = this._getSkyColorsCached(this.dayProgress);
     const grad = ctx.createLinearGradient(0, 0, 0, H);
     grad.addColorStop(0, skyColors.top);
     grad.addColorStop(1, skyColors.bottom);
@@ -361,9 +412,21 @@ export class MainSceneCanvas {
     // 夜間の半透明オーバーレイ
     if (this.dayProgress > 0.8) {
       const alpha = (this.dayProgress - 0.8) / 0.2 * 0.5;
-      ctx.fillStyle = `rgba(10, 10, 20, ${alpha})`;
+      ctx.fillStyle = _rgbaCached(NIGHT_OVERLAY, alpha); // C1: キャッシュ
       ctx.fillRect(0, 0, W, H);
     }
+  }
+
+  /** dayProgress を 1% に量子化して _getSkyColors の結果をキャッシュする (C1) */
+  _getSkyColorsCached(p) {
+    const bucket = Math.max(0, Math.min(100, Math.round(p * 100)));
+    if (bucket === this._lastSkyBucket && this._skyCache[bucket]) {
+      return this._skyCache[bucket];
+    }
+    const colors = this._getSkyColors(bucket / 100);
+    this._skyCache[bucket] = colors;
+    this._lastSkyBucket = bucket;
+    return colors;
   }
 
   // ── 描画ユーティリティ ──
@@ -560,7 +623,7 @@ export class MainSceneCanvas {
         ctx.fill();
       } else if (p.type === 'star') {
         const a = (p.life / 1.2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${a})`;
+        ctx.fillStyle = _rgbaCached(STAR_RGBA, a); // C1: キャッシュ
         ctx.fillRect(p.x - 1, p.y - 1, 3, 3);
       } else if (p.type === 'confetti') {
         ctx.fillStyle = p.color;
@@ -568,14 +631,16 @@ export class MainSceneCanvas {
       } else if (p.type === 'ambient') {
         // 出現時と消滅時にフェード計算
         const a = p.life < 2 ? p.life / 2 : (p.maxLife - p.life < 2 ? (p.maxLife - p.life) / 2 : 1);
+        const fx = p.x | 0; // C1: bitwise floor (高速)
+        const fy = p.y | 0;
         if (p.isFirefly) {
-          ctx.fillStyle = `rgba(180, 255, 120, ${a * 0.8})`;
-          ctx.fillRect(Math.floor(p.x), Math.floor(p.y), 2, 2);
-          ctx.fillStyle = `rgba(180, 255, 120, ${a * 0.2})`; // グロー
-          ctx.fillRect(Math.floor(p.x) - 2, Math.floor(p.y) - 2, 6, 6);
+          ctx.fillStyle = _rgbaCached(FIREFLY_RGBA, a * 0.8);
+          ctx.fillRect(fx, fy, 2, 2);
+          ctx.fillStyle = _rgbaCached(FIREFLY_RGBA, a * 0.2); // グロー
+          ctx.fillRect(fx - 2, fy - 2, 6, 6);
         } else {
-          ctx.fillStyle = `rgba(255, 230, 150, ${a * 0.4})`; // 昼の埃/綿毛
-          ctx.fillRect(Math.floor(p.x), Math.floor(p.y), 1, 1);
+          ctx.fillStyle = _rgbaCached(DUST_RGBA, a * 0.4); // 昼の埃/綿毛
+          ctx.fillRect(fx, fy, 1, 1);
         }
       }
     }
@@ -584,6 +649,7 @@ export class MainSceneCanvas {
   dispose() {
     this._disposed = true;
     if (this._animId) cancelAnimationFrame(this._animId);
+    if (this._resizeTimer) { clearTimeout(this._resizeTimer); this._resizeTimer = null; }
     if (this._handleResize) {
       window.removeEventListener('resize', this._handleResize);
       this._handleResize = null;

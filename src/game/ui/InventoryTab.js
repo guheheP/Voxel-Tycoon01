@@ -299,7 +299,7 @@ export class InventoryTab {
         if (sellBtn) {
           e.stopPropagation();
           const uid = sellBtn.dataset.uid;
-          const item = this.inventory.items.find(i => i.uid === uid);
+          const item = this.inventory.getItemByUid(uid);
           if (!item) return;
           const price = this.shop.quickSell(uid, this.inventory);
           if (price > 0) {

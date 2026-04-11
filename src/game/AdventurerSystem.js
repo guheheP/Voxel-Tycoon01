@@ -348,7 +348,7 @@ export class AdventurerSystem {
   equipItem(advId, itemUid) {
     const adv = this.adventurers.find(a => a.id === advId);
     if (!adv) return false;
-    const candidate = this.inventory.items.find(i => i.uid === itemUid);
+    const candidate = this.inventory.getItemByUid(itemUid);
     if (!candidate || !this.canEquip(advId, candidate)) return false;
     const slot = getEquipSlot(candidate);
     if (!slot) return false;

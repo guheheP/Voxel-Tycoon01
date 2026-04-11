@@ -14,6 +14,8 @@ export class ShopSystem {
   constructor(inventorySystem) {
     this.inventory = inventorySystem;
     this.displayedItems = [];
+    /** 型別に陳列中アイテムをバケット化（B2: CustomerSystem の繰り返し filter 回避） */
+    this._displayedByType = { equipment: [], consumable: [], accessory: [], material: [] };
     this.maxSlots = GameConfig.shopMaxDisplaySlots;
     this.sellTimer = 0;
     this.purchasedUpgrades = [];
@@ -77,6 +79,7 @@ export class ShopSystem {
     // 売値計算
     item.value = this._calcValue(item);
     this.displayedItems.push(item);
+    this._addToDisplayedIndex(item);
     eventBus.emit('shop:displayed', { item });
     return true;
   }
@@ -91,6 +94,7 @@ export class ShopSystem {
       return null;
     }
     const item = this.displayedItems.splice(idx, 1)[0];
+    this._removeFromDisplayedIndex(item);
     this.inventory.addItem(item);
     return item;
   }
@@ -101,12 +105,54 @@ export class ShopSystem {
     if (idx === -1) return false;
 
     this.displayedItems.splice(idx, 1);
+    this._removeFromDisplayedIndex(item);
     const price = Math.floor((item.value || 10) * bonusMultiplier);
     this.inventory.addGold(price);
 
     eventBus.emit('item:sold', { item, price });
     StatsTracker.add('itemsSold', 1);
     return true;
+  }
+
+  /** 陳列中の型別インデックスに追加 (B2) */
+  _addToDisplayedIndex(item) {
+    if (!item || !item.type) return;
+    const bucket = this._displayedByType[item.type];
+    if (bucket) bucket.push(item);
+  }
+
+  /** 陳列中の型別インデックスから除去 (B2) */
+  _removeFromDisplayedIndex(item) {
+    if (!item || !item.type) return;
+    const bucket = this._displayedByType[item.type];
+    if (!bucket) return;
+    const i = bucket.indexOf(item);
+    if (i !== -1) bucket.splice(i, 1);
+  }
+
+  /** セーブロード後に型別インデックスを再構築する */
+  rebuildDisplayedIndex() {
+    for (const key of Object.keys(this._displayedByType)) {
+      this._displayedByType[key].length = 0;
+    }
+    for (const item of this.displayedItems) {
+      this._addToDisplayedIndex(item);
+    }
+  }
+
+  /** 指定タイプに合致する陳列中アイテムを返す (B2: CustomerSystem 用) */
+  getDisplayedByTypes(types) {
+    if (!types || types.length === 0) return [];
+    if (types.length === 1) {
+      return this._displayedByType[types[0]] || [];
+    }
+    // 複数タイプの場合は結合
+    const result = [];
+    for (const t of types) {
+      const bucket = this._displayedByType[t];
+      if (bucket) result.push(...bucket);
+    }
+    return result;
   }
 
   /** 自動販売（お客さんがいない場合のフォールバック） */
@@ -228,18 +274,19 @@ export class ShopSystem {
     if (this.displayedItems.length >= this.maxSlots) return;
     const rules = this.autoSellRules;
 
-    // ルールに合う候補を売値順で取得
-    const candidates = this.inventory.items
-      .filter(item => {
-        if (item.locked) return false; // ロック済みは除外
-        if (!rules.types.includes(item.type)) return false;
-        if (item.quality < rules.minQuality) return false;
-        if (item.quality > rules.maxQuality) return false;
-        if (rules.excludeTraits && item.traits && item.traits.length > 0) return false;
-        return true;
-      })
-      .map(item => ({ item, value: this._calcValue(item) }))
-      .sort((a, b) => b.value - a.value);
+    // 型別インデックスで対象タイプのアイテムだけを取得 → 大きな倉庫でも O(対象タイプのアイテム数)
+    const candidates = [];
+    for (const type of rules.types) {
+      const bucket = this.inventory.getItemsByType(type);
+      for (const item of bucket) {
+        if (item.locked) continue;
+        if (item.quality < rules.minQuality) continue;
+        if (item.quality > rules.maxQuality) continue;
+        if (rules.excludeTraits && item.traits && item.traits.length > 0) continue;
+        candidates.push({ item, value: this._calcValue(item) });
+      }
+    }
+    candidates.sort((a, b) => b.value - a.value);
 
     // 空き棚分だけ陳列
     let displayed = 0;
@@ -290,10 +337,10 @@ export class ShopSystem {
   tryAutoDispose() {
     if (!this.autoDisposeEnabled) return;
 
-    const targets = this.inventory.items.filter(item =>
-      item.type === 'material' &&
-      !item.locked &&
-      item.quality <= this.autoDisposeMaxQuality
+    // 型別インデックスで素材だけを取得 → 大きな倉庫でも O(素材数)
+    const materials = this.inventory.getItemsByType('material');
+    const targets = materials.filter(item =>
+      !item.locked && item.quality <= this.autoDisposeMaxQuality
     );
     if (targets.length === 0) return;
 

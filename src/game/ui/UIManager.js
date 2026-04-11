@@ -23,6 +23,12 @@ const TIME_NOON_END   = 0.60;  // 〜60%: 昼
 const TIME_SUNSET_END = 0.80;  // 〜80%: 夕方
 // 〜100%: 夜
 
+// 全タブID（Dirty フラグ管理用）
+const ALL_TABS = [
+  'tab-inventory', 'tab-crafting', 'tab-shop', 'tab-dispatch',
+  'tab-stats', 'tab-upgrade', 'tab-quest', 'tab-collection', 'tab-challenge',
+];
+
 export class UIManager {
   constructor(inventorySystem, shopSystem, adventurerSystem, customerSystem, dayCycleSystem, randomEventSystem, reputationSystem, questSystem, collectionSystem, battleSystem) {
     this.inventory = inventorySystem;
@@ -47,6 +53,14 @@ export class UIManager {
     this._lastTimePercent = -1;
     this._lastTimeTint = '';
     this._updateScheduled = false;
+
+    // Dirty フラグ: タブ毎に再描画が必要かを追跡
+    // 非アクティブタブの描画はスキップし、Dirty を維持したままタブ切替時に描画する
+    this._dirty = {};
+    for (const t of ALL_TABS) this._dirty[t] = false;
+    // 初回はアクティブタブだけ描画する必要がある（_init() で markAllDirty して更新）
+    this._statusBarDirty = true;
+    this._customerBadgeDirty = true;
 
     // DOM Elements
     this.elGold = document.getElementById('gold-value');
@@ -80,24 +94,30 @@ export class UIManager {
       'tab-challenge': new ChallengeTab(inventorySystem, dayCycleSystem, battleSystem),
     };
 
+    // Dirty フラグでタブ単位のルーティングを行う定数
+    // (影響範囲を最小化することで、100+個のアイテムを持つ終盤でも描画負荷が激減)
+    const INV_TABS = ['tab-inventory', 'tab-crafting', 'tab-shop', 'tab-dispatch', 'tab-collection'];
+    const SHOP_TABS = ['tab-shop'];
+    const DISPATCH_TABS = ['tab-dispatch'];
+
     // イベント購読
     this._unsubscribers = [
-      // item:sold → ショップの陳列棚更新用（inventory:changed は発火しない）
-      eventBus.on('item:sold',          () => this.updateAll()),
-      // adventurer:return → inventory:changed 経由で自動更新されるため個別リスナー不要
-      eventBus.on('inventory:changed',  () => this.updateAll()),
+      // item:sold → ステータスバー (ゴールド/売上) + ショップ/倉庫関連タブ
+      eventBus.on('item:sold',          () => { this._markStatusDirty(); this._markTabsDirty(INV_TABS); }),
+      // inventory:changed → インベントリに依存するタブ
+      eventBus.on('inventory:changed',  () => { this._markStatusDirty(); this._markTabsDirty(INV_TABS); }),
       eventBus.on('gold:changed',       () => this._onGoldChanged()),
-      eventBus.on('day:newDay',         () => this.updateAll()),
-      eventBus.on('rank:up',            () => this.updateAll()),
-      eventBus.on('recipe:unlocked',    () => { if (this.activeTab === 'tab-crafting') this.updateAll(); }),
-      eventBus.on('customer:arrived',   () => { this._updateCustomerBadge(); if (this.activeTab === 'tab-shop') this.updateAll(); }),
-      eventBus.on('customer:left',      () => { this._updateCustomerBadge(); if (this.activeTab === 'tab-shop') this.updateAll(); }),
-      eventBus.on('customer:bought',    () => { this._updateCustomerBadge(); this.updateAll(); }),
-      eventBus.on('reputation:changed', () => this._updateStatusBar()),
+      eventBus.on('day:newDay',         () => { this._markStatusDirty(); this._markAllTabsDirty(); }),
+      eventBus.on('rank:up',            () => { this._markStatusDirty(); this._markAllTabsDirty(); }),
+      eventBus.on('recipe:unlocked',    () => this._markTabsDirty(['tab-crafting', 'tab-collection'])),
+      eventBus.on('customer:arrived',   () => { this._markCustomerBadgeDirty(); this._markTabsDirty(SHOP_TABS); }),
+      eventBus.on('customer:left',      () => { this._markCustomerBadgeDirty(); this._markTabsDirty(SHOP_TABS); }),
+      eventBus.on('customer:bought',    () => { this._markCustomerBadgeDirty(); this._markStatusDirty(); this._markTabsDirty(SHOP_TABS); }),
+      eventBus.on('reputation:changed', () => this._markStatusDirty()),
       eventBus.on('reputation:levelUp', (d) => {
         eventBus.emit('toast', { message: `⭐ 評判UP！「${d.name}」になりました！`, type: 'success' });
       }),
-      eventBus.on('upgrade:purchased', () => this.updateAll()),
+      eventBus.on('upgrade:purchased', () => { this._markStatusDirty(); this._markAllTabsDirty(); }),
       eventBus.on('save:completed', () => this._showSaveIndicator()),
       // Wave A エフェクト
       eventBus.on('item:sold', (d) => this._showSaleFloatingText(d)),
@@ -106,6 +126,17 @@ export class UIManager {
       // チャレンジタブの表示/非表示
       eventBus.on('rank:up', () => this._updateChallengeTabVisibility()),
       eventBus.on('game:clear', () => this._updateChallengeTabVisibility()),
+      // adventurer:return/depart → dispatch タブ
+      eventBus.on('adventurer:return',  () => this._markTabsDirty(DISPATCH_TABS)),
+      eventBus.on('adventurer:depart',  () => this._markTabsDirty(DISPATCH_TABS)),
+      eventBus.on('adventurer:joined',  () => this._markTabsDirty(DISPATCH_TABS)),
+      eventBus.on('adventurer:levelUp', () => this._markTabsDirty(DISPATCH_TABS)),
+      // クエスト
+      eventBus.on('quest:updated',      () => this._markTabsDirty(['tab-quest'])),
+      eventBus.on('quest:completed',    () => this._markTabsDirty(['tab-quest'])),
+      // 図鑑
+      eventBus.on('collection:newItem', () => this._markTabsDirty(['tab-collection'])),
+      eventBus.on('collection:newTrait',() => this._markTabsDirty(['tab-collection'])),
     ];
 
     this._init();
@@ -133,16 +164,63 @@ export class UIManager {
     }
   }
 
+  /** 全タブ再描画 — 互換のために残すが、内部は Dirty フラグ経由で動作する */
   updateAll() {
+    this._markStatusDirty();
+    this._markCustomerBadgeDirty();
+    this._markAllTabsDirty();
+  }
+
+  /** 複数タブをDirtyとしてマークし、RAFでフラッシュを予約 */
+  _markTabsDirty(tabIds) {
+    for (const id of tabIds) this._dirty[id] = true;
+    this._scheduleFlush();
+  }
+
+  _markAllTabsDirty() {
+    for (const id of ALL_TABS) this._dirty[id] = true;
+    this._scheduleFlush();
+  }
+
+  _markStatusDirty() {
+    this._statusBarDirty = true;
+    this._scheduleFlush();
+  }
+
+  _markCustomerBadgeDirty() {
+    this._customerBadgeDirty = true;
+    this._scheduleFlush();
+  }
+
+  /** 次フレームでフラッシュ — 連続イベントを 1 回にまとめる */
+  _scheduleFlush() {
     if (this._updateScheduled) return;
     this._updateScheduled = true;
     requestAnimationFrame(() => {
       this._updateScheduled = false;
+      this._flushDirty();
+    });
+  }
+
+  /**
+   * アクティブタブの Dirty フラグが立っていれば描画し、フラグを落とす。
+   * 非アクティブタブは Dirty を保持したまま、タブ切替時に描画する。
+   * ステータスバー/来客バッジも同じく Dirty フラグ制御。
+   */
+  _flushDirty() {
+    if (this._statusBarDirty) {
+      this._statusBarDirty = false;
       this._updateStatusBar();
+    }
+    if (this._customerBadgeDirty) {
+      this._customerBadgeDirty = false;
       this._updateCustomerBadge();
+    }
+    if (this._dirty[this.activeTab]) {
+      this._dirty[this.activeTab] = false;
       const tab = this.tabs[this.activeTab];
       if (tab) tab.render();
-    });
+    }
   }
 
   _init() {
@@ -193,7 +271,12 @@ export class UIManager {
     this.elSections.forEach(sec => {
       sec.classList.toggle('active', sec.id === targetId);
     });
-    this.updateAll();
+    // 新しいアクティブタブが Dirty の場合は即座に描画
+    // (非アクティブ中に状態が変化していてもここで確実に反映される)
+    this._dirty[targetId] = true;
+    this._markStatusDirty();
+    this._markCustomerBadgeDirty();
+    this._scheduleFlush();
     eventBus.emit('tab:switched', { tabId: targetId });
   }
 

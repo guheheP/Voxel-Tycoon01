@@ -113,9 +113,8 @@ export class CustomerSystem {
   }
 
   _tryPurchase(customer) {
-    const matching = this.shop.displayedItems.filter(item =>
-      customer.demandTypes.includes(item.type)
-    );
+    // B2: 型別インデックスでマッチを高速取得 (O(displayed) → O(type-bucket))
+    const matching = this.shop.getDisplayedByTypes(customer.demandTypes);
     if (matching.length === 0) return;
 
     // 最も高いアイテムを購入
