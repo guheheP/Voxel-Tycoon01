@@ -612,7 +612,12 @@ export class CraftingTab {
       const upgradeQ = { effectType: 'quality_bonus', result: 0 };
       eventBus.emit('upgrade:queryBonus', upgradeQ);
       const newItem = craftItem(recipeId, materials, selectedTraits, qualityBonus + upgradeQ.result);
+
+      // バッチモード: 複数素材の除去 → 結果アイテム追加を 1 回の inventory:changed に集約
+      this.inventory.beginBatch();
       materials.forEach(m => this.inventory.removeItem(m.uid, true)); // force: ロック中でも調合可能
+      this.inventory.forceAddItem(newItem);
+      this.inventory.endBatch();
 
       // 融合が起きたかチェック（元のトレイトにない特性が結果に含まれている）
       for (const t of newItem.traits) {
@@ -621,10 +626,7 @@ export class CraftingTab {
           break;
         }
       }
-      // 調合品は必ず獲得（素材を消費しているため）
-      this.inventory.forceAddItem(newItem);
 
-      eventBus.emit('inventory:changed');
       eventBus.emit('item:crafted', { item: newItem });
 
       this.selectedMaterials = {};

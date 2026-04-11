@@ -18,6 +18,10 @@ export class CollectionSystem {
     // 発見済み特性名
     this.discoveredTraits = new Set();
 
+    // B3: getStatsByType のキャッシュ（新規発見時のみ invalidate）
+    this._statsCache = null;
+    this._completionCache = -1;
+
     this._bindEvents();
   }
 
@@ -68,6 +72,9 @@ export class CollectionSystem {
         bestQuality: item.quality,
         count: 1,
       };
+      // B3: 新規発見でのみキャッシュ invalidate（品質更新やカウント増加は統計に影響しない）
+      this._statsCache = null;
+      this._completionCache = -1;
       eventBus.emit('collection:newItem', { blueprintId: id, name: item.name });
     } else {
       const entry = this.discoveredItems[id];
@@ -78,11 +85,13 @@ export class CollectionSystem {
     }
   }
 
-  /** 図鑑の収集率 (0〜1) */
+  /** 図鑑の収集率 (0〜1) — キャッシュ有り (B3) */
   getCompletionRate() {
+    if (this._completionCache >= 0) return this._completionCache;
     const totalItems = Object.keys(ItemBlueprints).length;
     const discovered = Object.keys(this.discoveredItems).length;
-    return totalItems > 0 ? discovered / totalItems : 0;
+    this._completionCache = totalItems > 0 ? discovered / totalItems : 0;
+    return this._completionCache;
   }
 
   /** 収集率ボーナス — 評判に加算される値 */
@@ -92,8 +101,10 @@ export class CollectionSystem {
     return Math.floor(rate * 10);
   }
 
-  /** カテゴリ別の発見数を取得 */
+  /** カテゴリ別の発見数を取得 — キャッシュ有り (B3)
+   *  キャッシュは新規発見時のみ無効化される。bestQuality/count 更新は無関係。 */
   getStatsByType() {
+    if (this._statsCache) return this._statsCache;
     const stats = { material: { total: 0, found: 0 }, equipment: { total: 0, found: 0 }, consumable: { total: 0, found: 0 }, accessory: { total: 0, found: 0 } };
     for (const [id, bp] of Object.entries(ItemBlueprints)) {
       const type = bp.type || 'material';
@@ -102,6 +113,7 @@ export class CollectionSystem {
         if (this.discoveredItems[id]) stats[type].found++;
       }
     }
+    this._statsCache = stats;
     return stats;
   }
 
@@ -130,6 +142,9 @@ export class CollectionSystem {
     if (data.discoveredTraits) {
       data.discoveredTraits.forEach(t => this.discoveredTraits.add(t));
     }
+    // B3: ロード後にキャッシュを invalidate
+    this._statsCache = null;
+    this._completionCache = -1;
   }
 
   dispose() {
